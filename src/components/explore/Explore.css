@@ -1,0 +1,374 @@
+.explore-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding-bottom: 50px;
+}
+
+.explore-header {
+  background: #ff6b6b;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.recipe-card {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.recipe-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.card-emoji {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  background: #fff0f0;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.recipe-card h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.view-btn {
+  margin-top: auto;
+  color: #ff6b6b;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* Modal / Popup Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: white;
+  color: black;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  border-radius: 20px;
+  padding: 30px;
+  position: relative;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  animation: slideUp 0.3s ease;
+}
+
+.modal-body {
+  text-align: left;
+  line-height: 1.6;
+  color: #444;
+}
+
+.close-btn {
+  position: absolute;
+  top: 5px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #999;
+}
+
+.close-btn:hover {
+  background: none;
+  color: #ff6b6b;
+  cursor: pointer;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: 50px;
+  color: #666;
+}
+
+.empty-state button {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.delete-btn-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #fff;
+  color: rgb(135, 135, 135);
+  border: 1px solid white;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 1;
+  transition: color 0.2s;
+  z-index: 2;
+}
+
+.delete-btn-overlay:hover {
+  background-color: white;
+  color: #ff6b6b;
+  border-color: white;
+}
+
+/* Force the title input and textareas to have a 'Light Mode' look */
+.edit-input-title, 
+.edit-textarea {
+  background-color: #ffffff !important; /* Pure white background */
+  color: #212529 !important;            /* Dark charcoal text for high contrast */
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  width: 100%;
+  padding: 12px;
+  margin-top: 40px;
+  font-family: inherit;
+  box-sizing: border-box; /* Ensures padding doesn't break width */
+}
+
+/* Focus state to make it feel interactive */
+.edit-input-title:focus, 
+.edit-textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Specifically for the title */
+.edit-input-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Specifically for the ingredients/instructions */
+.edit-textarea {
+  min-height: 150px;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-top: 0px;
+  resize: vertical; /* Allows user to pull the box longer if needed */
+}
+
+.edit-input-title::placeholder,
+.edit-textarea::placeholder {
+  color: #adb5bd;
+}
+
+
+.search-input {
+  width: 100%;
+  padding: 12px 35px 12px 20px; 
+  font-size: 1rem;
+  border: 2px solid #eee;
+  border-radius: 25px;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+  color: #333;
+}
+
+.clear-search {
+  position: absolute;
+  right: 12px; 
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  font-size: 1.4rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.clear-search:hover {
+  color: #ff6b6b;
+  background: none;
+}
+
+/* Position the dropdown content */
+.dropdown-menu {
+  position: absolute;
+  top: 100%; /* Sits directly below the 'Improve' button */
+  left: 0;
+  background-color: white;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1001; /* Must be higher than the modal content */
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-top: 5px;
+}
+
+/* Style the buttons inside the dropdown */
+.dropdown-menu button {
+  color: #333 !important; /* Force dark text */
+  padding: 14px 18px;
+  text-decoration: none;
+  display: block;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+  border-radius: 0px;
+}
+
+.dropdown-menu button:hover {
+  background-color: #f1f1f1;
+  color: #ff6b6b !important;
+}
+
+.ai-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.manual-btn {
+  height: 40px;
+  background-color: #f8f9fa;
+  color: #9f9f9f;
+  border: 3px solid #dee2e6;
+  padding: 0 15px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.manual-btn:hover {
+  background-color: #e2e6ea;
+  border-color: #adb5bd;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto 15px auto;
+}
+
+.explore-header {
+  background: #ff6b6b;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto 20px auto;
+}
+
+.search-actions-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  max-width: 800px;
+  margin: 20px auto 0 auto;
+  flex-wrap: wrap-reverse;
+}
+
+.search-container {
+  position: relative;
+  flex: 2;
+  min-width: 300px;
+  margin: 0;
+  margin-right: 60px;
+}
+
+.start-crafting-btn {
+  flex: 0 1 auto;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap; /* Keeps text on one line */
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustment for very small phones */
+@media (max-width: 480px) {
+  .search-container {
+    min-width: 100%;
+  }
+  .start-crafting-btn {
+    width: 100%;
+  }
+}
