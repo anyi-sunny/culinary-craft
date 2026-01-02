@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh; /* Mobile browser toolbar fix */
+  height: 100dvh;
   margin: 0 auto;
   background: white;
   box-shadow: 0 0 20px rgba(0,0,0,0.1);
@@ -74,10 +74,11 @@
   border: 1px solid #ddd;
   border-radius: 25px;
   outline: none;
-  font-size: 16px; /* Prevents auto-zoom on iOS */
+  font-size: 16px;
   min-width: 0;
 }
 
+/* Default styles for buttons inside the input bar (Blue) */
 .input-area button {
   padding: 10px 20px;
   background: #007bff;
@@ -90,10 +91,14 @@
   transition: background 0.2s;
 }
 
+.input-area button:hover {
+  background: #0056b3;
+}
+
 .save-btn { background-color: #28a745 !important; }
 .save-btn:hover { background-color: #218838 !important; }
 
-/* --- Upload Button --- */
+/* --- Icon Button (Upload) --- */
 .icon-button {
   display: flex;
   align-items: center;
@@ -118,12 +123,42 @@
 /* Hide icon on desktop by default */
 .icon-button .btn-icon { display: none; }
 
+/* --- New Class for Tutorial Modal Button --- */
+/* This mimics the .input-area button style but works anywhere */
+.tutorial-blue-btn {
+  background-color: #007bff !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 25px !important;
+  padding: 10px 20px !important;
+  font-weight: bold;
+  opacity: 1;
+}
+
 /* --- Typing Indicator --- */
 .typing-indicator {
   color: #666;
   font-style: italic;
   font-size: 0.9rem;
   padding: 10px;
+}
+
+.got-it-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background 0.2s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.got-it-btn:hover {
+  background-color: #0056b3;
 }
 
 /* --- Consolidated Mobile Optimization --- */
@@ -141,17 +176,23 @@
     font-size: 0.9rem;
   }
 
-/* Forcefully hide the text */
-  .icon-button .btn-text {
-    display: none !important; 
-    width: 0;
-    height: 0;
-    overflow: hidden;
+  .icon-button {
+    width: 44px; /* Maintain 44px touch target */
+    padding: 0;
+    border-radius: 50%;
   }
 
-  /* Forcefully show the icon */
-  .icon-button .btn-icon {
-    display: block !important;
-    font-size: 1.2rem;
+  .icon-button .btn-text { display: none !important; }
+  
+  .icon-button .btn-icon { 
+    display: block !important; 
+    font-size: 1.2rem; /* FIXED TYPO: was 0.2rem */
+  }
+
+  .modal-content {
+    width: 90% !important; /* Leaves 5% gap on left and right */
+    max-width: 400px;      /* Prevents it from getting too wide on tablets */
+    margin: 0 auto;        /* Centers it */
+    box-sizing: border-box; 
   }
 }

@@ -1,0 +1,55 @@
+.chat-navbar {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: #ff6b6b;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.hamburger-icon {
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+  padding: 5px;
+}
+
+.nav-menu {
+  position: absolute;
+  top: 100%;
+  left: 10px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+.nav-menu button {
+  padding: 12px 20px;
+  border: none;
+  background: none;
+  text-align: left;
+  width: 100px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #ff8888;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.nav-menu button:hover {
+  background: #f8f9fa;
+  color: #ff6b6b;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

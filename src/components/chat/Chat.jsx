@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BedrockAgentRuntimeClient, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, DeleteCommand, PutCommand } from "@aws-sdk/lib-dynamodb"; // Added PutCommand
+import { DynamoDBDocumentClient, DeleteCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import ReactMarkdown from 'react-markdown';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+// Styling Imports
 import './Chat.css';
+import './ChatNavbar.css'; // Make sure this matches your filename
 import './../explore/modal/RecipeModal.css';
 import SplashTransition from '../SplashTransition';
-import { useLocation, useNavigate } from 'react-router-dom';
 
 // AWS Clients
 const client = new BedrockAgentRuntimeClient({
@@ -29,8 +32,15 @@ const docClient = DynamoDBDocumentClient.from(dbClient);
 function Chat() {
     const location = useLocation();
     const navigate = useNavigate();
-    const [sessionId] = useState(() => `session-${Math.random().toString(36).substr(2, 9)}`);
+
+    const [showTutorial, setShowTutorial] = useState(false);
     
+    // --- NAVBAR STATE ---
+    const [isNavOpen, setIsNavOpen] = useState(false);
+    const navRef = useRef(null);
+    // --------------------
+
+    const [sessionId] = useState(() => `session-${Math.random().toString(36).substr(2, 9)}`);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -41,7 +51,6 @@ function Chat() {
     const fileInputRef = useRef(null);
     const recipeContextRef = useRef(null);
 
-    // FIX: Initialize with empty strings to keep inputs "Controlled" from the start
     const [stagingRecipe, setStagingRecipe] = useState({
         title: '',
         ingredients: '',
@@ -49,6 +58,25 @@ function Chat() {
         recipeId: null
     });
     const [isConfirmingSave, setIsConfirmingSave] = useState(false);
+
+    useEffect(() => {
+        // If we are NOT editing an existing recipe, show the tutorial
+        if (!location.state?.recipeToImprove) {
+            setShowTutorial(true);
+        }
+    }, [location.state]);
+
+    // --- NAVBAR CLICK OUTSIDE LOGIC ---
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (navRef.current && !navRef.current.contains(event.target)) {
+                setIsNavOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+    // ----------------------------------
 
     useEffect(() => {
         const loadContext = async () => {
@@ -65,7 +93,6 @@ function Chat() {
 
                 setLoading(true);
                 try {
-                    // FIX: Explicitly pass the recipe data in this initial prompt
                     const introMessage = `The user wants to ${saveMode === 'UPDATE' ? 'edit' : 'make a copy of'} this recipe:
                     Title: ${recipeToImprove.title}
                     Ingredients: ${recipeToImprove.ingredients}
@@ -189,18 +216,11 @@ function Chat() {
                 "...end of instructions... | [Insert 1 Emoji Here] | [Closing remarks]"
             );
             
-            // 2. Split by Pipe
             const parts = botResponse.split('|');
-
-            // Part 0: Recipe Data
             const cleanRecipeData = parts[0];
-
-            // Part 1: The Emoji (Middle of the sandwich)
             let rawEmoji = (parts.length > 1) ? parts[1] : null;
-
             const aiEmoji = rawEmoji ? rawEmoji.trim() : '🥘';
 
-            // 3. Parse the Recipe Text (Part 0)
             const nameMatch = cleanRecipeData.match(/(?:TITLE|RECIPE_NAME):\s*(.*)/i);
             const ingMatch = cleanRecipeData.match(/(?:INGREDIENTS|RECIPE_INGREDIENTS):\s*([\s\S]*?)(?=INSTRUCTIONS|RECIPE_INSTRUCTIONS|$)/i);
             const insMatch = cleanRecipeData.match(/(?:INSTRUCTIONS|RECIPE_INSTRUCTIONS):\s*([\s\S]*)/i);
@@ -240,7 +260,6 @@ function Chat() {
                 Item: finalItem
             }));
 
-            // Replacement logic: Delete old if we have an activeRecipeId
             if (activeRecipeId && activeRecipeId !== finalItem.recipeId) {
                 await docClient.send(new DeleteCommand({
                     TableName: "CulinaryCraftBackendStack-RecipesTable058A1F33-1GRXYSW38KE1I",
@@ -248,7 +267,6 @@ function Chat() {
                 }));
             }
 
-            // Redirect to explore after successful save
             navigate('/explore');
             
         } catch (err) {
@@ -260,10 +278,70 @@ function Chat() {
     return (
         <SplashTransition>
             <div className="chat-container">
-                <header className="chat-header">
-                    <button onClick={() => navigate('/')} className="back-btn">← Home</button>
-                    <h1>Culinary Craft</h1>
-                </header>
+                <nav className="chat-navbar" ref={navRef}>
+                    <button 
+                        className="hamburger-icon" 
+                        onClick={() => setIsNavOpen(!isNavOpen)}
+                    >
+                        ☰
+                    </button>
+                    
+                    {isNavOpen && (
+                        <div className="nav-menu">
+                            <button onClick={() => navigate('/')}>Home</button>
+                            <button onClick={() => navigate('/explore')}>Explore</button>
+                        </div>
+                    )}
+                    <span style={{ marginLeft: '15px', fontWeight: 'bold', color: 'white' }}>
+                        Culinary Craft AI
+                    </span>
+                </nav>
+
+                {showTutorial && (
+                    <div className="modal-overlay">
+                        <div className="modal-content tutorial-modal">
+                            <h2 style={{margin: '0 0 10px 0'}}>Welcome to Culinary Craft!</h2>
+                            
+                            <p style={{fontSize: '1.1rem'}}>Chat with us to generate a recipe from scratch!</p>
+                            
+                            <hr style={{width: '100%', border: '0', borderTop: '1px solid #eee', margin: '10px 0'}}/>
+
+                            <p>You can also upload a recipe you already have using this button:</p>
+                            
+                            {/* FAKE UPLOAD BUTTON (Visual Copy) */}
+                            <div className="fake-btn-display">
+                                <button className="icon-button tutorial-blue-btn" style={{pointerEvents: 'none'}}>
+                                    <span className='btn-text'>Upload Recipe</span>
+                                    <span className="btn-icon">📎</span>
+                                </button>
+                            </div>
+
+                            <p>Once you're done, click the save button to save this recipe:</p>
+
+                            {/* FAKE SAVE BUTTON (Visual Copy) */}
+                            <div className="fake-btn-display">
+                                <button 
+                                    className="save-btn" 
+                                    style={{
+                                        backgroundColor: '#28a745', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        borderRadius: '20px', 
+                                        padding: '0 15px', 
+                                        height: '40px',
+                                        pointerEvents: 'none'
+                                    }}
+                                >
+                                    Save
+                                </button>
+                            </div>
+
+                            <button className="got-it-btn" onClick={() => setShowTutorial(false)}>
+                                Got it, let's cook!
+                            </button>
+                        </div>
+                    </div>
+                )}
                 
                 <div className="messages-area">
                     {messages.map((msg, idx) => (
@@ -300,17 +378,17 @@ function Chat() {
                         <h2 style={{padding: '5px', margin: '0px', fontSize: '30px'}}>Review & Name Your Recipe</h2>
                         <input 
                             className="edit-input-title"
-                            value={stagingRecipe.title || ''} // Fallback to empty string
+                            value={stagingRecipe.title || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, title: e.target.value})}
                         />
                         <textarea 
                             className="edit-textarea"
-                            value={stagingRecipe.ingredients || ''} // Fallback to empty string
+                            value={stagingRecipe.ingredients || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, ingredients: e.target.value})}
                         />
                         <textarea 
                             className="edit-textarea"
-                            value={stagingRecipe.instructions || ''} // Fallback to empty string
+                            value={stagingRecipe.instructions || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, instructions: e.target.value})}
                         />
                         <div style={{display: 'flex', gap: '10px', marginTop: '30px'}}>
