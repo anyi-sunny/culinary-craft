@@ -211,6 +211,7 @@ function Chat() {
             const botResponse = await callAgent(
                 "Please prepare the final version of this recipe for the review modal. " + 
                 "Use the tags TITLE:, INGREDIENTS:, and INSTRUCTIONS:. " +
+                "Separate each ingredient within the section using a dash at the beginning of each and a new line in between. " +
                 "Crucially, use vertical bars '|' to separate the recipe, the emoji, and your closing remarks. " +
                 "Format exactly like this:\n" +
                 "...end of instructions... | [Insert 1 Emoji Here] | [Closing remarks]"
