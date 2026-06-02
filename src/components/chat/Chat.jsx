@@ -1,17 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BedrockAgentRuntimeClient, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, DeleteCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthenticator } from '@aws-amplify/ui-react';
 
-// 1. ADDED Authenticator to imports
-import { useAuthenticator, Authenticator } from '@aws-amplify/ui-react';
-import '@aws-amplify/ui-react/styles.css'; // Ensure styles are imported
+import { saveRecipe, deleteRecipe } from '../../lib/db';
+import TopNav from '../nav/TopNav';
+import { useAuthModal } from '../auth/authModalContext';
 
 // Styling Imports
 import './Chat.css';
-import './ChatNavbar.css'; 
 import './../explore/modal/RecipeModal.css';
 import SplashTransition from '../SplashTransition';
 
@@ -93,7 +91,7 @@ const formatBedrockError = (error) => {
     if (isMarketplaceAccessIssue) {
         details.push('The Bedrock model behind this agent is blocked by AWS Marketplace access.');
         details.push('The calling identity or service role needs Marketplace permissions to enable the model subscription.');
-        details.push('Check aws-marketplace:ViewSubscriptions and aws-marketplace:Subscribe, then verify model access for Claude 3.7 Sonnet in Bedrock.');
+        details.push('Check aws-marketplace:ViewSubscriptions and aws-marketplace:Subscribe, then verify model access in Bedrock.');
     } else if (isAccessDenied) {
         details.push('Access appears to be denied by IAM policy.');
         details.push('Required action is usually: bedrock:InvokeAgent.');
@@ -107,7 +105,7 @@ const formatBedrockError = (error) => {
     return details.join(' ');
 };
 
-// AWS Clients
+// Bedrock agent runtime client (chat only; DynamoDB lives in lib/db.js).
 const client = new BedrockAgentRuntimeClient({
     region: AWS_REGION,
     credentials: {
@@ -116,30 +114,14 @@ const client = new BedrockAgentRuntimeClient({
     },
 });
 
-const dbClient = new DynamoDBClient({
-    region: AWS_REGION,
-    credentials: {
-        accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
-        secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-    },
-});
-const docClient = DynamoDBDocumentClient.from(dbClient);
-
 function Chat() {
     const location = useLocation();
     const navigate = useNavigate();
 
     const [showTutorial, setShowTutorial] = useState(false);
 
-    const { authStatus, signOut, user } = useAuthenticator(context => [context.authStatus, context.user]);
-    
-    // 3. ADDED Login Modal State
-    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-
-    // --- NAVBAR STATE ---
-    const [isNavOpen, setIsNavOpen] = useState(false);
-    const navRef = useRef(null);
-    // --------------------
+    const { authStatus, user } = useAuthenticator(context => [context.authStatus, context.user]);
+    const { requireLogin } = useAuthModal();
 
     const [sessionId] = useState(() => `session-${Math.random().toString(36).substr(2, 9)}`);
     const [input, setInput] = useState('');
@@ -147,10 +129,12 @@ function Chat() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [messages, setMessages] = useState([]);
     const [activeRecipeId, setActiveRecipeId] = useState(null);
-    
+
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const recipeContextRef = useRef(null);
+    // Original recipe being edited (UPDATE mode) so we can preserve ownerId / heartedBy.
+    const editingOriginalRef = useRef(null);
 
     const [stagingRecipe, setStagingRecipe] = useState({
         title: '',
@@ -160,58 +144,11 @@ function Chat() {
     });
     const [isConfirmingSave, setIsConfirmingSave] = useState(false);
 
-    const formFields = {
-        signIn: {
-        username: {
-            label: 'Email',
-            placeholder: 'Enter your email',
-            type: 'email', // Ensures mobile keyboard shows @ symbol
-            isRequired: true,
-        },
-        },
-        signUp: {
-        username: {
-            label: 'Email',
-            placeholder: 'Enter your email',
-            type: 'email',
-            isRequired: true,
-            order: 1, // Forces this to be the first field
-        },
-        password: {
-            label: 'Password',
-            placeholder: 'Enter your password',
-            isRequired: true,
-            order: 2,
-        },
-        confirm_password: {
-            label: 'Confirm Password',
-            placeholder: 'Please confirm your password',
-            order: 3,
-        }
-        },
-        forgotPassword: {
-        username: {
-            label: 'Email',
-            placeholder: 'Enter your email',
-        },
-        },
-    };
     useEffect(() => {
         if (!location.state?.recipeToImprove) {
             setShowTutorial(true);
         }
     }, [location.state]);
-
-    // --- NAVBAR CLICK OUTSIDE LOGIC ---
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (navRef.current && !navRef.current.contains(event.target)) {
-                setIsNavOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     useEffect(() => {
         const loadContext = async () => {
@@ -221,6 +158,7 @@ function Chat() {
 
                 if (saveMode === 'UPDATE') {
                     setActiveRecipeId(recipeToImprove.recipeId);
+                    editingOriginalRef.current = recipeToImprove;
                 }
 
                 recipeContextRef.current = recipeToImprove;
@@ -290,7 +228,7 @@ function Chat() {
 
         const command = new InvokeAgentCommand(payload);
         const response = await client.send(command);
-        
+
         let fullResponse = "";
         if (response.completion) {
             for await (const chunk of response.completion) {
@@ -307,26 +245,26 @@ function Chat() {
 
         const displayInput = input;
         const displayFile = selectedFile;
-        
-        setMessages(prev => [...prev, { 
-            role: 'user', 
-            content: displayFile ? `[Attached: ${displayFile.name}] ${displayInput}` : displayInput 
+
+        setMessages(prev => [...prev, {
+            role: 'user',
+            content: displayFile ? `[Attached: ${displayFile.name}] ${displayInput}` : displayInput
         }]);
-        
+
         setInput('');
         setSelectedFile(null);
         setLoading(true);
 
         try {
             let agentInput = displayInput || "Please analyze the attached file.";
-            
+
             if (recipeContextRef.current) {
                 const r = recipeContextRef.current;
                 agentInput = `The user is working on this recipe:
                 Name: ${r.title}
                 Ingredients: ${r.ingredients}
                 Instructions: ${r.instructions}
-                
+
                 User's Request: ${agentInput}`;
                 recipeContextRef.current = null;
             }
@@ -342,12 +280,12 @@ function Chat() {
     };
 
     const handleSaveCommand = async () => {
-        // Check authentication before saving
-        if (authStatus !== 'authenticated'){
-            setIsLoginModalOpen(true);
+        // Saving requires an account; prompt login for guests.
+        if (authStatus !== 'authenticated') {
+            requireLogin();
             return;
         }
-        
+
         setLoading(true);
         try {
             const botResponse = await callAgent(
@@ -364,7 +302,7 @@ function Chat() {
                 "INSTRUCTIONS:\n- Preheat oven to 350F\n- Mix and bake\n" +
                 "| [Insert 1 Emoji Here] | [Closing remarks]"
             );
-            
+
             const parts = botResponse.split('|');
             // Strip markdown BEFORE regex so wrapped tags like "**TITLE:**" still parse.
             const cleanRecipeData = stripMarkdown(parts[0]);
@@ -399,28 +337,31 @@ function Chat() {
 
     const commitSave = async (finalRecipe) => {
         try {
+            const newId = finalRecipe.recipeId || `recipe-${Date.now()}`;
+            const isUpdate = Boolean(activeRecipeId) && activeRecipeId === newId;
+            // Updates preserve the original record (ownerId, heartedBy); new
+            // recipes are owned by the logged-in creator.
+            const base = isUpdate ? (editingOriginalRef.current || {}) : {};
+
             const finalItem = {
+                ...base,
                 title: finalRecipe.title,
                 emoji: finalRecipe.emoji || '🥘',
                 ingredients: finalRecipe.ingredients,
                 instructions: finalRecipe.instructions,
-                recipeId: finalRecipe.recipeId || `recipe-${Date.now()}`
+                recipeId: newId,
             };
+            if (!isUpdate) {
+                finalItem.ownerId = user?.userId;
+            }
 
-            await docClient.send(new PutCommand({
-                TableName: "CulinaryCraftBackendStack-RecipesTable058A1F33-1GRXYSW38KE1I",
-                Item: finalItem
-            }));
+            await saveRecipe(finalItem);
 
-            if (activeRecipeId && activeRecipeId !== finalItem.recipeId) {
-                await docClient.send(new DeleteCommand({
-                    TableName: "CulinaryCraftBackendStack-RecipesTable058A1F33-1GRXYSW38KE1I",
-                    Key: { recipeId: activeRecipeId }
-                }));
+            if (activeRecipeId && activeRecipeId !== newId) {
+                await deleteRecipe(activeRecipeId);
             }
 
             navigate('/explore');
-            
         } catch (err) {
             console.error("Commit Save Error:", err);
             alert("Final save failed.");
@@ -430,68 +371,18 @@ function Chat() {
     return (
         <SplashTransition>
             <div className="chat-container">
-                <nav className="chat-navbar" ref={navRef}>
-                    <button 
-                        className="hamburger-icon" 
-                        onClick={() => setIsNavOpen(!isNavOpen)}
-                    >
-                        ☰
-                    </button>
-                    
-                    {isNavOpen && (
-                        <div className="nav-menu">
-                            <button onClick={() => navigate('/')}>Home</button>
-                            <button onClick={() => navigate('/explore')}>Explore</button>
-                        </div>
-                    )}
-                    <span style={{ marginLeft: '15px', fontWeight: 'bold', color: 'white' }}>
-                        Culinary Craft AI
-                    </span>
-                    <div className="nav-right">
-                        {authStatus === 'authenticated' ? (
-                            <div style={{ 
-                                position: 'absolute', 
-                                top: '20px', 
-                                right: '20px', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '15px',
-                                zIndex: 10 
-                            }}>
-                                <div className="welcome-user-badge">
-                                    {/* Display email if available, otherwise just "Chef" */}
-                                    Hello, {user?.signInDetails?.loginId || "Chef"}! 👋
-                                </div>
-                                
-                                <button 
-                                    className="welcome-login-btn" 
-                                    onClick={signOut}
-                                    style={{ position: 'static' }} /* Override absolute positioning to sit in flow */
-                                >
-                                    Sign Out
-                                </button>
-                            </div>
-                        ) : (
-                            <button 
-                                className="welcome-login-btn" 
-                                onClick={() => setIsLoginModalOpen(true)}
-                            >
-                                Login / Sign Up
-                            </button>
-                        )}
-                    </div>
-                </nav>
+                <TopNav title="Culinary Craft AI" />
 
                 {showTutorial && (
                     <div className="modal-overlay">
                         <div className="modal-content tutorial-modal">
                             <h2 style={{margin: '0 0 10px 0'}}>Welcome to Culinary Craft!</h2>
                             <p style={{fontSize: '1.1rem'}}>Chat with us to generate a recipe from scratch!</p>
-                            <hr style={{width: '100%', border: '0', borderTop: '1px solid #eee', margin: '10px 0'}}/>
+                            <hr style={{width: '100%', border: '0', borderTop: '1px solid var(--border)', margin: '10px 0'}}/>
                             <p>You can also upload a recipe you already have using this button:</p>
-                            
+
                             <div className="fake-btn-display">
-                                <button className="icon-button tutorial-blue-btn" style={{pointerEvents: 'none'}}>
+                                <button className="icon-button" style={{pointerEvents: 'none'}}>
                                     <span className='btn-text'>Upload Recipe</span>
                                     <span className="btn-icon">📎</span>
                                 </button>
@@ -500,18 +391,7 @@ function Chat() {
                             <p>Once you're done, click the save button to save this recipe:</p>
 
                             <div className="fake-btn-display">
-                                <button 
-                                    className="save-btn" 
-                                    style={{
-                                        backgroundColor: '#28a745', 
-                                        color: 'white', 
-                                        border: 'none', 
-                                        borderRadius: '20px', 
-                                        padding: '0 15px', 
-                                        height: '40px',
-                                        pointerEvents: 'none'
-                                    }}
-                                >
+                                <button className="save-btn" style={{pointerEvents: 'none'}}>
                                     Save
                                 </button>
                             </div>
@@ -522,7 +402,7 @@ function Chat() {
                         </div>
                     </div>
                 )}
-                
+
                 <div className="messages-area">
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`message ${msg.role}`}>
@@ -542,76 +422,40 @@ function Chat() {
                         <span className="btn-icon">📎</span>
                     </button>
                     {messages.length > 0 && (
-                        <button className="save-btn" onClick={handleSaveCommand} disabled={loading} style={{backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '20px', padding: '0 15px', cursor: 'pointer', height: '40px'}}>
+                        <button className="save-btn" onClick={handleSaveCommand} disabled={loading}>
                             Save
                         </button>
                     )}
 
-                    <input value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder={selectedFile ? `File: ${selectedFile.name}` : "Type instructions..."} />
-                    <button onClick={sendMessage} disabled={loading}>Send</button>
+                    <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder={selectedFile ? `File: ${selectedFile.name}` : "Type instructions..."} />
+                    <button className="send-btn" onClick={sendMessage} disabled={loading}>Send</button>
                 </div>
             </div>
 
             {isConfirmingSave && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h2 style={{padding: '5px', margin: '0px', fontSize: '30px'}}>Review & Name Your Recipe</h2>
-                        <input 
+                        <h2 style={{padding: '5px', margin: '0px', fontSize: '28px'}}>Review &amp; Name Your Recipe</h2>
+                        <input
                             className="edit-input-title"
+                            style={{ marginTop: '16px' }}
                             value={stagingRecipe.title || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, title: e.target.value})}
                         />
-                        <textarea 
+                        <textarea
                             className="edit-textarea"
                             value={stagingRecipe.ingredients || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, ingredients: e.target.value})}
                         />
-                        <textarea 
+                        <textarea
                             className="edit-textarea"
                             value={stagingRecipe.instructions || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, instructions: e.target.value})}
                         />
-                        <div style={{display: 'flex', gap: '10px', marginTop: '30px'}}>
-                            <button className="save-btn" onClick={() => commitSave(stagingRecipe)}>🚀 Save & Go to Explore</button>
-                            <button className="cancel-btn" onClick={() => setIsConfirmingSave(false)}>Keep Chatting</button>
+                        <div style={{display: 'flex', gap: '10px', marginTop: '24px'}}>
+                            <button className="btn btn-primary" onClick={() => commitSave(stagingRecipe)}>🚀 Save &amp; Go to Explore</button>
+                            <button className="btn btn-secondary" onClick={() => setIsConfirmingSave(false)}>Keep Chatting</button>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 4. ADDED Login/Signup Modal (Phase 3) */}
-            {isLoginModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ width: 'fit-content', maxWidth: '95vw', padding: '0', position: 'relative', overflow: 'hidden'}}>
-                        <button 
-                            onClick={() => setIsLoginModalOpen(false)} 
-                            style={{ 
-                                position: 'absolute', 
-                                top: '10px', 
-                                right: '10px', 
-                                zIndex: 10,
-                                background: 'white', 
-                                border: '1px solid #ddd', 
-                                borderRadius: '50%',
-                                width: '30px',
-                                height: '30px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
-                        >
-                            ✖
-                        </button>
-                        <Authenticator formFields={formFields}>
-                            {({ signOut, user }) => {
-                                // Automatically close modal when authentication succeeds
-                                useEffect(() => {
-                                    setIsLoginModalOpen(false);
-                                }, []);
-                                return null; 
-                            }}
-                        </Authenticator>
                     </div>
                 </div>
             )}

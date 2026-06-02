@@ -1,115 +1,185 @@
+/* Canonical modal styles (also reused by Chat's review/tutorial modals). */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
+  inset: 0;
+  background: rgba(28, 25, 23, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000; /* High z-index to sit above everything */
+  z-index: 2000;
   backdrop-filter: blur(3px);
-  animation: fadeIn 0.2s ease;
+  animation: modalFade 0.2s ease;
+  padding: 20px;
 }
 
 .modal-content {
-  background: white;
-  color: black;
-  width: 90%;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
   max-width: 600px;
-  max-height: 85vh; /* Increased slightly for better fit */
-  border-radius: 20px;
+  max-height: 86vh;
+  border-radius: var(--radius-lg);
+  padding: 30px;
   position: relative;
   overflow-y: auto;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-  animation: slideUp 0.3s ease;
+  box-shadow: var(--shadow-lg);
+  animation: modalSlide 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
 }
 
-.modal-body {
-  text-align: left;
-  line-height: 1.6;
-  color: #444;
-}
-
 .close-btn {
   position: absolute;
-  top: 15px; /* Adjusted for better touch target */
-  right: 20px;
+  top: 16px;
+  right: 18px;
   background: none;
   border: none;
-  font-size: 2rem;
-  color: #999;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--muted);
   cursor: pointer;
   z-index: 10;
+  transition: color var(--transition);
 }
-
 .close-btn:hover {
-  color: #ff6b6b;
+  color: var(--accent);
 }
 
-/* --- Edit Mode Styles --- */
-.edit-input-title, 
-.edit-textarea {
-  background-color: #ffffff !important;
-  color: #212529 !important;
-  border: 2px solid #dee2e6;
-  border-radius: 8px;
+/* Header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding-right: 32px;
+}
+.modal-emoji {
+  font-size: 2.6rem;
+}
+.modal-title {
+  margin: 0;
+  text-align: left;
+  font-size: 1.6rem;
+  flex: 1;
+}
+.modal-heart {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+
+/* Actions */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+/* Body */
+.modal-body {
+  text-align: left;
+  line-height: 1.65;
+  color: var(--text);
+}
+.modal-body h3 {
+  margin: 18px 0 8px;
+  font-size: 1.05rem;
+}
+
+/* Dropdown for "Improve with AI" */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--surface);
+  min-width: 170px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1001;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  border: 1px solid var(--border);
+}
+.dropdown-menu button {
+  color: var(--text);
+  padding: 13px 16px;
+  border: none;
+  background: none;
   width: 100%;
-  margin-top: 15px; /* Standardized margin */
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background var(--transition), color var(--transition);
+}
+.dropdown-menu button:hover {
+  background: var(--surface-2);
+  color: var(--accent);
+}
+
+/* Edit mode inputs */
+.edit-input-title,
+.edit-textarea {
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  padding: 12px;
   font-family: inherit;
   box-sizing: border-box;
 }
-
-.edit-input-title:focus, 
+.edit-input-title:focus,
 .edit-textarea:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
-
 .edit-input-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 10px;
+  font-size: 1.4rem;
+  font-weight: 700;
 }
-
+.edit-input-emoji {
+  font-size: 2rem;
+  width: 60px;
+  height: 52px;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  background: #fff;
+  flex-shrink: 0;
+}
 .edit-textarea {
   min-height: 150px;
   font-size: 1rem;
   line-height: 1.6;
   resize: vertical;
-  margin-bottom: 10px;
+  margin-top: 6px;
 }
-
 .edit-input-title::placeholder,
 .edit-textarea::placeholder {
   color: #adb5bd;
 }
 
-/* --- Mobile Modal Optimization --- */
-@media (max-width: 600px) {
-  .modal-content {
-    padding: 20px;
-    width: 95%;
-    max-height: 90dvh; /* Use dynamic viewport height */
-  }
-
-  .modal-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 15px;
-  }
-  
-  .modal-actions button {
-    width: 100%;
-    padding: 15px; /* Larger touch targets */
-  }
+@keyframes modalFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalSlide {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-/* Animations */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@media (max-width: 600px) {
+  .modal-content {
+    padding: 22px;
+    max-height: 90dvh;
+  }
+  .modal-actions {
+    flex-direction: column;
+  }
+  .modal-actions .btn {
+    width: 100%;
+  }
+}

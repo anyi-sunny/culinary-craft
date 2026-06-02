@@ -1,5 +1,5 @@
 /* =========================================
-   1. GLOBAL RESETS & THEME
+   GLOBAL RESETS
    ========================================= */
 #root {
   margin: 0 auto;
@@ -11,90 +11,122 @@
 
 body {
   margin: 0;
-  background-color: #f0f2f5;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  overflow-x: hidden;
+  background-color: var(--bg);
 }
 
 /* =========================================
-   2. WELCOME PAGE STYLES
+   WELCOME / HERO
    ========================================= */
 .welcome-container {
-  height: 100vh;
-  height: 100dvh;
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
-  color: white;
   text-align: center;
-  padding: 20px;
+  padding: 24px;
+  color: #fff;
+  background: radial-gradient(
+      1200px 600px at 50% -10%,
+      #fb923c 0%,
+      transparent 60%
+    ),
+    linear-gradient(150deg, var(--accent) 0%, var(--accent-hover) 100%);
+  overflow: hidden;
+}
+
+.welcome-account {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.welcome-content {
+  position: relative;
+  z-index: 1;
 }
 
 .welcome-title {
-  font-size: 3.5rem;
-  margin-bottom: 0.5rem;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  font-size: clamp(2.6rem, 7vw, 4rem);
+  margin-bottom: 0.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
 }
 
 .welcome-subtitle {
-  font-size: 1.5rem;
-  margin-bottom: 3rem;
-  opacity: 0.9;
+  font-size: clamp(1.05rem, 2.5vw, 1.45rem);
+  margin-bottom: 2.6rem;
+  opacity: 0.95;
 }
 
 .button-group {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
-.primary-btn, .secondary-btn {
-  padding: 15px 30px;
-  font-size: 1.2rem;
-  border-radius: 30px;
+.primary-btn,
+.secondary-btn {
+  padding: 14px 30px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 999px;
   cursor: pointer;
-  border: none;
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 2px solid transparent;
+  transition: transform var(--transition), box-shadow var(--transition),
+    background var(--transition), color var(--transition);
 }
 
 .primary-btn {
-  background: white;
-  color: #ff6b6b;
-  font-weight: bold;
+  background: #fff;
+  color: var(--accent);
+}
+.primary-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
 }
 
 .secondary-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+}
+.secondary-btn:hover {
+  transform: translateY(-3px);
   background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid white;
+  border-color: #fff;
 }
 
-.primary-btn:hover, .secondary-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+.welcome-quicklinks {
+  margin-top: 28px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.welcome-quicklinks button {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.welcome-quicklinks button:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* =========================================
-   3. GLOBAL UTILITIES
+   PAGE TRANSITION CURTAIN
    ========================================= */
-.back-btn {
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  background: transparent;
-  border: 1px solid white;
-  padding: 5px 15px;
-  font-size: 0.9rem;
-  color: white;
-  border-radius: 20px;
-  cursor: pointer;
-  z-index: 10;
-}
-
 .splash-curtain {
   position: fixed;
   top: 0;
@@ -102,175 +134,23 @@ body {
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  background-color: #ff6b6b;
+  background-color: var(--accent);
   z-index: 9999;
   pointer-events: none;
 }
 
 /* =========================================
-   4. WELCOME PAGE LOGIN BUTTON
-   ========================================= */
-.welcome-login-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: transparent;
-  color: white;
-  border: 2px solid white;
-  padding: 10px 20px;
-  border-radius: 25px;
-  font-weight: bold;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 10;
-}
-
-.welcome-login-btn:hover {
-  background-color: white;
-  color: #ff6b6b;
-  border-color: white;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-.welcome-login-btn:active {
-  background-color: #e2e6ea;
-  border-color: #dae0e5;
-  color: #ff6b6b;
-  transform: translateY(1px);
-}
-
-.welcome-user-badge {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 25px;
-  font-weight: bold;
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255,255,255,0.4);
-}
-
-/* =========================================
-   5. MOBILE TWEAKS
+   MOBILE
    ========================================= */
 @media (max-width: 480px) {
-  .welcome-title { font-size: 2.5rem; }
-  .welcome-subtitle { font-size: 1.1rem; }
   .button-group {
     flex-direction: column;
     width: 100%;
     max-width: 300px;
+    margin: 0 auto;
   }
-  .primary-btn, .secondary-btn {
+  .primary-btn,
+  .secondary-btn {
     width: 100%;
-    font-size: 1.1rem;
   }
-}
-
-/* =========================================
-   6. AMPLIFY AUTHENTICATOR OVERRIDES
-   ========================================= */
-
-/* A. Theme Colors */
-[data-amplify-theme] {
-  --amplify-colors-brand-primary-10: #e6f0ff;
-  --amplify-colors-brand-primary-80: #0056b3;
-  --amplify-colors-brand-primary-90: #004494;
-  --amplify-colors-brand-primary-100: #007bff; /* Main Blue */
-}
-
-/* B. Labels & Titles (Left Alignment Fix) */
-.amplify-label {
-  text-align: left !important;
-  width: 100%;
-  display: block;
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-/* C. General Button & Control Styling */
-.amplify-button,
-.amplify-field-group__control {
-  border-radius: 25px !important;
-}
-
-/* IMPORTANT: Only apply global pill radius to standard inputs (Username, etc) */
-/* This prevents the password field from getting double-rounded */
-.amplify-input {
-  border-radius: 25px !important;
-  text-align: left !important; /* Forces left alignment when typing */
-}
-
-/* D. Primary Button Styling */
-.amplify-button--primary {
-  background-color: #007bff !important;
-  transition: background 0.2s;
-}
-.amplify-button--primary:hover {
-  background-color: #0056b3 !important;
-}
-
-/* E. Tab Styling */
-.amplify-tabs__item--active {
-  color: #ff6b6b !important;
-  border-color: #ff6b6b !important;
-}
-.amplify-tabs__item:hover {
-  color: #ff8c8c !important;
-}
-
-/* =========================================
-   7. PASSWORD FIELD FIX (The Grid-Break)
-   ========================================= */
-
-/* 1. Target the Field Group Wrapper */
-/* Amplify uses Grid here by default; we must kill it */
-.amplify-passwordfield .amplify-field-group {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  /* This creates the physical gap between the pill and the circle */
-  gap: 5px !important; 
-  border: none !important;
-  background: transparent !important;
-}
-
-/* 2. Style the Input as its own Pill */
-.amplify-passwordfield .amplify-input {
-  flex: 1 !important;
-  border: 1px solid #8d949e !important;
-  border-radius: 25px !important;
-  background-color: white !important;
-  height: 44px !important;
-  padding-left: 20px !important;
-  padding-right: 20px !important;
-  display: block !important;
-}
-
-/* 3. Style the Eye Container as a separate unit */
-.amplify-passwordfield .amplify-field-group__outer-end {
-  margin: 0 !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
-/* 4. Style the Button as a standalone Circle */
-.amplify-passwordfield .amplify-button {
-  border: 1px solid #8d949e !important;
-  border-radius: 50% !important;
-  background-color: white !important;
-  width: 44px !important;
-  height: 44px !important;
-  min-width: 44px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  /* This removes the 'absolute' positioning Amplify uses to overlap */
-  position: relative !important;
-  right: auto !important;
-  top: auto !important;
 }
