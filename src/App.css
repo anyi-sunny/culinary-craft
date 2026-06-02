@@ -1,4 +1,6 @@
-/* --- Global Resets & Theme --- */
+/* =========================================
+   1. GLOBAL RESETS & THEME
+   ========================================= */
 #root {
   margin: 0 auto;
   padding: 0;
@@ -11,10 +13,12 @@ body {
   margin: 0;
   background-color: #f0f2f5;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  overflow-x: hidden; /* Prevents horizontal scroll on mobile */
+  overflow-x: hidden;
 }
 
-/* --- Welcome Page Styles --- */
+/* =========================================
+   2. WELCOME PAGE STYLES
+   ========================================= */
 .welcome-container {
   height: 100vh;
   height: 100dvh;
@@ -74,7 +78,9 @@ body {
   box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
-/* --- Global Utilities --- */
+/* =========================================
+   3. GLOBAL UTILITIES
+   ========================================= */
 .back-btn {
   position: absolute;
   left: 20px;
@@ -101,14 +107,58 @@ body {
   pointer-events: none;
 }
 
-/* --- Mobile Welcome Tweaks --- */
+/* =========================================
+   4. WELCOME PAGE LOGIN BUTTON
+   ========================================= */
+.welcome-login-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.welcome-login-btn:hover {
+  background-color: white;
+  color: #ff6b6b;
+  border-color: white;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.welcome-login-btn:active {
+  background-color: #e2e6ea;
+  border-color: #dae0e5;
+  color: #ff6b6b;
+  transform: translateY(1px);
+}
+
+.welcome-user-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: bold;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255,255,255,0.4);
+}
+
+/* =========================================
+   5. MOBILE TWEAKS
+   ========================================= */
 @media (max-width: 480px) {
-  .welcome-title {
-    font-size: 2.5rem;
-  }
-  .welcome-subtitle {
-    font-size: 1.1rem;
-  }
+  .welcome-title { font-size: 2.5rem; }
+  .welcome-subtitle { font-size: 1.1rem; }
   .button-group {
     flex-direction: column;
     width: 100%;
@@ -118,4 +168,109 @@ body {
     width: 100%;
     font-size: 1.1rem;
   }
+}
+
+/* =========================================
+   6. AMPLIFY AUTHENTICATOR OVERRIDES
+   ========================================= */
+
+/* A. Theme Colors */
+[data-amplify-theme] {
+  --amplify-colors-brand-primary-10: #e6f0ff;
+  --amplify-colors-brand-primary-80: #0056b3;
+  --amplify-colors-brand-primary-90: #004494;
+  --amplify-colors-brand-primary-100: #007bff; /* Main Blue */
+}
+
+/* B. Labels & Titles (Left Alignment Fix) */
+.amplify-label {
+  text-align: left !important;
+  width: 100%;
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* C. General Button & Control Styling */
+.amplify-button,
+.amplify-field-group__control {
+  border-radius: 25px !important;
+}
+
+/* IMPORTANT: Only apply global pill radius to standard inputs (Username, etc) */
+/* This prevents the password field from getting double-rounded */
+.amplify-input {
+  border-radius: 25px !important;
+  text-align: left !important; /* Forces left alignment when typing */
+}
+
+/* D. Primary Button Styling */
+.amplify-button--primary {
+  background-color: #007bff !important;
+  transition: background 0.2s;
+}
+.amplify-button--primary:hover {
+  background-color: #0056b3 !important;
+}
+
+/* E. Tab Styling */
+.amplify-tabs__item--active {
+  color: #ff6b6b !important;
+  border-color: #ff6b6b !important;
+}
+.amplify-tabs__item:hover {
+  color: #ff8c8c !important;
+}
+
+/* =========================================
+   7. PASSWORD FIELD FIX (The Grid-Break)
+   ========================================= */
+
+/* 1. Target the Field Group Wrapper */
+/* Amplify uses Grid here by default; we must kill it */
+.amplify-passwordfield .amplify-field-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  /* This creates the physical gap between the pill and the circle */
+  gap: 5px !important; 
+  border: none !important;
+  background: transparent !important;
+}
+
+/* 2. Style the Input as its own Pill */
+.amplify-passwordfield .amplify-input {
+  flex: 1 !important;
+  border: 1px solid #8d949e !important;
+  border-radius: 25px !important;
+  background-color: white !important;
+  height: 44px !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  display: block !important;
+}
+
+/* 3. Style the Eye Container as a separate unit */
+.amplify-passwordfield .amplify-field-group__outer-end {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* 4. Style the Button as a standalone Circle */
+.amplify-passwordfield .amplify-button {
+  border: 1px solid #8d949e !important;
+  border-radius: 50% !important;
+  background-color: white !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  /* This removes the 'absolute' positioning Amplify uses to overlap */
+  position: relative !important;
+  right: auto !important;
+  top: auto !important;
 }

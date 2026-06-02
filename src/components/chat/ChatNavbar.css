@@ -53,3 +53,28 @@
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.nav-right {
+  margin-left: auto; /* Pushes to the far right */
+  display: flex;
+  align-items: center;
+}
+
+.login-link {
+  color: #007bff;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 8px 15px;
+  border: 1px solid #007bff;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.user-badge {
+  background: #f1f0f0;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  color: #555;
+}

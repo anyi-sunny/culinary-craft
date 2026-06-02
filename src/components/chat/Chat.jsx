@@ -5,15 +5,111 @@ import { DynamoDBDocumentClient, DeleteCommand, PutCommand } from "@aws-sdk/lib-
 import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+// 1. ADDED Authenticator to imports
+import { useAuthenticator, Authenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css'; // Ensure styles are imported
+
 // Styling Imports
 import './Chat.css';
-import './ChatNavbar.css'; // Make sure this matches your filename
+import './ChatNavbar.css'; 
 import './../explore/modal/RecipeModal.css';
 import SplashTransition from '../SplashTransition';
 
+const AWS_REGION = import.meta.env.VITE_AWS_REGION;
+const RAW_AGENT_ID = (import.meta.env.VITE_AGENT_ID || '').trim();
+const RAW_AGENT_ALIAS_ID = (import.meta.env.VITE_AGENT_ALIAS_ID || '').trim();
+
+const getIdFromArn = (value, resourceType) => {
+    if (!value) return '';
+    if (!value.startsWith('arn:')) return value;
+
+    const marker = `:${resourceType}/`;
+    const markerIndex = value.indexOf(marker);
+    if (markerIndex === -1) return value;
+
+    const afterMarker = value.slice(markerIndex + marker.length);
+    return (afterMarker.split('/')[0] || '').trim();
+};
+
+const AGENT_ID = getIdFromArn(RAW_AGENT_ID, 'agent');
+const AGENT_ALIAS_ID = getIdFromArn(RAW_AGENT_ALIAS_ID, 'agent-alias');
+
+const validateBedrockConfig = () => {
+    const missing = [];
+    if (!AWS_REGION) missing.push('VITE_AWS_REGION');
+    if (!AGENT_ID) missing.push('VITE_AGENT_ID');
+    if (!AGENT_ALIAS_ID) missing.push('VITE_AGENT_ALIAS_ID');
+
+    if (missing.length > 0) {
+        throw new Error(`Missing Bedrock config: ${missing.join(', ')}`);
+    }
+};
+
+// Strips markdown formatting that the agent sometimes adds (e.g. **bold**, #
+// headings, `code`). The review modal uses plain <input>/<textarea> fields and
+// the saved record is plain text, so any leftover markdown shows up literally
+// (e.g. a title that reads "**"). This guarantees clean text regardless of how
+// strictly the model follows the formatting contract.
+const stripMarkdown = (text = '') =>
+    String(text)
+        .replace(/\*\*/g, '')          // bold markers
+        .replace(/__/g, '')            // alt bold / underline
+        .replace(/`/g, '')             // inline code ticks
+        .replace(/^\s*#{1,6}\s*/gm, '') // ATX headings
+        .split('\n')
+        .map((line) => line.replace(/\s+$/, '')) // trailing whitespace per line
+        // collapse runs of blank lines down to a single blank line
+        .filter((line, idx, arr) => !(line.trim() === '' && (arr[idx - 1]?.trim() ?? '') === ''))
+        .join('\n')
+        .trim();
+
+const formatBedrockError = (error) => {
+    const name = error?.name || 'UnknownError';
+    const message = error?.message || 'Unknown Bedrock Agent error.';
+    const requestId = error?.$metadata?.requestId;
+    const normalizedMessage = message.toLowerCase();
+    const isMarketplaceAccessIssue =
+        normalizedMessage.includes('aws-marketplace:viewsubscriptions') ||
+        normalizedMessage.includes('aws-marketplace:subscribe') ||
+        normalizedMessage.includes('marketplace subscription') ||
+        normalizedMessage.includes('model access is denied');
+    const isAccessDenied =
+        name.toLowerCase().includes('accessdenied') ||
+        normalizedMessage.includes('access denied') ||
+        normalizedMessage.includes('not authorized');
+
+    const details = [
+        `Bedrock request failed (${name}).`,
+        message,
+        `Region: ${AWS_REGION || 'not set'}`,
+        `Agent ID: ${AGENT_ID || 'not set'}`,
+        `Alias ID: ${AGENT_ALIAS_ID || 'not set'}`,
+    ];
+
+    if (requestId) {
+        details.push(`Request ID: ${requestId}`);
+    }
+
+    if (isMarketplaceAccessIssue) {
+        details.push('The Bedrock model behind this agent is blocked by AWS Marketplace access.');
+        details.push('The calling identity or service role needs Marketplace permissions to enable the model subscription.');
+        details.push('Check aws-marketplace:ViewSubscriptions and aws-marketplace:Subscribe, then verify model access for Claude 3.7 Sonnet in Bedrock.');
+    } else if (isAccessDenied) {
+        details.push('Access appears to be denied by IAM policy.');
+        details.push('Required action is usually: bedrock:InvokeAgent.');
+        details.push('Attach permission to the exact IAM principal represented by your frontend credentials.');
+        details.push('Also allow access to this agent alias resource in us-east-1.');
+    } else {
+        details.push('Verify that the agent and alias are in the same region and currently active.');
+        details.push('If you used ARN values in env vars, ensure they point to this exact agent and alias.');
+    }
+
+    return details.join(' ');
+};
+
 // AWS Clients
 const client = new BedrockAgentRuntimeClient({
-    region: import.meta.env.VITE_AWS_REGION,
+    region: AWS_REGION,
     credentials: {
         accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
         secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
@@ -21,7 +117,7 @@ const client = new BedrockAgentRuntimeClient({
 });
 
 const dbClient = new DynamoDBClient({
-    region: import.meta.env.VITE_AWS_REGION,
+    region: AWS_REGION,
     credentials: {
         accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
         secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
@@ -34,7 +130,12 @@ function Chat() {
     const navigate = useNavigate();
 
     const [showTutorial, setShowTutorial] = useState(false);
+
+    const { authStatus, signOut, user } = useAuthenticator(context => [context.authStatus, context.user]);
     
+    // 3. ADDED Login Modal State
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
     // --- NAVBAR STATE ---
     const [isNavOpen, setIsNavOpen] = useState(false);
     const navRef = useRef(null);
@@ -59,8 +160,43 @@ function Chat() {
     });
     const [isConfirmingSave, setIsConfirmingSave] = useState(false);
 
+    const formFields = {
+        signIn: {
+        username: {
+            label: 'Email',
+            placeholder: 'Enter your email',
+            type: 'email', // Ensures mobile keyboard shows @ symbol
+            isRequired: true,
+        },
+        },
+        signUp: {
+        username: {
+            label: 'Email',
+            placeholder: 'Enter your email',
+            type: 'email',
+            isRequired: true,
+            order: 1, // Forces this to be the first field
+        },
+        password: {
+            label: 'Password',
+            placeholder: 'Enter your password',
+            isRequired: true,
+            order: 2,
+        },
+        confirm_password: {
+            label: 'Confirm Password',
+            placeholder: 'Please confirm your password',
+            order: 3,
+        }
+        },
+        forgotPassword: {
+        username: {
+            label: 'Email',
+            placeholder: 'Enter your email',
+        },
+        },
+    };
     useEffect(() => {
-        // If we are NOT editing an existing recipe, show the tutorial
         if (!location.state?.recipeToImprove) {
             setShowTutorial(true);
         }
@@ -76,7 +212,6 @@ function Chat() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-    // ----------------------------------
 
     useEffect(() => {
         const loadContext = async () => {
@@ -88,7 +223,6 @@ function Chat() {
                     setActiveRecipeId(recipeToImprove.recipeId);
                 }
 
-                // Store the context locally
                 recipeContextRef.current = recipeToImprove;
 
                 setLoading(true);
@@ -134,9 +268,11 @@ function Chat() {
     };
 
     const callAgent = async (textToSend, file = null) => {
+        validateBedrockConfig();
+
         const payload = {
-            agentId: import.meta.env.VITE_AGENT_ID,
-            agentAliasId: import.meta.env.VITE_AGENT_ALIAS_ID,
+            agentId: AGENT_ID,
+            agentAliasId: AGENT_ALIAS_ID,
             sessionId: sessionId,
             inputText: textToSend,
         };
@@ -199,26 +335,39 @@ function Chat() {
             setMessages(prev => [...prev, { role: 'assistant', content: botResponse }]);
         } catch (error) {
             console.error("Error:", error);
-            setMessages(prev => [...prev, { role: 'error', content: "Error connecting to Agent." }]);
+            setMessages(prev => [...prev, { role: 'error', content: formatBedrockError(error) }]);
         } finally {
             setLoading(false);
         }
     };
 
     const handleSaveCommand = async () => {
+        // Check authentication before saving
+        if (authStatus !== 'authenticated'){
+            setIsLoginModalOpen(true);
+            return;
+        }
+        
         setLoading(true);
         try {
             const botResponse = await callAgent(
-                "Please prepare the final version of this recipe for the review modal. " + 
-                "Use the tags TITLE:, INGREDIENTS:, and INSTRUCTIONS:. " +
+                "Please prepare the final version of this recipe for the review modal. " +
+                "Output PLAIN TEXT ONLY. Do NOT use any markdown formatting: " +
+                "no asterisks (*), no bold (**), no underscores (_), no backticks, and no '#' headings. " +
+                "Put the dish name on the same line as TITLE: (do not put it on a separate line). " +
+                "Use the tags TITLE:, INGREDIENTS:, and INSTRUCTIONS: exactly, each starting a new line. " +
                 "Separate each ingredient within the section using a dash at the beginning of each and a new line in between. " +
                 "Crucially, use vertical bars '|' to separate the recipe, the emoji, and your closing remarks. " +
                 "Format exactly like this:\n" +
-                "...end of instructions... | [Insert 1 Emoji Here] | [Closing remarks]"
+                "TITLE: Buffalo Chicken Dip\n" +
+                "INGREDIENTS:\n- 2 cans chicken\n- 8 oz cream cheese\n" +
+                "INSTRUCTIONS:\n- Preheat oven to 350F\n- Mix and bake\n" +
+                "| [Insert 1 Emoji Here] | [Closing remarks]"
             );
             
             const parts = botResponse.split('|');
-            const cleanRecipeData = parts[0];
+            // Strip markdown BEFORE regex so wrapped tags like "**TITLE:**" still parse.
+            const cleanRecipeData = stripMarkdown(parts[0]);
             let rawEmoji = (parts.length > 1) ? parts[1] : null;
             const aiEmoji = rawEmoji ? rawEmoji.trim() : '🥘';
 
@@ -227,12 +376,14 @@ function Chat() {
             const insMatch = cleanRecipeData.match(/(?:INSTRUCTIONS|RECIPE_INSTRUCTIONS):\s*([\s\S]*)/i);
 
             if (nameMatch && ingMatch && insMatch) {
+                // Defense-in-depth: sanitize each field again in case markdown
+                // survived inside a captured group.
                 setStagingRecipe({
-                    title: nameMatch[1].trim(),
-                    ingredients: ingMatch[1].trim(),
-                    instructions: insMatch[1].trim(),
-                    emoji: aiEmoji, 
-                    recipeId: activeRecipeId 
+                    title: stripMarkdown(nameMatch[1]),
+                    ingredients: stripMarkdown(ingMatch[1]),
+                    instructions: stripMarkdown(insMatch[1]),
+                    emoji: aiEmoji,
+                    recipeId: activeRecipeId
                 });
                 setIsConfirmingSave(true);
             } else {
@@ -296,20 +447,49 @@ function Chat() {
                     <span style={{ marginLeft: '15px', fontWeight: 'bold', color: 'white' }}>
                         Culinary Craft AI
                     </span>
+                    <div className="nav-right">
+                        {authStatus === 'authenticated' ? (
+                            <div style={{ 
+                                position: 'absolute', 
+                                top: '20px', 
+                                right: '20px', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '15px',
+                                zIndex: 10 
+                            }}>
+                                <div className="welcome-user-badge">
+                                    {/* Display email if available, otherwise just "Chef" */}
+                                    Hello, {user?.signInDetails?.loginId || "Chef"}! 👋
+                                </div>
+                                
+                                <button 
+                                    className="welcome-login-btn" 
+                                    onClick={signOut}
+                                    style={{ position: 'static' }} /* Override absolute positioning to sit in flow */
+                                >
+                                    Sign Out
+                                </button>
+                            </div>
+                        ) : (
+                            <button 
+                                className="welcome-login-btn" 
+                                onClick={() => setIsLoginModalOpen(true)}
+                            >
+                                Login / Sign Up
+                            </button>
+                        )}
+                    </div>
                 </nav>
 
                 {showTutorial && (
                     <div className="modal-overlay">
                         <div className="modal-content tutorial-modal">
                             <h2 style={{margin: '0 0 10px 0'}}>Welcome to Culinary Craft!</h2>
-                            
                             <p style={{fontSize: '1.1rem'}}>Chat with us to generate a recipe from scratch!</p>
-                            
                             <hr style={{width: '100%', border: '0', borderTop: '1px solid #eee', margin: '10px 0'}}/>
-
                             <p>You can also upload a recipe you already have using this button:</p>
                             
-                            {/* FAKE UPLOAD BUTTON (Visual Copy) */}
                             <div className="fake-btn-display">
                                 <button className="icon-button tutorial-blue-btn" style={{pointerEvents: 'none'}}>
                                     <span className='btn-text'>Upload Recipe</span>
@@ -319,7 +499,6 @@ function Chat() {
 
                             <p>Once you're done, click the save button to save this recipe:</p>
 
-                            {/* FAKE SAVE BUTTON (Visual Copy) */}
                             <div className="fake-btn-display">
                                 <button 
                                     className="save-btn" 
@@ -396,6 +575,43 @@ function Chat() {
                             <button className="save-btn" onClick={() => commitSave(stagingRecipe)}>🚀 Save & Go to Explore</button>
                             <button className="cancel-btn" onClick={() => setIsConfirmingSave(false)}>Keep Chatting</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 4. ADDED Login/Signup Modal (Phase 3) */}
+            {isLoginModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ width: 'fit-content', maxWidth: '95vw', padding: '0', position: 'relative', overflow: 'hidden'}}>
+                        <button 
+                            onClick={() => setIsLoginModalOpen(false)} 
+                            style={{ 
+                                position: 'absolute', 
+                                top: '10px', 
+                                right: '10px', 
+                                zIndex: 10,
+                                background: 'white', 
+                                border: '1px solid #ddd', 
+                                borderRadius: '50%',
+                                width: '30px',
+                                height: '30px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            ✖
+                        </button>
+                        <Authenticator formFields={formFields}>
+                            {({ signOut, user }) => {
+                                // Automatically close modal when authentication succeeds
+                                useEffect(() => {
+                                    setIsLoginModalOpen(false);
+                                }, []);
+                                return null; 
+                            }}
+                        </Authenticator>
                     </div>
                 </div>
             )}
