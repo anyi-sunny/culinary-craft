@@ -4,8 +4,10 @@ import { AnimatePresence } from 'framer-motion';
 import Welcome from './components/Welcome';
 import Chat from './components/chat/Chat';
 import Explore from './components/explore/Explore';
+import RecipeDetail from './components/explore/RecipeDetail';
 import MyRecipes from './components/myrecipes/MyRecipes';
 import Favorites from './components/favorites/Favorites';
+import Inventory from './components/inventory/Inventory';
 import './App.css';
 
 // We need a helper component to use the 'useLocation' hook
@@ -19,8 +21,10 @@ function AnimatedRoutes() {
         <Route path="/" element={<Welcome />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/explore" element={<Explore />} />
+        <Route path="/recipe/:id" element={<RecipeDetail />} />
         <Route path="/my-recipes" element={<MyRecipes />} />
         <Route path="/favorites" element={<Favorites />} />
+        <Route path="/inventory" element={<Inventory />} />
       </Routes>
     </AnimatePresence>
   );

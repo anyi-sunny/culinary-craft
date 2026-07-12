@@ -24,6 +24,19 @@
   --danger: #dc2626;
   --success: #16a34a;
 
+  /* Colors — semantic & component-specific */
+  --placeholder-bg: #FF8C42;
+  --placeholder-bg-alt: #FF9D5C;
+
+  /* Z-index hierarchy (prevent conflicts) */
+  --z-base: 1;
+  --z-dropdown: 1000;
+  --z-modal-overlay: 1999;
+  --z-modal-content: 2000;
+  --z-drawer-overlay: 1500;
+  --z-drawer: 1600;
+  --z-splash: 9999;
+
   /* Shape & motion */
   --radius-sm: 10px;
   --radius: 16px;
@@ -150,4 +163,48 @@ textarea:focus-visible {
   background: var(--danger);
   color: #fff;
   border-color: var(--danger);
+}
+
+/* =========================================================
+   Reusable modal & overlay utilities
+   ========================================================= */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.55);
+  z-index: var(--z-modal-overlay);
+  backdrop-filter: blur(3px);
+}
+
+/* Input focus state (used by forms, modals, searchboxes) */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
+}
+
+/* =========================================================
+   Reusable close button
+   ========================================================= */
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.close-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--accent);
 }

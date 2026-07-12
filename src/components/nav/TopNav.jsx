@@ -7,11 +7,12 @@ import { useAuthModal } from "../auth/authModalContext";
 import "./TopNav.css";
 
 const LINKS = [
-    { label: "Home", path: "/", icon: "🏠" },
-    { label: "Explore", path: "/explore", icon: "🧭" },
-    { label: "Start Crafting", path: "/chat", icon: "✨" },
-    { label: "My Recipes", path: "/my-recipes", icon: "📖", auth: true },
-    { label: "Favorites", path: "/favorites", icon: "❤️", auth: true },
+    { label: "Home", path: "/" },
+    { label: "Explore", path: "/explore" },
+    { label: "Create Recipe", path: "/chat" },
+    { label: "Inventory", path: "/inventory", auth: true },
+    { label: "My Recipes", path: "/my-recipes", auth: true },
+    { label: "Favorites", path: "/favorites", auth: true },
 ];
 
 export default function TopNav({ title = "Culinary Craft" }) {
@@ -53,7 +54,7 @@ export default function TopNav({ title = "Culinary Craft" }) {
                         <span />
                     </button>
                     <button className="topnav-brand" onClick={() => navigate("/")}>
-                        <span className="brand-mark">🍳</span>
+                        <img src="/favicon.ico" alt="Logo" className="brand-logo" />
                         {title}
                     </button>
                 </div>
@@ -79,7 +80,7 @@ export default function TopNav({ title = "Culinary Craft" }) {
                             transition={{ type: "tween", duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
                         >
                             <div className="drawer-header">
-                                <span className="brand-mark">🍳</span>
+                                <img src="/favicon.ico" alt="Logo" className="drawer-logo" />
                                 <span className="drawer-title">Culinary Craft</span>
                                 <button
                                     className="drawer-close"
@@ -100,7 +101,6 @@ export default function TopNav({ title = "Culinary Craft" }) {
                                             className={`drawer-link${active ? " active" : ""}`}
                                             onClick={() => go(link)}
                                         >
-                                            <span className="drawer-link-icon">{link.icon}</span>
                                             <span>{link.label}</span>
                                             {locked && <span className="drawer-lock">🔒</span>}
                                         </button>

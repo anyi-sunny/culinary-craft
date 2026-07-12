@@ -30,7 +30,7 @@ function Explore() {
                     userId={userId}
                     onRequireLogin={requireLogin}
                     onToggleHeart={(r) => toggleHeart(r, userId)}
-                    onDelete={removeRecipe}
+                    onDelete={(r, uid) => removeRecipe(r, uid)}
                     onRefresh={refresh}
                     emptyText="No recipes yet. Start crafting one!"
                 />

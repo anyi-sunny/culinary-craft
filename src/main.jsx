@@ -9,11 +9,21 @@ import { Amplify } from 'aws-amplify';
 import { AuthModalProvider } from './components/auth/AuthModalProvider';
 
 // 2. Configure Amplify (Move this here from App.jsx so it runs first)
+const identityPoolId = import.meta.env.VITE_IDENTITY_POOL_ID;
+const userPoolId = import.meta.env.VITE_USER_POOL_ID;
+const clientId = import.meta.env.VITE_CLIENT_ID;
+
+console.log('🔧 Amplify config:');
+console.log('  identityPoolId:', identityPoolId);
+console.log('  userPoolId:', userPoolId);
+console.log('  clientId:', clientId);
+
 Amplify.configure({
   Auth: {
     Cognito: {
-      userPoolId: import.meta.env.VITE_USER_POOL_ID,
-      userPoolClientId: import.meta.env.VITE_CLIENT_ID
+      userPoolId: userPoolId,
+      userPoolClientId: clientId,
+      identityPoolId: identityPoolId,
     }
   }
 });

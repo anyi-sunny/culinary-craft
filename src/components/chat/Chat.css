@@ -148,11 +148,35 @@
 .icon-button .btn-icon { display: none; }
 
 /* --- Tutorial modal extras --- */
-.tutorial-modal { text-align: center; align-items: center; }
+.tutorial-modal {
+  text-align: center;
+  align-items: center;
+  padding: 40px 30px !important;
+  display: flex !important;
+  flex-direction: column;
+  max-width: 500px;
+  overflow-y: auto;
+  margin: 0 auto;
+}
+.tutorial-modal h2 {
+  margin: 0 0 16px 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.tutorial-modal p {
+  margin: 0 0 20px 0;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+.tutorial-modal hr {
+  margin: 18px 0;
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
 .fake-btn-display {
   display: flex;
   justify-content: center;
-  margin: 8px 0 14px;
+  margin: 20px 0 24px;
 }
 .typing-indicator {
   color: var(--muted);

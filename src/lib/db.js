@@ -1,64 +1,32 @@
-// Single source of truth for talking to the recipes table.
-// Previously the DynamoDB client + table name were copy-pasted across
-// Explore.jsx, RecipeModal.jsx and Chat.jsx. This consolidates all of that.
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-    DynamoDBDocumentClient,
-    ScanCommand,
-    PutCommand,
-    DeleteCommand,
-    UpdateCommand,
-} from "@aws-sdk/lib-dynamodb";
+// API client for backend DynamoDB operations
+// All operations now go through the backend API instead of direct DynamoDB access
+import { fetchAllRecipes as apiFetchAllRecipes, saveRecipe as apiSaveRecipe, deleteRecipe as apiDeleteRecipe, setHeart as apiSetHeart } from './apiClient';
 
-// Falls back to the literal table name so no Amplify env change is required,
-// but can be overridden with VITE_RECIPES_TABLE.
-export const RECIPES_TABLE =
-    import.meta.env.VITE_RECIPES_TABLE ||
-    "CulinaryCraftBackendStack-RecipesTable058A1F33-1GRXYSW38KE1I";
+export const RECIPES_TABLE = import.meta.env.VITE_RECIPES_TABLE || "CulinaryCraftBackendStack-RecipesTable058A1F33-1GRXYSW38KE1I";
 
-const dbClient = new DynamoDBClient({
-    region: import.meta.env.VITE_AWS_REGION,
-    credentials: {
-        accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
-        secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-    },
-});
-
-export const docClient = DynamoDBDocumentClient.from(dbClient, {
-    // Drop empty strings/undefined instead of erroring, and keep Sets intact.
-    marshallOptions: { removeUndefinedValues: true },
-});
-
-/** Fetch every recipe (small dataset; a full scan is fine here). */
+/** Fetch every recipe */
 export async function fetchAllRecipes() {
-    const res = await docClient.send(new ScanCommand({ TableName: RECIPES_TABLE }));
-    return res.Items || [];
+    try {
+        return await apiFetchAllRecipes();
+    } catch (err) {
+        console.error("Error fetching recipes from API:", err);
+        return [];
+    }
 }
 
-/** Create or overwrite a recipe item. */
+/** Create or overwrite a recipe item */
 export async function saveRecipe(item) {
-    await docClient.send(new PutCommand({ TableName: RECIPES_TABLE, Item: item }));
-    return item;
+    return apiSaveRecipe(item);
 }
 
-/** Delete a recipe by id. */
-export async function deleteRecipe(recipeId) {
-    await docClient.send(
-        new DeleteCommand({ TableName: RECIPES_TABLE, Key: { recipeId } })
-    );
+/** Delete a recipe by id (owner only) */
+export async function deleteRecipe(recipeId, userId) {
+    // userId is passed for backwards compatibility but handled server-side
+    return apiDeleteRecipe(recipeId);
 }
 
-/**
- * Toggle a heart for a user on a recipe. Uses an atomic ADD/DELETE on the
- * `heartedBy` string set so concurrent hearts don't clobber each other.
- */
+/** Toggle a heart for a user on a recipe */
 export async function setHeart(recipeId, userId, on) {
-    await docClient.send(
-        new UpdateCommand({
-            TableName: RECIPES_TABLE,
-            Key: { recipeId },
-            UpdateExpression: on ? "ADD heartedBy :u" : "DELETE heartedBy :u",
-            ExpressionAttributeValues: { ":u": new Set([userId]) },
-        })
-    );
+    // userId is passed for backwards compatibility but handled server-side
+    return apiSetHeart(recipeId, on);
 }

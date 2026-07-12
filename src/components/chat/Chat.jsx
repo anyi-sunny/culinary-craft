@@ -1,47 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BedrockAgentRuntimeClient, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
 import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 
 import { saveRecipe, deleteRecipe } from '../../lib/db';
+import { invokeAgent } from '../../lib/agentApiClient';
+import awsConfig from '../../lib/awsConfig';
 import TopNav from '../nav/TopNav';
 import { useAuthModal } from '../auth/authModalContext';
+import IngredientSelector from './IngredientSelector';
 
 // Styling Imports
 import './Chat.css';
 import './../explore/modal/RecipeModal.css';
 import SplashTransition from '../SplashTransition';
 
-const AWS_REGION = import.meta.env.VITE_AWS_REGION;
-const RAW_AGENT_ID = (import.meta.env.VITE_AGENT_ID || '').trim();
-const RAW_AGENT_ALIAS_ID = (import.meta.env.VITE_AGENT_ALIAS_ID || '').trim();
-
-const getIdFromArn = (value, resourceType) => {
-    if (!value) return '';
-    if (!value.startsWith('arn:')) return value;
-
-    const marker = `:${resourceType}/`;
-    const markerIndex = value.indexOf(marker);
-    if (markerIndex === -1) return value;
-
-    const afterMarker = value.slice(markerIndex + marker.length);
-    return (afterMarker.split('/')[0] || '').trim();
-};
-
-const AGENT_ID = getIdFromArn(RAW_AGENT_ID, 'agent');
-const AGENT_ALIAS_ID = getIdFromArn(RAW_AGENT_ALIAS_ID, 'agent-alias');
-
-const validateBedrockConfig = () => {
-    const missing = [];
-    if (!AWS_REGION) missing.push('VITE_AWS_REGION');
-    if (!AGENT_ID) missing.push('VITE_AGENT_ID');
-    if (!AGENT_ALIAS_ID) missing.push('VITE_AGENT_ALIAS_ID');
-
-    if (missing.length > 0) {
-        throw new Error(`Missing Bedrock config: ${missing.join(', ')}`);
-    }
-};
+const AWS_REGION = awsConfig.region;
 
 // Strips markdown formatting that the agent sometimes adds (e.g. **bold**, #
 // headings, `code`). The review modal uses plain <input>/<textarea> fields and
@@ -63,12 +37,13 @@ const stripMarkdown = (text = '') =>
 
 const formatBedrockError = (error) => {
     const name = error?.name || 'UnknownError';
-    const message = error?.message || 'Unknown Bedrock Agent error.';
-    const requestId = error?.$metadata?.requestId;
-    const normalizedMessage = message.toLowerCase();
+    const normalizedMessage = (error?.message || '').toLowerCase();
+
+    console.error('Bedrock error:', { name, message: error?.message, metadata: error?.$metadata });
+
+    // Generic user-facing message (detailed errors go to console/logs)
     const isMarketplaceAccessIssue =
-        normalizedMessage.includes('aws-marketplace:viewsubscriptions') ||
-        normalizedMessage.includes('aws-marketplace:subscribe') ||
+        normalizedMessage.includes('aws-marketplace') ||
         normalizedMessage.includes('marketplace subscription') ||
         normalizedMessage.includes('model access is denied');
     const isAccessDenied =
@@ -76,43 +51,16 @@ const formatBedrockError = (error) => {
         normalizedMessage.includes('access denied') ||
         normalizedMessage.includes('not authorized');
 
-    const details = [
-        `Bedrock request failed (${name}).`,
-        message,
-        `Region: ${AWS_REGION || 'not set'}`,
-        `Agent ID: ${AGENT_ID || 'not set'}`,
-        `Alias ID: ${AGENT_ALIAS_ID || 'not set'}`,
-    ];
-
-    if (requestId) {
-        details.push(`Request ID: ${requestId}`);
-    }
+    let userMessage = 'Failed to process your request. Please try again.';
 
     if (isMarketplaceAccessIssue) {
-        details.push('The Bedrock model behind this agent is blocked by AWS Marketplace access.');
-        details.push('The calling identity or service role needs Marketplace permissions to enable the model subscription.');
-        details.push('Check aws-marketplace:ViewSubscriptions and aws-marketplace:Subscribe, then verify model access in Bedrock.');
+        userMessage = 'The AI service is currently unavailable. Please contact support.';
     } else if (isAccessDenied) {
-        details.push('Access appears to be denied by IAM policy.');
-        details.push('Required action is usually: bedrock:InvokeAgent.');
-        details.push('Attach permission to the exact IAM principal represented by your frontend credentials.');
-        details.push('Also allow access to this agent alias resource in us-east-1.');
-    } else {
-        details.push('Verify that the agent and alias are in the same region and currently active.');
-        details.push('If you used ARN values in env vars, ensure they point to this exact agent and alias.');
+        userMessage = 'You do not have permission to access this service. Please contact support.';
     }
 
-    return details.join(' ');
+    return userMessage;
 };
-
-// Bedrock agent runtime client (chat only; DynamoDB lives in lib/db.js).
-const client = new BedrockAgentRuntimeClient({
-    region: AWS_REGION,
-    credentials: {
-        accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY_ID,
-        secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-    },
-});
 
 function Chat() {
     const location = useLocation();
@@ -123,12 +71,17 @@ function Chat() {
     const { authStatus, user } = useAuthenticator(context => [context.authStatus, context.user]);
     const { requireLogin } = useAuthModal();
 
-    const [sessionId] = useState(() => `session-${Math.random().toString(36).substr(2, 9)}`);
+    const [sessionId] = useState(() => `session-${crypto.randomUUID()}`);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [messages, setMessages] = useState([]);
     const [activeRecipeId, setActiveRecipeId] = useState(null);
+
+    // Ingredient selector state
+    const [showIngredientSelector, setShowIngredientSelector] = useState(false);
+    const [ingredientsSelected, setIngredientsSelected] = useState(false);
+    const ingredientContextRef = useRef(null);
 
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -146,9 +99,12 @@ function Chat() {
 
     useEffect(() => {
         if (!location.state?.recipeToImprove) {
-            setShowTutorial(true);
+            // Only show tutorial if user is NOT authenticated
+            if (authStatus !== 'authenticated') {
+                setShowTutorial(true);
+            }
         }
-    }, [location.state]);
+    }, [location.state, authStatus]);
 
     useEffect(() => {
         const loadContext = async () => {
@@ -180,64 +136,62 @@ function Chat() {
                 } finally {
                     setLoading(false);
                 }
+                setIngredientsSelected(true); // Skip ingredient selector in edit mode
             } else {
-                setMessages([{ role: 'assistant', content: 'Hello! I am your Culinary Architect. Tell me about a recipe you want to refine or save.' }]);
+                // Show ingredient selector for new recipe generation
+                if (authStatus === 'authenticated') {
+                    setShowIngredientSelector(true);
+                } else {
+                    setMessages([{ role: 'assistant', content: 'Hello! I am your Culinary Architect. Tell me about a recipe you want to refine or save.' }]);
+                    setIngredientsSelected(true);
+                }
             }
         };
 
         loadContext();
-    }, [location.state]);
+    }, [location.state, authStatus]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
-
-    const readFileAsBytes = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(new Uint8Array(reader.result));
-            reader.onerror = reject;
-            reader.readAsArrayBuffer(file);
-        });
-    };
 
     const handleFileSelect = (e) => {
         if (e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]);
     };
 
     const callAgent = async (textToSend, file = null) => {
-        validateBedrockConfig();
+        try {
+            // File handling is not yet supported through the API
+            // TODO: Add file upload support to backend API
+            const response = await invokeAgent(sessionId, textToSend, []);
+            return response;
+        } catch (error) {
+            console.error("Error calling agent:", error);
+            throw error;
+        }
+    };
 
-        const payload = {
-            agentId: AGENT_ID,
-            agentAliasId: AGENT_ALIAS_ID,
-            sessionId: sessionId,
-            inputText: textToSend,
-        };
+    const handleIngredientConfirm = (mode, selectedItems) => {
+        ingredientContextRef.current = { mode, selectedItems };
+        setShowIngredientSelector(false);
+        setIngredientsSelected(true);
 
-        if (file) {
-            const fileBytes = await readFileAsBytes(file);
-            payload.sessionState = {
-                files: [{
-                    name: file.name,
-                    source: { sourceType: 'BYTE_CONTENT', byteContent: fileBytes },
-                    useCase: 'CHAT'
-                }]
-            };
+        // Prepare greeting message acknowledging ingredient selection
+        let ingredientMessage = '';
+        if (mode === 'none') {
+            ingredientMessage = 'No ingredient constraints. I\'ll help you create any recipe!';
+        } else if (mode === 'some') {
+            ingredientMessage = `I\'ll help you create recipes using some of these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
+        } else if (mode === 'solely') {
+            ingredientMessage = `I\'ll create recipes using ONLY these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
         }
 
-        const command = new InvokeAgentCommand(payload);
-        const response = await client.send(command);
-
-        let fullResponse = "";
-        if (response.completion) {
-            for await (const chunk of response.completion) {
-                if (chunk.chunk?.bytes) {
-                    fullResponse += new TextDecoder().decode(chunk.chunk.bytes);
-                }
-            }
-        }
-        return fullResponse;
+        setMessages([
+            {
+                role: 'assistant',
+                content: `Hello! I am your Culinary Architect.\n\n${ingredientMessage}\n\nTell me about a recipe you want to create or refine!`,
+            },
+        ]);
     };
 
     const sendMessage = async () => {
@@ -257,6 +211,22 @@ function Chat() {
 
         try {
             let agentInput = displayInput || "Please analyze the attached file.";
+
+            // Add ingredient context if available
+            if (ingredientContextRef.current) {
+                const { mode, selectedItems } = ingredientContextRef.current;
+                let ingredientContext = '';
+
+                if (mode === 'solely') {
+                    const itemNames = selectedItems.map((i) => i.name).join(', ');
+                    ingredientContext = `\n\n[INGREDIENT CONSTRAINT - STRICTLY USE ONLY THESE ITEMS]: ${itemNames}\nMust use ONLY ingredients from this list. You may use any other ingredients that exist in the user's inventory.`;
+                } else if (mode === 'some') {
+                    const itemNames = selectedItems.map((i) => i.name).join(', ');
+                    ingredientContext = `\n\n[SUGGESTED INGREDIENTS]: ${itemNames}\nTry to incorporate some of these ingredients, but you're not limited to them.`;
+                }
+
+                agentInput += ingredientContext;
+            }
 
             if (recipeContextRef.current) {
                 const r = recipeContextRef.current;
@@ -337,8 +307,7 @@ function Chat() {
 
     const commitSave = async (finalRecipe) => {
         try {
-            const newId = finalRecipe.recipeId || `recipe-${Date.now()}`;
-            const isUpdate = Boolean(activeRecipeId) && activeRecipeId === newId;
+            const isUpdate = Boolean(activeRecipeId);
             // Updates preserve the original record (ownerId, heartedBy); new
             // recipes are owned by the logged-in creator.
             const base = isUpdate ? (editingOriginalRef.current || {}) : {};
@@ -349,17 +318,18 @@ function Chat() {
                 emoji: finalRecipe.emoji || '🥘',
                 ingredients: finalRecipe.ingredients,
                 instructions: finalRecipe.instructions,
-                recipeId: newId,
             };
+
+            // Only include recipeId for updates; backend will generate ID for new recipes
+            if (isUpdate) {
+                finalItem.recipeId = activeRecipeId;
+            }
+
             if (!isUpdate) {
                 finalItem.ownerId = user?.userId;
             }
 
             await saveRecipe(finalItem);
-
-            if (activeRecipeId && activeRecipeId !== newId) {
-                await deleteRecipe(activeRecipeId);
-            }
 
             navigate('/explore');
         } catch (err) {
@@ -370,6 +340,22 @@ function Chat() {
 
     return (
         <SplashTransition>
+            <IngredientSelector
+                userId={user?.userId}
+                isOpen={showIngredientSelector}
+                onConfirm={handleIngredientConfirm}
+                onCancel={() => {
+                    setShowIngredientSelector(false);
+                    setIngredientsSelected(true);
+                    setMessages([
+                        {
+                            role: 'assistant',
+                            content: 'Hello! I am your Culinary Architect. Tell me about a recipe you want to create or refine!',
+                        },
+                    ]);
+                }}
+            />
+
             <div className="chat-container">
                 <TopNav title="Culinary Craft AI" />
 
@@ -416,7 +402,7 @@ function Chat() {
                 </div>
 
                 <div className="input-area">
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/*,.pdf,.txt,.csv" />
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/jpeg,image/png,image/webp" />
                     <button className={`icon-button ${selectedFile ? 'active' : ''}`} onClick={() => fileInputRef.current.click()}>
                         <span className='btn-text'>Upload Recipe</span>
                         <span className="btn-icon">📎</span>

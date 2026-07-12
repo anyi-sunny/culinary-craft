@@ -46,7 +46,7 @@ export default function RecipeGrid({
         const ok = window.confirm(
             `Are you sure you want to delete "${recipeTitle(recipe)}"?`
         );
-        if (ok) await onDelete?.(recipe);
+        if (ok) await onDelete?.(recipe, userId);
     };
 
     return (

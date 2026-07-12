@@ -1,0 +1,555 @@
+/* ============================================
+   WELCOME PAGE - LEFT/RIGHT POSITIONING
+   Organized to easily adjust horizontal alignment
+   ============================================ */
+
+/* Welcome Page Layout */
+.welcome-page {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+}
+
+/* Left-Right Utilities */
+.horizontal-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.constrained-width {
+  max-width: 900px;
+}
+
+.section-horizontal-padding {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* Fixed Navigation Bar */
+.welcome-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  background: transparent;
+  backdrop-filter: none;
+  transition: all var(--transition);
+  padding: 0 20px;
+  pointer-events: none;
+}
+
+.welcome-navbar * {
+  pointer-events: auto;
+}
+
+.welcome-navbar.opaque {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.welcome-nav-content {
+  width: 100%;
+  max-width: 1400px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.welcome-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.welcome-nav-title {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.welcome-navbar.opaque .welcome-nav-title {
+  opacity: 1;
+}
+
+.welcome-account {
+  flex-shrink: 0;
+}
+
+/* Hamburger on Welcome */
+.welcome-hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 40px;
+  height: 40px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  transition: all var(--transition);
+}
+
+.welcome-hamburger:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.welcome-hamburger span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  border-radius: 2px;
+  background: #fff;
+  transition: all var(--transition);
+}
+
+.welcome-navbar.opaque .welcome-hamburger {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.welcome-navbar.opaque .welcome-hamburger:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.welcome-navbar.opaque .welcome-hamburger span {
+  background: var(--text);
+}
+
+.welcome-navbar.opaque .welcome-hamburger:hover span {
+  background: var(--accent);
+}
+
+/* Hero Section */
+.welcome-hero {
+  position: relative;
+  height: 180vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 80px;
+  overflow: visible;
+  margin-top: 0;
+  width: 100%;
+}
+
+.welcome-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.welcome-hero-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.welcome-hero-content {
+  position: relative;
+  z-index: 50;
+  text-align: center;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 60px;
+  height: 180vh;
+  padding-top: 25vh;
+
+  /* Left-Right Positioning */
+  padding-left: 20px;
+  padding-right: 20px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.welcome-title {
+  font-size: clamp(2.8rem, 8vw, 4.5rem);
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.welcome-hero-subtitle {
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  margin: 0;
+  opacity: 0.98;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  font-weight: 500;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+/* Scroll Arrow */
+.scroll-arrow {
+  position: absolute;
+  top: 75vh;
+  z-index: 60;
+  background: none;
+  border: none;
+  font-size: 2.5rem;
+  color: #fff;
+  cursor: pointer;
+  transition: color var(--transition);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  padding-top: 40px;
+  line-height: 1;
+
+  /* Left-Right Positioning */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.scroll-arrow:hover {
+  color: var(--accent);
+}
+
+/* Slogan Section */
+.welcome-slogan {
+  position: relative;
+  z-index: 20;
+  background: var(--surface);
+  margin-top: calc(-80vh);
+  padding-top: 150px;
+
+  /* Left-Right Positioning */
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 100px;
+}
+
+.welcome-slogan-content {
+  text-align: center;
+
+  /* Left-Right Positioning */
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.welcome-slogan-content h2 {
+  font-size: clamp(2rem, 5.5vw, 3rem);
+  margin: 0 0 32px 0;
+  color: var(--text);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.welcome-slogan-content p {
+  font-size: 1.15rem;
+  color: var(--muted);
+  line-height: 1.9;
+  font-weight: 400;
+
+  /* Left-Right Positioning */
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* CTA Section */
+.welcome-cta {
+  position: relative;
+  z-index: 20;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  text-align: center;
+  color: white;
+
+  /* Left-Right Positioning */
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 120px;
+  padding-bottom: 120px;
+}
+
+.welcome-cta-content {
+  /* Left-Right Positioning */
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.welcome-cta-content h2 {
+  font-size: clamp(2rem, 5.5vw, 3rem);
+  margin: 0 0 16px 0;
+  color: white;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.welcome-cta-content p {
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 50px;
+  font-weight: 500;
+}
+
+.welcome-cta .button-group {
+  margin-bottom: 0;
+}
+
+/* Button Styling */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+
+  /* Left-Right Positioning */
+  justify-content: center;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 14px 30px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform var(--transition), box-shadow var(--transition),
+    background var(--transition), color var(--transition);
+}
+
+.primary-btn {
+  background: #fff;
+  color: var(--accent);
+}
+
+.primary-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.secondary-btn:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+}
+
+.welcome-cta .secondary-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-color: #fff;
+}
+
+.welcome-cta .secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Drawer (Hamburger Menu) */
+.welcome-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1499;
+}
+
+.welcome-drawer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 280px;
+  height: 100vh;
+  height: 100dvh;
+  background: linear-gradient(135deg, var(--placeholder-bg) 0%, var(--placeholder-bg-alt) 100%);
+  z-index: 1600;
+  display: flex;
+  flex-direction: column;
+  padding-top: 60px;
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.3);
+}
+
+.drawer-item {
+  background: none;
+  border: none;
+  color: white;
+  padding: 16px 24px;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  text-decoration: none;
+}
+
+.drawer-item:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .welcome-navbar {
+    height: 56px;
+  }
+
+  .welcome-hero {
+    margin-top: 0;
+    height: 180vh;
+    padding-top: 60px;
+  }
+
+  .welcome-video {
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .welcome-hero-overlay {
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .welcome-hero-content {
+    height: 180vh;
+    padding-top: 25vh;
+    gap: 50px;
+
+    /* Left-Right Positioning (Mobile) */
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .welcome-title {
+    font-size: clamp(2.2rem, 6.5vw, 3.2rem);
+    margin: 0;
+  }
+
+  .welcome-hero-subtitle {
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    margin: 0;
+  }
+
+  .welcome-slogan {
+    margin-top: calc(-80vh);
+    padding-top: 100px;
+
+    /* Left-Right Positioning (Mobile) */
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 70px;
+  }
+
+  .welcome-slogan-content h2 {
+    font-size: clamp(1.6rem, 4.5vw, 2.2rem);
+    margin-bottom: 20px;
+  }
+
+  .welcome-slogan-content p {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .welcome-cta {
+    /* Left-Right Positioning (Mobile) */
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 80px;
+    padding-bottom: 80px;
+  }
+
+  .welcome-cta-content h2 {
+    font-size: clamp(1.6rem, 4.5vw, 2.2rem);
+    margin-bottom: 12px;
+  }
+
+  .welcome-cta-content p {
+    font-size: 1rem;
+    margin-bottom: 35px;
+  }
+
+  .button-group {
+    gap: 12px;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-navbar {
+    height: 48px;
+    padding: 0 12px;
+  }
+
+  .welcome-hero {
+    margin-top: 48px;
+  }
+
+  .welcome-video {
+    top: 48px;
+    height: calc(100vh - 48px);
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    width: 100%;
+    padding: 12px 20px;
+  }
+
+  .welcome-hamburger {
+    width: 36px;
+    height: 36px;
+    padding: 0 6px;
+  }
+}

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { saveRecipe } from "../../../lib/db";
 import { recipeTitle, canEdit, isHearted } from "../../../lib/recipeUtils";
+import { uploadImageToS3, getPlaceholderColor, validateImage } from "../../../lib/imageUtils";
 import "./RecipeModal.css";
 
 const RecipeModal = ({
@@ -21,6 +22,8 @@ const RecipeModal = ({
     const [isEditing, setIsEditing] = useState(initialIsEditing);
     const [showDropdown, setShowDropdown] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [imageError, setImageError] = useState("");
+    const imageInputRef = useRef(null);
     // Local heart state for instant feedback inside the modal.
     const [hearted, setHearted] = useState(isHearted(recipe, userId));
 
@@ -62,6 +65,28 @@ const RecipeModal = ({
         onToggleHeart?.(recipe);
     };
 
+    const handleImageSelect = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setImageError("");
+            await validateImage(file);
+            // Upload to S3 and get the public URL
+            const imageUrl = await uploadImageToS3(file, userId);
+            setEditedRecipe({ ...editedRecipe, recipeImage: imageUrl });
+        } catch (err) {
+            setImageError(err.message);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setEditedRecipe({ ...editedRecipe, recipeImage: null });
+        if (imageInputRef.current) {
+            imageInputRef.current.value = "";
+        }
+    };
+
     const handleManualSave = async () => {
         setIsSaving(true);
         try {
@@ -91,36 +116,76 @@ const RecipeModal = ({
                     ×
                 </button>
 
-                {/* Header: emoji + title + heart */}
-                <div className="modal-header">
+                {/* Image Section - Sticky at top */}
+                <div
+                    className="recipe-image-container"
+                    style={{
+                        backgroundColor: !editedRecipe.recipeImage
+                            ? getPlaceholderColor(editedRecipe.recipeId || "default")
+                            : "transparent",
+                    }}
+                >
+                    {editedRecipe.recipeImage ? (
+                        <img
+                            src={editedRecipe.recipeImage}
+                            alt={recipeTitle(editedRecipe)}
+                            className="recipe-image"
+                        />
+                    ) : (
+                        <div className="recipe-image-placeholder">
+                            <span className="placeholder-text">Recipe Image</span>
+                        </div>
+                    )}
+
+                    {isEditing && (
+                        <div className="image-upload-overlay">
+                            <input
+                                ref={imageInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleImageSelect}
+                                style={{ display: "none" }}
+                            />
+                            <button
+                                className="btn-upload-image"
+                                onClick={() => imageInputRef.current?.click()}
+                            >
+                                Upload Image
+                            </button>
+                            {editedRecipe.recipeImage && (
+                                <button
+                                    className="btn-remove-image"
+                                    onClick={handleRemoveImage}
+                                >
+                                    Remove Image
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    {imageError && <div className="image-error">{imageError}</div>}
+                </div>
+
+                {/* Scrollable Content Area */}
+                <div className="modal-scrollable">
+                    {/* Header: title + heart */}
+                    <div className="modal-header">
                     {isEditing ? (
-                        <>
-                            <input
-                                className="edit-input-emoji"
-                                value={editedRecipe.emoji || "🥘"}
-                                onChange={(e) =>
-                                    setEditedRecipe({ ...editedRecipe, emoji: e.target.value })
-                                }
-                            />
-                            <input
-                                className="edit-input-title"
-                                style={{ margin: 0 }}
-                                value={editedRecipe.title ?? recipeTitle(editedRecipe)}
-                                onChange={(e) =>
-                                    setEditedRecipe({ ...editedRecipe, title: e.target.value })
-                                }
-                            />
-                        </>
+                        <input
+                            className="edit-input-title"
+                            value={editedRecipe.title ?? recipeTitle(editedRecipe)}
+                            onChange={(e) =>
+                                setEditedRecipe({ ...editedRecipe, title: e.target.value })
+                            }
+                        />
                     ) : (
                         <>
-                            <span className="modal-emoji">{recipe.emoji || "🥘"}</span>
                             <h2 className="modal-title">{recipeTitle(recipe)}</h2>
                             <button
                                 className={`heart-btn modal-heart${hearted ? " hearted" : ""}`}
                                 title={hearted ? "Remove from favorites" : "Add to favorites"}
                                 onClick={handleHeart}
                             >
-                                {hearted ? "❤️" : "🤍"}
+                                {hearted ? "★" : "☆"}
                             </button>
                         </>
                     )}
@@ -158,6 +223,15 @@ const RecipeModal = ({
                                     Manual Edit
                                 </button>
                             )}
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => {
+                                    onClose?.();
+                                    navigate(`/recipe/${recipe.recipeId}`);
+                                }}
+                            >
+                                View Full Recipe
+                            </button>
                         </>
                     ) : (
                         <>
@@ -212,6 +286,7 @@ const RecipeModal = ({
                             {recipe.instructions || "_No instructions listed_"}
                         </ReactMarkdown>
                     )}
+                </div>
                 </div>
             </div>
         </div>

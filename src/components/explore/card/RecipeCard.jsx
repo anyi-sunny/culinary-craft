@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { recipeTitle, canEdit, isHearted, heartedByList } from "../../../lib/recipeUtils";
+import { getPlaceholderColor } from "../../../lib/imageUtils";
 import "./RecipeCard.css";
 
 const RecipeCard = ({ recipe, onClick, onDelete, onToggleHeart, userId }) => {
@@ -31,7 +32,7 @@ const RecipeCard = ({ recipe, onClick, onDelete, onToggleHeart, userId }) => {
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 500, damping: 18 }}
                     >
-                        {hearted ? "❤️" : "🤍"}
+                        {hearted ? "★" : "☆"}
                     </motion.span>
                     {heartCount > 0 && <span className="heart-count">{heartCount}</span>}
                 </button>
@@ -50,7 +51,27 @@ const RecipeCard = ({ recipe, onClick, onDelete, onToggleHeart, userId }) => {
                 )}
             </div>
 
-            <div className="card-emoji">{recipe.emoji || "🥘"}</div>
+            <div
+                className="card-image"
+                style={{
+                    backgroundColor: !recipe.recipeImage
+                        ? getPlaceholderColor(recipe.recipeId || "default")
+                        : "transparent",
+                }}
+            >
+                {recipe.recipeImage ? (
+                    <img
+                        src={recipe.recipeImage}
+                        alt={name}
+                        className="card-image-img"
+                    />
+                ) : (
+                    <div className="card-image-placeholder">
+                        {recipe.emoji || "🍳"}
+                    </div>
+                )}
+            </div>
+
             <h3 className="card-title">{name}</h3>
             <span className="view-btn">View Recipe →</span>
         </motion.div>

@@ -55,9 +55,10 @@ export function useRecipes() {
         }
     }, []);
 
-    const removeRecipe = useCallback(async (recipe) => {
+    const removeRecipe = useCallback(async (recipe, userId) => {
+        if (!userId) throw new Error("Must be logged in to delete recipes");
         try {
-            await deleteRecipe(recipe.recipeId);
+            await deleteRecipe(recipe.recipeId, userId);
             setRecipes((prev) => prev.filter((r) => r.recipeId !== recipe.recipeId));
             return true;
         } catch (err) {
