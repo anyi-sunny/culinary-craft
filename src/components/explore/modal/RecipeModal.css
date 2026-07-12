@@ -182,6 +182,19 @@
 .modal-heart {
   flex-shrink: 0;
   font-size: 1.2rem;
+  background: none;
+  border: none;
+  color: #888;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  line-height: 1;
+}
+.modal-heart:hover {
+  color: #FFD700;
+}
+.modal-heart.hearted {
+  color: #FFD700;
 }
 
 /* Actions */

@@ -35,7 +35,7 @@ const RecipeModal = ({
             setEditedRecipe({ ...recipe });
             setHearted(isHearted(recipe, userId));
         }
-    }, [recipe, userId]);
+    }, [recipe, recipe?.heartedBy, userId]);
 
     if (!recipe) return null;
 
