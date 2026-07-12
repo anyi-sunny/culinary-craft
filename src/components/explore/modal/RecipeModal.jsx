@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { saveRecipe } from "../../../lib/db";
-import { recipeTitle, canEdit, isHearted } from "../../../lib/recipeUtils";
+import { recipeTitle, isOwner, isHearted } from "../../../lib/recipeUtils";
 import { uploadImageToS3, getPlaceholderColor, validateImage } from "../../../lib/imageUtils";
+import OwnerActions from "./OwnerActions";
+import NonOwnerActions from "./NonOwnerActions";
 import "./RecipeModal.css";
 
 const RecipeModal = ({
@@ -13,21 +15,20 @@ const RecipeModal = ({
     onRefresh,
     onToggleHeart,
     onRequireLogin,
+    onDelete,
     isEditing: initialIsEditing = false,
 }) => {
     const navigate = useNavigate();
-    const dropdownRef = useRef(null);
 
     const [editedRecipe, setEditedRecipe] = useState({ ...recipe });
     const [isEditing, setIsEditing] = useState(initialIsEditing);
-    const [showDropdown, setShowDropdown] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [imageError, setImageError] = useState("");
     const imageInputRef = useRef(null);
     // Local heart state for instant feedback inside the modal.
     const [hearted, setHearted] = useState(isHearted(recipe, userId));
 
-    const editable = canEdit(recipe, userId);
+    const isRecipeOwner = isOwner(recipe, userId);
 
     useEffect(() => {
         if (recipe) {
@@ -36,24 +37,45 @@ const RecipeModal = ({
         }
     }, [recipe, userId]);
 
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (
-                showDropdown &&
-                dropdownRef.current &&
-                !dropdownRef.current.contains(event.target)
-            ) {
-                setShowDropdown(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [showDropdown]);
-
     if (!recipe) return null;
 
-    const handleImprove = (mode) => {
-        navigate("/chat", { state: { recipeToImprove: recipe, saveMode: mode } });
+    const handleDelete = async () => {
+        if (window.confirm('Delete this recipe? This cannot be undone.')) {
+            await onDelete?.(recipe, userId);
+            onClose?.();
+        }
+    };
+
+    const handleCopyAndEdit = (recipeToEdit) => {
+        if (!userId) {
+            onRequireLogin?.();
+            return;
+        }
+        const copy = {
+            title: recipeToEdit.title,
+            ingredients: recipeToEdit.ingredients,
+            instructions: recipeToEdit.instructions,
+            recipeImage: recipeToEdit.recipeImage,
+            notes: recipeToEdit.notes,
+        };
+        navigate('/chat', { state: { recipeToImprove: copy, saveMode: 'CREATE' } });
+        onClose?.();
+    };
+
+    const handleCopyAndImprove = (recipeToImprove) => {
+        if (!userId) {
+            onRequireLogin?.();
+            return;
+        }
+        const copy = {
+            title: recipeToImprove.title,
+            ingredients: recipeToImprove.ingredients,
+            instructions: recipeToImprove.instructions,
+            recipeImage: recipeToImprove.recipeImage,
+            notes: recipeToImprove.notes,
+        };
+        navigate('/chat', { state: { recipeToImprove: copy, saveMode: 'CREATE' } });
+        onClose?.();
     };
 
     const handleHeart = () => {
@@ -193,65 +215,36 @@ const RecipeModal = ({
 
                 {/* Actions */}
                 <div className="modal-actions">
-                    {!isEditing ? (
-                        <>
-                            <div style={{ position: "relative" }} ref={dropdownRef}>
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={() => setShowDropdown(!showDropdown)}
-                                >
-                                    Improve with AI
-                                </button>
-                                {showDropdown && (
-                                    <div className="dropdown-menu">
-                                        {editable && (
-                                            <button onClick={() => handleImprove("UPDATE")}>
-                                                Edit this version
-                                            </button>
-                                        )}
-                                        <button onClick={() => handleImprove("NEW")}>
-                                            Start a copy
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                            {editable && (
-                                <button
-                                    className="btn btn-secondary"
-                                    onClick={() => setIsEditing(true)}
-                                >
-                                    Manual Edit
-                                </button>
-                            )}
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    onClose?.();
-                                    navigate(`/recipe/${recipe.recipeId}`);
-                                }}
-                            >
-                                View Full Recipe
-                            </button>
-                        </>
+                    {isRecipeOwner ? (
+                        <OwnerActions
+                            recipe={recipe}
+                            isEditing={isEditing}
+                            isSaving={isSaving}
+                            onEdit={() => setIsEditing(true)}
+                            onDelete={handleDelete}
+                            onSave={handleManualSave}
+                            onCancel={() => {
+                                setIsEditing(false);
+                                setEditedRecipe({ ...recipe });
+                            }}
+                        />
                     ) : (
-                        <>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleManualSave}
-                                disabled={isSaving}
-                            >
-                                {isSaving ? "Saving…" : "Save Changes"}
-                            </button>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    setIsEditing(false);
-                                    setEditedRecipe({ ...recipe });
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </>
+                        <NonOwnerActions
+                            recipe={recipe}
+                            onCopyAndEdit={handleCopyAndEdit}
+                            onCopyAndImprove={handleCopyAndImprove}
+                        />
+                    )}
+                    {!isEditing && (
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => {
+                                onClose?.();
+                                navigate(`/recipe/${recipe.recipeId}`);
+                            }}
+                        >
+                            View Full Recipe
+                        </button>
                     )}
                 </div>
 

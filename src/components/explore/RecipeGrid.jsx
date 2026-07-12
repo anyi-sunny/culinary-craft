@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import RecipeCard from "./card/RecipeCard";
 import RecipeModal from "./modal/RecipeModal";
 import { recipeTitle } from "../../lib/recipeUtils";
@@ -27,7 +26,6 @@ export default function RecipeGrid({
     onRefresh,
     emptyText = "No recipes found.",
 }) {
-    const navigate = useNavigate();
     const [selected, setSelected] = useState(null);
     const [query, setQuery] = useState("");
 
@@ -49,23 +47,6 @@ export default function RecipeGrid({
             `Are you sure you want to delete "${recipeTitle(recipe)}"?`
         );
         if (ok) await onDelete?.(recipe, userId);
-    };
-
-    const handleCopyAndEdit = (recipe, mode) => {
-        if (!userId) {
-            onRequireLogin?.();
-            return;
-        }
-
-        const copy = {
-            title: recipe.title,
-            ingredients: recipe.ingredients,
-            instructions: recipe.instructions,
-            recipeImage: recipe.recipeImage,
-            notes: recipe.notes,
-        };
-
-        navigate('/chat', { state: { recipeToImprove: copy, saveMode: 'CREATE' } });
     };
 
     return (
@@ -100,8 +81,6 @@ export default function RecipeGrid({
                             userId={userId}
                             onClick={() => setSelected(recipe)}
                             onToggleHeart={handleHeart}
-                            onDelete={onDelete ? handleDelete : undefined}
-                            onCopyAndEdit={handleCopyAndEdit}
                         />
                     ))
                 )}
@@ -113,6 +92,7 @@ export default function RecipeGrid({
                     userId={userId}
                     onRequireLogin={onRequireLogin}
                     onToggleHeart={handleHeart}
+                    onDelete={onDelete ? handleDelete : undefined}
                     onClose={() => setSelected(null)}
                     onRefresh={() => {
                         onRefresh?.();
