@@ -17,6 +17,17 @@ async function getAuthToken() {
     }
 }
 
+async function getUserEmail() {
+    try {
+        const session = await fetchAuthSession();
+        const claims = session.tokens?.idToken?.payload;
+        return claims?.email || null;
+    } catch (err) {
+        console.debug("Could not fetch user email:", err.message);
+        return null;
+    }
+}
+
 async function apiCall(method, path, body = null) {
     const token = await getAuthToken();
 
@@ -59,6 +70,13 @@ export async function fetchAllRecipes() {
  */
 export async function saveRecipe(item) {
     try {
+        // Add creator email for new recipes
+        if (!item.recipeId) {
+            const email = await getUserEmail();
+            if (email) {
+                item.creatorEmail = email;
+            }
+        }
         const result = await apiCall('POST', '/recipes', item);
         return result.recipe;
     } catch (err) {

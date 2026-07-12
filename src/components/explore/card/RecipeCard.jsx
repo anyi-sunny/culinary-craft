@@ -1,14 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { recipeTitle, canEdit, isHearted, heartedByList } from "../../../lib/recipeUtils";
+import { recipeTitle, isOwner, isHearted, heartedByList } from "../../../lib/recipeUtils";
 import { getPlaceholderColor } from "../../../lib/imageUtils";
 import "./RecipeCard.css";
 
-const RecipeCard = ({ recipe, onClick, onDelete, onToggleHeart, userId }) => {
+const RecipeCard = ({ recipe, onClick, onDelete, onToggleHeart, onCopyAndEdit, userId }) => {
+    const [showDropdown, setShowDropdown] = useState(false);
     const name = recipeTitle(recipe);
     const hearted = isHearted(recipe, userId);
     const heartCount = heartedByList(recipe).length;
-    const showDelete = onDelete && canEdit(recipe, userId);
+    const ownsRecipe = isOwner(recipe, userId);
+    const showDelete = onDelete && ownsRecipe;
 
     return (
         <motion.div
@@ -37,17 +39,54 @@ const RecipeCard = ({ recipe, onClick, onDelete, onToggleHeart, userId }) => {
                     {heartCount > 0 && <span className="heart-count">{heartCount}</span>}
                 </button>
 
-                {showDelete && (
-                    <button
-                        className="delete-btn-overlay"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(recipe);
-                        }}
-                        title="Delete Recipe"
-                    >
-                        ×
-                    </button>
+                {ownsRecipe ? (
+                    showDelete && (
+                        <button
+                            className="delete-btn-overlay"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(recipe);
+                            }}
+                            title="Delete Recipe"
+                        >
+                            ×
+                        </button>
+                    )
+                ) : (
+                    <div className="dropdown-container">
+                        <button
+                            className="dropdown-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowDropdown(!showDropdown);
+                            }}
+                            title="Make your own copy"
+                        >
+                            ⋮
+                        </button>
+                        {showDropdown && (
+                            <div className="dropdown-menu">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onCopyAndEdit?.(recipe, 'edit');
+                                        setShowDropdown(false);
+                                    }}
+                                >
+                                    Create Copy & Edit
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onCopyAndEdit?.(recipe, 'improve');
+                                        setShowDropdown(false);
+                                    }}
+                                >
+                                    Create Copy & Improve with AI
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -73,6 +112,9 @@ const RecipeCard = ({ recipe, onClick, onDelete, onToggleHeart, userId }) => {
             </div>
 
             <h3 className="card-title">{name}</h3>
+            {(recipe.creatorEmail || recipe.ownerId) && (
+                <p className="card-creator">by {recipe.creatorEmail || 'Unknown creator'}</p>
+            )}
             <span className="view-btn">View Recipe →</span>
         </motion.div>
     );

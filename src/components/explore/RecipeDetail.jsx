@@ -16,6 +16,7 @@ export default function RecipeDetail() {
   const [recipe, setRecipe] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
+  const [showCopyDropdown, setShowCopyDropdown] = useState(false);
 
   useEffect(() => {
     const found = recipes.find((r) => r.recipeId === id);
@@ -64,6 +65,23 @@ export default function RecipeDetail() {
     // Save is handled by the parent through useRecipes
   };
 
+  const handleCopyAndEdit = async (mode) => {
+    if (!userId) {
+      alert('Please log in to create a copy of this recipe');
+      return;
+    }
+
+    const copy = {
+      title: recipe.title,
+      ingredients: recipe.ingredients,
+      instructions: recipe.instructions,
+      recipeImage: recipe.recipeImage,
+      notes: recipe.notes,
+    };
+
+    navigate('/chat', { state: { recipeToImprove: copy, saveMode: 'CREATE' } });
+  };
+
   return (
     <SplashTransition>
       <div className="page">
@@ -99,7 +117,7 @@ export default function RecipeDetail() {
                 >
                   {isHearted ? '★' : '☆'}
                 </button>
-                {isOwner && (
+                {isOwner ? (
                   <>
                     <button
                       className="btn btn-secondary"
@@ -111,6 +129,37 @@ export default function RecipeDetail() {
                       Delete
                     </button>
                   </>
+                ) : (
+                  <div className="detail-copy-dropdown">
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setShowCopyDropdown(!showCopyDropdown)}
+                    >
+                      Make a Copy ⋯
+                    </button>
+                    {showCopyDropdown && (
+                      <div className="copy-dropdown-menu">
+                        <button
+                          className="copy-option"
+                          onClick={() => {
+                            handleCopyAndEdit('edit');
+                            setShowCopyDropdown(false);
+                          }}
+                        >
+                          Create Copy & Edit
+                        </button>
+                        <button
+                          className="copy-option"
+                          onClick={() => {
+                            handleCopyAndEdit('improve');
+                            setShowCopyDropdown(false);
+                          }}
+                        >
+                          Create Copy & Improve with AI
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

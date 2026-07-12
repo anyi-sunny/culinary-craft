@@ -97,6 +97,50 @@
   display: flex;
   gap: 12px;
   flex-shrink: 0;
+  position: relative;
+}
+
+.detail-copy-dropdown {
+  position: relative;
+}
+
+.copy-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  min-width: 200px;
+  margin-top: 8px;
+  z-index: 10;
+}
+
+.copy-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.copy-option:first-child {
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.copy-option:last-child {
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.copy-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent);
 }
 
 .heart-btn {
