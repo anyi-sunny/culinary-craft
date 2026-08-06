@@ -8,6 +8,9 @@ import RecipeDetail from './components/explore/RecipeDetail';
 import MyRecipes from './components/myrecipes/MyRecipes';
 import Favorites from './components/favorites/Favorites';
 import Inventory from './components/inventory/Inventory';
+import ShoppingList from './components/shopping/ShoppingList';
+import Footer from './components/Footer';
+import SmoothScroll from './components/SmoothScroll';
 import './App.css';
 
 // We need a helper component to use the 'useLocation' hook
@@ -25,6 +28,7 @@ function AnimatedRoutes() {
         <Route path="/my-recipes" element={<MyRecipes />} />
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/inventory" element={<Inventory />} />
+        <Route path="/shopping-list" element={<ShoppingList />} />
       </Routes>
     </AnimatePresence>
   );
@@ -33,7 +37,10 @@ function AnimatedRoutes() {
 function App() {
   return (
     <Router>
-      <AnimatedRoutes />
+      <SmoothScroll>
+        <AnimatedRoutes />
+        <Footer />
+      </SmoothScroll>
     </Router>
   );
 }

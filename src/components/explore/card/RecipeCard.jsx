@@ -1,69 +1,77 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { Bookmark, ArrowRight } from "lucide-react";
 import { recipeTitle, isHearted, heartedByList } from "../../../lib/recipeUtils";
-import { getPlaceholderColor } from "../../../lib/imageUtils";
+import { getPlaceholderGradient } from "../../../lib/imageUtils";
 import "./RecipeCard.css";
 
 const RecipeCard = ({ recipe, onClick, onToggleHeart, userId }) => {
     const name = recipeTitle(recipe);
     const hearted = isHearted(recipe, userId);
     const heartCount = heartedByList(recipe).length;
+    const monogram = (name || "R").trim().charAt(0).toUpperCase();
 
     return (
-        <motion.div
+        <motion.article
             className="recipe-card"
             onClick={onClick}
-            whileHover={{ y: -4 }}
-            transition={{ type: "tween", duration: 0.18 }}
+            whileHover={{ y: -6 }}
+            transition={{ type: "tween", duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
-            <div className="card-top">
+            <div className="card-media">
+                {recipe.recipeImage ? (
+                    <img
+                        src={recipe.recipeImage}
+                        alt={name}
+                        className="card-image-img"
+                        loading="lazy"
+                    />
+                ) : (
+                    <div
+                        className="card-image-placeholder"
+                        style={{ background: getPlaceholderGradient(recipe.recipeId) }}
+                        aria-hidden="true"
+                    >
+                        <span className="card-monogram">{monogram}</span>
+                    </div>
+                )}
+
                 <button
-                    className={`heart-btn${hearted ? " hearted" : ""}`}
-                    title={hearted ? "Remove from favorites" : "Add to favorites"}
+                    className={`heart-btn card-heart${hearted ? " hearted" : ""}`}
+                    title={hearted ? "Remove from saved" : "Save recipe"}
                     onClick={(e) => {
                         e.stopPropagation();
                         onToggleHeart?.(recipe);
                     }}
                 >
                     <motion.span
+                        className="heart-icon-wrap"
                         key={hearted ? "on" : "off"}
-                        initial={{ scale: 0.6 }}
+                        initial={{ scale: 0.5 }}
                         animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 18 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 16 }}
                     >
-                        {hearted ? "★" : "☆"}
+                        <Bookmark
+                            size={15}
+                            strokeWidth={2}
+                            fill={hearted ? "currentColor" : "none"}
+                        />
                     </motion.span>
                     {heartCount > 0 && <span className="heart-count">{heartCount}</span>}
                 </button>
             </div>
 
-            <div
-                className="card-image"
-                style={{
-                    backgroundColor: !recipe.recipeImage
-                        ? getPlaceholderColor(recipe.recipeId || "default")
-                        : "transparent",
-                }}
-            >
-                {recipe.recipeImage ? (
-                    <img
-                        src={recipe.recipeImage}
-                        alt={name}
-                        className="card-image-img"
-                    />
-                ) : (
-                    <div className="card-image-placeholder">
-                        {recipe.emoji || "🍳"}
-                    </div>
+            <div className="card-body">
+                <h3 className="card-title">{name}</h3>
+                {(recipe.creatorEmail || recipe.ownerId) && (
+                    <p className="card-creator">by {recipe.creatorEmail || "Unknown creator"}</p>
                 )}
+                <span className="view-btn">
+                    View Recipe
+                    <ArrowRight size={15} strokeWidth={2.2} className="view-arrow" />
+                </span>
             </div>
-
-            <h3 className="card-title">{name}</h3>
-            {(recipe.creatorEmail || recipe.ownerId) && (
-                <p className="card-creator">by {recipe.creatorEmail || 'Unknown creator'}</p>
-            )}
-            <span className="view-btn">View Recipe →</span>
-        </motion.div>
+        </motion.article>
     );
 };
 

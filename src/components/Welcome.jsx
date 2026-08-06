@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
 import AccountWidget from './auth/AccountWidget';
 import './../App.css';
 import './Welcome.css';
@@ -9,10 +10,16 @@ import SplashTransition from './SplashTransition';
 
 const NAV_LINKS = [
   { label: "Create Recipe", path: "/chat" },
-  { label: "Explore", path: "/explore" },
+  {
+    label: "Explore Recipes",
+    children: [
+      { label: "All", path: "/explore" },
+      { label: "Saved", path: "/favorites" },
+      { label: "My Creations", path: "/my-recipes" },
+    ],
+  },
   { label: "Inventory", path: "/inventory" },
-  { label: "My Recipes", path: "/my-recipes" },
-  { label: "Favorites", path: "/favorites" },
+  { label: "Shopping List", path: "/shopping-list" },
 ];
 
 function Welcome() {
@@ -20,6 +27,7 @@ function Welcome() {
   const { authStatus } = useAuthenticator((ctx) => [ctx.authStatus]);
   const isAuthed = authStatus === 'authenticated';
   const [menuOpen, setMenuOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const [navOpaque, setNavOpaque] = useState(false);
   const drawerRef = useRef(null);
   const containerRef = useRef(null);
@@ -95,15 +103,56 @@ function Welcome() {
                 exit={{ x: "-100%" }}
                 transition={{ type: "tween", duration: 0.28 }}
               >
-                {NAV_LINKS.map((link) => (
-                  <button
-                    key={link.path}
-                    className="drawer-item"
-                    onClick={() => navigateTo(link.path)}
-                  >
-                    {link.label}
-                  </button>
-                ))}
+                {NAV_LINKS.map((link) => {
+                  if (link.children) {
+                    return (
+                      <div key={link.label} className="drawer-item-group">
+                        <button
+                          className="drawer-item drawer-item-toggle"
+                          onClick={() => setExploreOpen((v) => !v)}
+                          aria-expanded={exploreOpen}
+                        >
+                          <span>{link.label}</span>
+                          <ChevronDown
+                            size={15}
+                            strokeWidth={2.2}
+                            className={`drawer-item-chevron${exploreOpen ? ' open' : ''}`}
+                          />
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {exploreOpen && (
+                            <motion.div
+                              className="drawer-item-sublinks"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                            >
+                              {link.children.map((child) => (
+                                <button
+                                  key={child.path}
+                                  className="drawer-item drawer-item-sub"
+                                  onClick={() => navigateTo(child.path)}
+                                >
+                                  {child.label}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      key={link.path}
+                      className="drawer-item"
+                      onClick={() => navigateTo(link.path)}
+                    >
+                      {link.label}
+                    </button>
+                  );
+                })}
               </motion.nav>
             </>
           )}
@@ -142,8 +191,15 @@ function Welcome() {
             whileHover={{ y: -5 }}
             aria-label="Scroll to next section"
           >
-            ↓
+            <ChevronDown size={26} strokeWidth={1.8} />
           </motion.button>
+
+          {/* Video Attribution */}
+          <div className="video-attribution">
+            <a href="https://www.vecteezy.com/free-videos/cooking" target="_blank" rel="noopener noreferrer">
+              Cooking Stock Videos by Vecteezy
+            </a>
+          </div>
         </section>
 
         {/* Slogan Section */}

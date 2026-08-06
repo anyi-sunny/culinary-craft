@@ -13,7 +13,7 @@ import "./Explore.css";
  */
 export default function FilteredRecipePage({
   filterFn,
-  gateEmoji,
+  gateIcon,
   gateTitle,
   gateDescription,
   pageTitle,
@@ -33,7 +33,7 @@ export default function FilteredRecipePage({
         <TopNav />
         {authStatus !== "authenticated" ? (
           <div className="gate">
-            <div className="gate-emoji">{gateEmoji}</div>
+            {gateIcon && <div className="gate-icon">{gateIcon}</div>}
             <h2>{gateTitle}</h2>
             <p>{gateDescription}</p>
             <button className="btn btn-primary" onClick={requireLogin}>

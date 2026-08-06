@@ -1,7 +1,6 @@
 import React from "react";
 
 export default function OwnerActions({
-    recipe,
     isEditing,
     isSaving,
     onEdit,

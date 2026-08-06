@@ -24,12 +24,13 @@ The app is designed around a core user flow: users authenticate via Cognito, cha
 - DynamoDB table for recipes, Cognito User Pool for auth
 - Outputs stack IDs needed by frontend (agent ID, user pool ID, etc.)
 
-**Data Flow:**
-1. User signs in via Cognito (frontend calls Amplify)
-2. Frontend invokes Bedrock Agent (via `InvokeAgentCommand`)
-3. Agent processes chat, may call Lambda via action group
-4. Lambda reads/writes DynamoDB recipes table
-5. Frontend fetches recipes directly from DynamoDB using SDK credentials
+**Data Flow (Security-First Architecture):**
+1. User signs in via Cognito OR generates temporary anonymous ID (localStorage)
+2. Frontend makes API calls via backend (no direct AWS SDK usage)
+3. Backend Lambda (`RecipesApiLambda`) handles all AWS service calls
+4. Backend extracts userId from Authorization Bearer token
+5. Backend invokes Bedrock Agent, manages DynamoDB, generates S3 presigned URLs
+6. S3 images use public read access (permanent storage, no expiration)
 
 ## Development Commands
 
@@ -68,19 +69,19 @@ Currently minimal test setup. Backend has a stub test file (`tests/unit/`); no f
 Vite loads environment variables prefixed with `VITE_`. The frontend requires:
 
 ```
-VITE_AWS_REGION=us-east-1                    # AWS region
-VITE_AWS_ACCESS_KEY_ID=...                   # AWS credentials (for DynamoDB + Bedrock)
-VITE_AWS_SECRET_ACCESS_KEY=...
-VITE_AGENT_ID=JYWISMTDL9                     # Bedrock Agent ID (from CDK output)
-VITE_AGENT_ALIAS_ID=TSTALIASID               # Bedrock Agent Alias ID
-VITE_USER_POOL_ID=us-east-1_...              # Cognito User Pool ID
-VITE_CLIENT_ID=...                           # Cognito App Client ID
-VITE_RECIPES_TABLE=CulinaryCraftBackendStack-RecipesTable... # (optional) DynamoDB table name
+VITE_AWS_REGION=us-east-1                         # AWS region (for Amplify)
+VITE_USER_POOL_ID=us-east-1_...                   # Cognito User Pool ID
+VITE_CLIENT_ID=...                                # Cognito App Client ID
+VITE_IDENTITY_POOL_ID=us-east-1:uuid...           # Cognito Identity Pool ID
+VITE_API_ENDPOINT=https://xxxxx.execute-api.us-east-1.amazonaws.com  # Backend HTTP API Gateway URL
 ```
 
-The agent and user pool IDs are output by `cdk deploy`. Get them with:
+**Security Note:** No AWS credentials are stored in the frontend. All AWS service calls go through the backend API.
+
+Get these values from CDK output:
 ```bash
-cdk deploy | grep -E "AgentId|UserPoolId|UserPoolClientId"
+cd culinary-craft-backend
+cdk deploy | grep -E "ApiEndpoint|UserPoolId|UserPoolClientId|IdentityPoolId"
 ```
 
 ### Backend AWS Credentials
@@ -93,38 +94,82 @@ CDK needs AWS credentials in your environment. Either:
 
 ### Frontend Structure
 
-- **`src/App.jsx`** — Router setup (page layout is handled here)
-- **`src/lib/db.js`** — Single source of truth for DynamoDB operations (ScanCommand for recipes, PutCommand for saves, UpdateCommand for hearts). **All DynamoDB calls must go through here.**
-- **`src/components/chat/Chat.jsx`** — Main chat interface, invokes Bedrock Agent via `InvokeAgentCommand`, streams responses
-- **`src/components/auth/`** — Cognito integration (Amplify Authenticator, auth context)
-- **`src/components/explore/Explore.jsx`** — Browse all recipes, with pagination
-- **`src/components/favorites/Favorites.jsx`** — User's hearted recipes
-- **`src/components/myrecipes/MyRecipes.jsx`** — Recipes created by the current user
+**Core Routing:**
+- **`src/App.jsx`** — Router setup, page layout
+- **`src/main.jsx`** — Amplify config setup
 
-**Key Pattern: Markdown Stripping** — Chat responses may include Markdown (`**bold**`, headings, code ticks). The `stripMarkdown()` utility in Chat.jsx removes these before saving to DynamoDB, since the saved fields are plain text. Review modal rendering requires the cleaned text.
+**API Client Layer (Backend Proxy):**
+- **`src/lib/apiClient.js`** — Recipe API calls (fetch, save, delete, heart toggle). Extracts user email for creator attribution.
+- **`src/lib/agentApiClient.js`** — Bedrock Agent invocation via backend. Supports authenticated and anonymous users (localStorage temp IDs).
+- **`src/lib/inventoryApiClient.js`** — Inventory management via backend API
+- **`src/lib/db.js`** — Wrapper that delegates to apiClient (maintains backward compatibility)
+
+**Components:**
+- **`src/components/chat/Chat.jsx`** — Main chat interface. Calls agentApiClient for agent invocation. Supports ingredient selector (authenticated only).
+- **`src/components/chat/IngredientSelector.jsx`** — Modal for selecting ingredients before recipe generation
+- **`src/components/explore/Explore.jsx`** — Browse all recipes
+- **`src/components/explore/RecipeGrid.jsx`** — Shared grid + search + modal used by Explore/MyRecipes/Favorites
+- **`src/components/explore/RecipeCard.jsx`** — Card shows recipe with grey heart (no border). Displays creator email. No edit/delete buttons (moved to modal).
+- **`src/components/explore/modal/RecipeModal.jsx`** — Modal opened from card. Shows recipe details and action buttons.
+  - **`OwnerActions.jsx`** — Edit/Delete buttons for recipe owners
+  - **`NonOwnerActions.jsx`** — Dropdown to copy & edit or copy & improve with AI
+- **`src/components/explore/RecipeDetail.jsx`** — Full page view of recipe with edit/delete/copy options
+- **`src/components/inventory/Inventory.jsx`** — Inventory management page
+- **`src/components/auth/`** — Cognito integration (Amplify Authenticator, auth context)
+- **`src/components/favorites/Favorites.jsx`** — User's hearted recipes
+- **`src/components/myrecipes/MyRecipes.jsx`** — Recipes created by current user
+
+**Utilities:**
+- **`src/lib/recipeUtils.js`** — `isOwner()`, `canEdit()`, `isHearted()`, `heartedByList()`
+- **`src/lib/imageUtils.js`** — S3 image upload, placeholder colors, image validation
+- **`src/lib/inventoryDb.js`** — Inventory data layer (delegates to inventoryApiClient)
+- **`src/lib/recipeValidator.js`** — Recipe field validation
+
+**Key Patterns:**
+- **Authorization:** Bearer token in Authorization header contains userId (Cognito ID or anonymous temp ID)
+- **Markdown Stripping:** Chat responses cleaned before saving to DynamoDB (plain text only)
+- **Creator Attribution:** All new recipes store `creatorEmail` (extracted from Cognito). Recipe cards display this in grey text.
+- **Copy Recipes:** Non-owners can create copies via dropdown in modal. New recipes have no recipeId (backend generates), allowing users to make their own versions.
 
 ### Backend Structure
 
-- **`culinary_craft_backend_stack.py`** — Entire CDK stack definition:
-  - DynamoDB recipes table (partition key: `recipeId`)
-  - Bedrock Agent (`RecipeArchitect`) with instruction prompt
-  - Lambda function (`recipe_handler/index.py`) as action group executor
-  - Cognito User Pool + App Client
-  - All resource outputs (agent ID, pool ID, etc.) logged as CfnOutput
-  
-- **`lambda/recipe_handler/index.py`** — Action group handler:
-  - Parses `actionGroup`, `function`, and `parameters` from Bedrock
-  - `save_recipe` — Creates new recipe with UUID, or updates if recipeId provided
-  - `delete_recipe` — Removes recipe from table
-  - Returns structured action response for agent to acknowledge
+**CDK Stack (`culinary_craft_backend_stack.py`):**
+- Bedrock Agent (`RecipeArchitect`) with detailed instruction prompt
+- HTTP API Gateway with catch-all `/{proxy+}` routing
+- Cognito User Pool + Identity Pool + App Client
+- DynamoDB tables:
+  - `RecipesTable` (partition key: `recipeId`)
+  - `UserInventoryTable` (partition key: `userId`, sort key: `itemId`)
+  - `UserInventoryCategoriesTable` (partition key: `userId`, sort key: `categoryId`)
+- S3 bucket for recipe images (public read access)
+- Lambda execution roles with permissions for Bedrock, DynamoDB, S3
 
-**Key Pattern: Lambda ARN Extraction** — Frontend env vars can contain full ARNs (e.g., `arn:aws:bedrock:...`) or just IDs. `getIdFromArn()` in Chat.jsx handles both.
+**RecipesApiLambda (`lambda/recipes_api/index.py`):**
+The unified API handler for all frontend operations. Extracts userId from Authorization Bearer token.
 
-**Agent Instruction Contract** — The agent has detailed instructions about:
-1. Wait before saving (ask user first)
-2. Output Markdown during chat, but **plain text only** when preparing for the review modal
-3. Use specific tags (`TITLE:`, `INGREDIENTS:`, `INSTRUCTIONS:`) in review mode
-4. Support edit mode when a `recipeId` is provided in initial message
+*Routes:*
+- `POST /recipes` — Save recipe (creates new with UUID or updates existing)
+- `GET /recipes` — Fetch all recipes (converts heartedBy set to list for JSON)
+- `DELETE /recipes/{id}` — Delete recipe (owner-gated)
+- `PUT /recipes/{id}/heart` — Toggle heart/favorite status
+- `POST /agent/invoke` — Invoke Bedrock Agent, stream response
+- `POST /generate-upload-url` — Generate S3 presigned POST URL for image upload
+- `/inventory/*` — Inventory CRUD operations
+
+*Key Implementation Details:*
+- Path extraction: Uses `rawPath` instead of `pathParameters` (catch-all routing doesn't populate pathParameters)
+- Heart toggle: ADD for favoriting, DELETE with condition expression for unfavoriting
+- Image upload: Generates presigned URLs, stores permanent public S3 URLs in DynamoDB
+- Anonymous users: Backend accepts any userId from Authorization header (frontend generates/stores in localStorage)
+
+**Bedrock Agent (`RecipeArchitect`):**
+- Receives user prompts and conversation history from frontend
+- Calls Lambda via action group for recipe operations
+- Instruction prompt includes:
+  1. Ask before saving recipes
+  2. Use Markdown in chat, plain text in review mode
+  3. Support edit mode when recipeId provided in initial message
+  4. Generate valid recipe formats with TITLE, INGREDIENTS, INSTRUCTIONS tags
 
 ## Deployment & CI/CD
 
@@ -165,9 +210,36 @@ cdk diff           # Compare current code to deployed stack
 - **DynamoDB Credentials:** Ensure IAM user has `dynamodb:*` and `bedrock-agent-runtime:InvokeAgent` permissions
 - **Bedrock Model Access:** Ensure Claude model (Sonnet 4.5) is enabled in your AWS account's Bedrock model access settings
 
+## Recent Changes & Known Issues
+
+### Completed (Recent)
+- ✅ Security overhaul: Removed all AWS credentials from frontend
+- ✅ Backend API layer: All AWS service calls now go through `RecipesApiLambda`
+- ✅ Anonymous user support: Unauthenticated users get temporary IDs stored in localStorage
+- ✅ Image handling: S3 presigned URLs, permanent public access, fixed display in RecipeDetail
+- ✅ Creator attribution: All recipes store `creatorEmail`, displayed on cards
+- ✅ Copy recipes: Non-owners can create their own versions via modal dropdown
+- ✅ Ownership detection: Fixed `isOwner()` vs `canEdit()` distinction
+- ✅ UI reorganization: Edit/delete buttons moved to modal, recipe cards simplified
+- ✅ Heart button styling: Borderless stars, grey default, yellow on hover/when hearted
+- ✅ Tutorial modal: Now only shows for unauthenticated users (fixed refresh bug)
+
+### Current Issues
+- 🔴 Heart toggle returns 500 error: DynamoDB DELETE operation failing when `heartedBy` attribute doesn't exist. Backend logging added (`❤️` prefix in CloudWatch).
+  - **Workaround:** Check CloudWatch logs for actual error: `cdk deploy --quiet && npm run dev`, then test and view Lambda logs in AWS Console
+  - **Fix in progress:** Handling missing `heartedBy` attribute gracefully
+
+### Not Yet Implemented
+- Admin access control (planned but not started)
+- Meal planner feature (reference in memory)
+- Shopping assistant feature (reference in memory)
+- Recipe search/filtering (basic search exists, advanced filters TODO)
+- User profile/settings page
+
 ## Staying Productive
 
 - **Frontend HMR:** Vite hot-reloads on file save; CSS and JSX changes appear instantly
-- **ESLint:** Run `npm run lint` before committing; fix warnings to keep CI clean
-- **Lambda Testing:** Modify `lambda/recipe_handler/index.py`, run `cdk synth`, then `cdk deploy` to test
-- **Agent Tweaks:** Edit the `instruction` string in the Stack, redeploy, and re-test in chat
+- **Backend testing:** After editing `lambda/recipes_api/index.py`, run `cdk deploy`, then test via frontend
+- **CloudWatch logs:** View Lambda output: AWS Console → CloudWatch → Logs → search for `/aws/lambda/RecipesApiLambda`
+- **Authorization debugging:** All API calls include Bearer token with userId. Verify token in browser DevTools → Network → request headers
+- **Recipe data inspection:** Use AWS Console → DynamoDB → RecipesTable to view recipe structure and heartedBy sets

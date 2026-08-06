@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Authenticator, useAuthenticator } from "@aws-amplify/ui-react";
+import { X } from "lucide-react";
 import "@aws-amplify/ui-react/styles.css";
 import { formFields } from "./authConfig";
 import "./auth.css";
@@ -34,7 +35,7 @@ export default function LoginModal({ open, onClose }) {
         <div className="auth-overlay" onClick={onClose}>
             <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
                 <button className="auth-close" onClick={onClose} aria-label="Close">
-                    ✕
+                    <X size={16} />
                 </button>
                 <CloseOnAuth onClose={onClose} />
                 <Authenticator formFields={formFields} />

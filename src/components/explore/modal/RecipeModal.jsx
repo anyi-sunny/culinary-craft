@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { Bookmark } from "lucide-react";
 import { saveRecipe } from "../../../lib/db";
 import { recipeTitle, isOwner, isHearted } from "../../../lib/recipeUtils";
-import { uploadImageToS3, getPlaceholderColor, validateImage } from "../../../lib/imageUtils";
+import { uploadImageToS3, getPlaceholderGradient, validateImage } from "../../../lib/imageUtils";
+import { sanitizeInput, sanitizeObject } from "../../../lib/sanitizer";
 import OwnerActions from "./OwnerActions";
 import NonOwnerActions from "./NonOwnerActions";
+import ConsultInventoryModal from "./ConsultInventoryModal";
 import "./RecipeModal.css";
 
 const RecipeModal = ({
@@ -24,6 +27,7 @@ const RecipeModal = ({
     const [isEditing, setIsEditing] = useState(initialIsEditing);
     const [isSaving, setIsSaving] = useState(false);
     const [imageError, setImageError] = useState("");
+    const [showConsultInventory, setShowConsultInventory] = useState(false);
     const imageInputRef = useRef(null);
     // Local heart state for instant feedback inside the modal.
     const [hearted, setHearted] = useState(isHearted(recipe, userId));
@@ -112,13 +116,17 @@ const RecipeModal = ({
     const handleManualSave = async () => {
         setIsSaving(true);
         try {
+            // Sanitize recipe fields before saving
+            const sanitized = sanitizeObject(editedRecipe, ['title', 'ingredients', 'instructions', 'notes']);
+
             const finalItem = {
-                ...editedRecipe,
-                recipeId: editedRecipe.recipeId || recipe.recipeId,
-                emoji: editedRecipe.emoji || "🥘",
+                ...sanitized,
+                recipeId: sanitized.recipeId || recipe.recipeId,
                 // Preserve ownership; manual edit never re-owns a recipe.
                 ownerId: recipe.ownerId,
             };
+            // Recipes no longer carry a decorative emoji field.
+            delete finalItem.emoji;
             await saveRecipe(finalItem);
             setIsEditing(false);
             if (onRefresh) await onRefresh();
@@ -131,10 +139,20 @@ const RecipeModal = ({
         }
     };
 
+    if (showConsultInventory) {
+        return (
+            <ConsultInventoryModal
+                recipe={recipe}
+                userId={userId}
+                onClose={() => setShowConsultInventory(false)}
+            />
+        );
+    }
+
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <button className="close-btn" onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} data-lenis-prevent>
+                <button className="close-btn" onClick={onClose} aria-label="Close">
                     ×
                 </button>
 
@@ -142,8 +160,8 @@ const RecipeModal = ({
                 <div
                     className="recipe-image-container"
                     style={{
-                        backgroundColor: !editedRecipe.recipeImage
-                            ? getPlaceholderColor(editedRecipe.recipeId || "default")
+                        background: !editedRecipe.recipeImage
+                            ? getPlaceholderGradient(editedRecipe.recipeId)
                             : "transparent",
                     }}
                 >
@@ -154,8 +172,10 @@ const RecipeModal = ({
                             className="recipe-image"
                         />
                     ) : (
-                        <div className="recipe-image-placeholder">
-                            <span className="placeholder-text">Recipe Image</span>
+                        <div className="recipe-image-placeholder" aria-hidden="true">
+                            <span className="modal-monogram">
+                                {(recipeTitle(editedRecipe) || "R").trim().charAt(0).toUpperCase()}
+                            </span>
                         </div>
                     )}
 
@@ -204,10 +224,14 @@ const RecipeModal = ({
                             <h2 className="modal-title">{recipeTitle(recipe)}</h2>
                             <button
                                 className={`heart-btn modal-heart${hearted ? " hearted" : ""}`}
-                                title={hearted ? "Remove from favorites" : "Add to favorites"}
+                                title={hearted ? "Remove from saved" : "Save recipe"}
                                 onClick={handleHeart}
                             >
-                                {hearted ? "★" : "☆"}
+                                <Bookmark
+                                    size={17}
+                                    strokeWidth={2}
+                                    fill={hearted ? "currentColor" : "none"}
+                                />
                             </button>
                         </>
                     )}
@@ -236,15 +260,23 @@ const RecipeModal = ({
                         />
                     )}
                     {!isEditing && (
-                        <button
-                            className="btn btn-secondary"
-                            onClick={() => {
-                                onClose?.();
-                                navigate(`/recipe/${recipe.recipeId}`);
-                            }}
-                        >
-                            View Full Recipe
-                        </button>
+                        <>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => {
+                                    onClose?.();
+                                    navigate(`/recipe/${recipe.recipeId}`);
+                                }}
+                            >
+                                View Full Recipe
+                            </button>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowConsultInventory(true)}
+                            >
+                                Consult Inventory
+                            </button>
+                        </>
                     )}
                 </div>
 
@@ -256,7 +288,7 @@ const RecipeModal = ({
                             className="edit-textarea"
                             value={editedRecipe.ingredients || ""}
                             onChange={(e) =>
-                                setEditedRecipe({ ...editedRecipe, ingredients: e.target.value })
+                                setEditedRecipe({ ...editedRecipe, ingredients: sanitizeInput(e.target.value) })
                             }
                         />
                     ) : (
@@ -271,7 +303,7 @@ const RecipeModal = ({
                             className="edit-textarea"
                             value={editedRecipe.instructions || ""}
                             onChange={(e) =>
-                                setEditedRecipe({ ...editedRecipe, instructions: e.target.value })
+                                setEditedRecipe({ ...editedRecipe, instructions: sanitizeInput(e.target.value) })
                             }
                         />
                     ) : (

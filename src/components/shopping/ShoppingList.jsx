@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
+import { Check, Undo2 } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
 import { addInventoryItem } from '../../lib/inventoryDb';
@@ -253,11 +254,13 @@ const ShoppingList = () => {
                             onClick={() => handleAddToInventory(item.id)}
                             disabled={loading}
                           >
-                            ✓ Add to Inventory
+                            <Check size={14} strokeWidth={2.5} /> Add to Inventory
                           </button>
                         )}
                         {addedToInventory && (
-                          <span className="badge-success">✓ Added to Inventory</span>
+                          <span className="badge-success">
+                            <Check size={13} strokeWidth={2.5} /> Added to Inventory
+                          </span>
                         )}
                         {!isChecked && (
                           <button
@@ -276,7 +279,7 @@ const ShoppingList = () => {
               {/* Undo Button */}
               {undoStack.length > 0 && (
                 <button className="btn-undo" onClick={handleUndo} title="Undo last action">
-                  ↶ Undo
+                  <Undo2 size={14} strokeWidth={2.2} /> Undo
                 </button>
               )}
             </div>

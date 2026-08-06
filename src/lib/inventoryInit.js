@@ -4,7 +4,7 @@ import * as apiClient from './inventoryApiClient';
 /**
  * Check if user has already initialized their categories
  */
-export async function hasUserCategories(userId) {
+export async function hasUserCategories(_userId) {
     try {
         const categories = await apiClient.fetchCategories();
         return categories && categories.length > 0;

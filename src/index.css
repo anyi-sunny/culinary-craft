@@ -1,32 +1,51 @@
 /* =========================================================
-   Design tokens — modern clean refresh
+   Design tokens — premium culinary editorial
+   =========================================================
+   Typography: Fraunces (display serif) + Inter (UI/body),
+   imported in main.jsx via @fontsource-variable packages.
+   Palette: warm cream surfaces, espresso ink, copper accent.
+   Motion: slow decelerating easings for a soft, unhurried feel.
    ========================================================= */
 :root {
-  /* Surfaces & text (warm neutral) */
-  --bg: #faf9f7;
-  --surface: #ffffff;
-  --surface-2: #f5f3f0;
-  --border: #e8e4df;
-  --text: #1c1917;
-  --muted: #78716c;
+  /* Typography */
+  --font-body: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
 
-  /* Single accent (appetizing orange) */
-  --accent: #ea580c;
-  --accent-hover: #c2410c;
-  --accent-soft: #fff4ec;
-  --on-accent: #ffffff;
+  /* Surfaces & text (warm, layered neutrals) */
+  --bg: #f7f4ee;
+  --surface: #fffdf9;
+  --surface-2: #f1ece3;
+  --border: #e7dfd3;
+  --text: #221a13;
+  --muted: #8b7f72;
 
-  /* Hearts */
-  --heart: #e11d48;
-  --heart-soft: #fff1f4;
+  /* Accent (soft terracotta — gentler than the old burnt copper) */
+  --accent: #b9663f;
+  --accent-hover: #9d5232;
+  --accent-soft: #f7ede3;
+  --on-accent: #fffdf9;
+
+  /* Stars / hearts (aged brass, not neon gold) */
+  --star: #c98f2d;
+  --heart: #b3384f;
+  --heart-soft: #f9e9ec;
 
   /* Feedback */
-  --danger: #dc2626;
-  --success: #16a34a;
+  --danger: #b3383d;
+  --success: #3f6d54;
 
-  /* Colors — semantic & component-specific */
-  --placeholder-bg: #FF8C42;
-  --placeholder-bg-alt: #FF9D5C;
+  /* Placeholder gradient bases (used by imageUtils) */
+  --placeholder-bg: #b45a38;
+  --placeholder-bg-alt: #a97155;
+
+  /* Aliases — some component sheets use these names */
+  --bg-secondary: var(--surface);
+  --bg-tertiary: var(--surface-2);
+  --text-primary: var(--text);
+  --text-secondary: var(--muted);
+  --text-tertiary: var(--muted);
+  --primary: var(--accent);
 
   /* Z-index hierarchy (prevent conflicts) */
   --z-base: 1;
@@ -37,18 +56,26 @@
   --z-drawer: 1600;
   --z-splash: 9999;
 
-  /* Shape & motion */
+  /* Shape */
   --radius-sm: 10px;
   --radius: 16px;
   --radius-lg: 24px;
-  --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.06), 0 1px 3px rgba(28, 25, 23, 0.08);
-  --shadow: 0 4px 16px rgba(28, 25, 23, 0.08);
-  --shadow-lg: 0 12px 32px rgba(28, 25, 23, 0.14);
-  --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  line-height: 1.55;
+  /* Layered, warm-tinted shadows */
+  --shadow-sm: 0 1px 2px rgba(64, 45, 28, 0.05), 0 2px 6px rgba(64, 45, 28, 0.05);
+  --shadow: 0 2px 6px rgba(64, 45, 28, 0.05), 0 10px 28px rgba(64, 45, 28, 0.09);
+  --shadow-lg: 0 4px 10px rgba(64, 45, 28, 0.06), 0 24px 56px rgba(64, 45, 28, 0.16);
+  --shadow-accent: 0 6px 18px rgba(185, 102, 63, 0.2), 0 14px 40px rgba(185, 102, 63, 0.13);
+
+  /* Motion — slow, decelerating, deliberate */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --transition-fast: 240ms var(--ease);
+  --transition: 420ms var(--ease);
+  --transition-slow: 700ms var(--ease);
+
+  font-family: var(--font-body);
+  line-height: 1.6;
   font-weight: 400;
   color: var(--text);
   background-color: var(--bg);
@@ -70,19 +97,55 @@ body {
   background-color: var(--bg);
   color: var(--text);
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* Display serif for headings — the premium editorial voice */
 h1,
 h2,
 h3 {
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-weight: 560;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  font-variation-settings: "opsz" 40;
+}
+
+h4,
+h5,
+h6 {
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+/* Refined scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8cec0;
+  border-radius: 8px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c3b6a4;
 }
 
 a {
   color: var(--accent);
   text-decoration: none;
   font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--transition-fast);
 }
 a:hover {
   color: var(--accent-hover);
@@ -91,6 +154,20 @@ a:hover {
 button {
   font-family: inherit;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
 /* Shared focus ring for accessibility */
@@ -99,6 +176,22 @@ input:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Remove default focus styling */
+button:focus {
+  outline: none;
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* =========================================================
@@ -110,39 +203,73 @@ textarea:focus-visible {
   justify-content: center;
   gap: 8px;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 10px 18px;
-  font-size: 0.95rem;
+  border-radius: 999px;
+  padding: 11px 22px;
+  font-size: 0.92rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
   transition: background var(--transition), color var(--transition),
     border-color var(--transition), transform var(--transition),
     box-shadow var(--transition);
 }
 .btn:active {
-  transform: translateY(1px);
+  transform: translateY(1px) scale(0.99);
+  transition-duration: 80ms;
+}
+.btn:focus {
+  outline: none;
 }
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn svg {
+  flex-shrink: 0;
 }
 
 .btn-primary {
   background: var(--accent);
   color: var(--on-accent);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+/* Soft sheen that sweeps across on hover */
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform var(--transition-slow);
+  z-index: -1;
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-accent);
+  transform: translateY(-2px);
+}
+.btn-primary:hover:not(:disabled)::after {
+  transform: translateX(110%);
 }
 
 .btn-secondary {
-  background: var(--surface);
+  background: transparent;
   color: var(--text);
   border-color: var(--border);
 }
 .btn-secondary:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 4px 14px rgba(185, 102, 63, 0.1);
+  transform: translateY(-2px);
 }
 
 .btn-ghost {
@@ -155,7 +282,7 @@ textarea:focus-visible {
 }
 
 .btn-danger {
-  background: var(--surface);
+  background: transparent;
   color: var(--danger);
   border-color: var(--border);
 }
@@ -163,6 +290,23 @@ textarea:focus-visible {
   background: var(--danger);
   color: #fff;
   border-color: var(--danger);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(179, 56, 61, 0.25);
+}
+
+.btn-success {
+  background: var(--success);
+  color: #fff;
+}
+.btn-success:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(63, 109, 84, 0.28);
+}
+
+.btn-sm {
+  padding: 7px 14px;
+  font-size: 0.82rem;
 }
 
 /* =========================================================
@@ -171,9 +315,10 @@ textarea:focus-visible {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(28, 25, 23, 0.55);
+  background: rgba(34, 26, 19, 0.45);
   z-index: var(--z-modal-overlay);
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 /* Input focus state (used by forms, modals, searchboxes) */
@@ -192,19 +337,21 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--muted);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: color var(--transition-fast), background var(--transition-fast),
+    border-color var(--transition-fast), transform var(--transition-fast);
 }
 .close-btn:hover {
   color: var(--text);
   background: var(--surface-2);
   border-color: var(--accent);
+  transform: rotate(90deg);
 }

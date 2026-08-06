@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
+import { Bookmark } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
 import { useRecipes } from '../../lib/useRecipes';
-import { useAuthModal } from '../auth/authModalContext';
+import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
+import { getPlaceholderGradient } from '../../lib/imageUtils';
+import ConsultInventoryModal from './modal/ConsultInventoryModal';
 import './RecipeDetail.css';
 
 export default function RecipeDetail() {
@@ -13,18 +16,15 @@ export default function RecipeDetail() {
   const { user } = useAuthenticator((ctx) => [ctx.user]);
   const userId = user?.userId || null;
   const { recipes, toggleHeart, removeRecipe } = useRecipes();
-  const [recipe, setRecipe] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [showCopyDropdown, setShowCopyDropdown] = useState(false);
+  const [showConsultInventory, setShowConsultInventory] = useState(false);
+  // Local edits shadow the fetched record until the next refetch.
+  const [localEdits, setLocalEdits] = useState(null);
 
-  useEffect(() => {
-    const found = recipes.find((r) => r.recipeId === id);
-    if (found) {
-      setRecipe(found);
-      setEditData(found);
-    }
-  }, [id, recipes]);
+  // Derive the recipe from the shared list instead of mirroring it in state.
+  const recipe = localEdits ?? recipes.find((r) => r.recipeId === id) ?? null;
 
   if (!recipe) {
     return (
@@ -60,12 +60,14 @@ export default function RecipeDetail() {
   };
 
   const handleSaveEdit = async () => {
-    setRecipe(editData);
+    // Sanitize recipe fields before saving
+    const sanitized = sanitizeObject(editData, ['title', 'ingredients', 'instructions', 'notes']);
+    setLocalEdits(sanitized);
     setIsEditing(false);
     // Save is handled by the parent through useRecipes
   };
 
-  const handleCopyAndEdit = async (mode) => {
+  const handleCopyAndEdit = async () => {
     if (!userId) {
       alert('Please log in to create a copy of this recipe');
       return;
@@ -84,6 +86,14 @@ export default function RecipeDetail() {
 
   return (
     <SplashTransition>
+      {showConsultInventory && (
+        <ConsultInventoryModal
+          recipe={recipe}
+          userId={userId}
+          onClose={() => setShowConsultInventory(false)}
+        />
+      )}
+
       <div className="page">
         <TopNav />
         <div className="recipe-detail-container">
@@ -96,8 +106,14 @@ export default function RecipeDetail() {
             {recipe.recipeImage ? (
               <img src={recipe.recipeImage} alt={recipe.title} />
             ) : (
-              <div className="recipe-detail-placeholder">
-                <span>📷</span>
+              <div
+                className="recipe-detail-placeholder"
+                style={{ background: getPlaceholderGradient(recipe.recipeId) }}
+                aria-hidden="true"
+              >
+                <span className="detail-monogram">
+                  {(recipe.title || 'R').trim().charAt(0).toUpperCase()}
+                </span>
               </div>
             )}
           </div>
@@ -113,15 +129,25 @@ export default function RecipeDetail() {
                 <button
                   className={`heart-btn ${isHearted ? 'hearted' : ''}`}
                   onClick={handleToggleHeart}
-                  title={isHearted ? 'Remove from favorites' : 'Add to favorites'}
+                  title={isHearted ? 'Remove from saved' : 'Save recipe'}
                 >
-                  {isHearted ? '★' : '☆'}
+                  <Bookmark size={19} strokeWidth={2} fill={isHearted ? 'currentColor' : 'none'} />
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowConsultInventory(true)}
+                  title="Check inventory and build shopping list"
+                >
+                  Consult Inventory
                 </button>
                 {isOwner ? (
                   <>
                     <button
                       className="btn btn-secondary"
-                      onClick={() => setIsEditing(!isEditing)}
+                      onClick={() => {
+                        if (!isEditing) setEditData(recipe);
+                        setIsEditing(!isEditing);
+                      }}
                     >
                       {isEditing ? 'Cancel' : 'Edit'}
                     </button>
@@ -142,7 +168,7 @@ export default function RecipeDetail() {
                         <button
                           className="copy-option"
                           onClick={() => {
-                            handleCopyAndEdit('edit');
+                            handleCopyAndEdit();
                             setShowCopyDropdown(false);
                           }}
                         >
@@ -151,7 +177,7 @@ export default function RecipeDetail() {
                         <button
                           className="copy-option"
                           onClick={() => {
-                            handleCopyAndEdit('improve');
+                            handleCopyAndEdit();
                             setShowCopyDropdown(false);
                           }}
                         >
@@ -172,14 +198,14 @@ export default function RecipeDetail() {
                   <input
                     type="text"
                     value={editData.title || ''}
-                    onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                    onChange={(e) => setEditData({ ...editData, title: sanitizeInput(e.target.value) })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Ingredients</label>
                   <textarea
                     value={editData.ingredients || ''}
-                    onChange={(e) => setEditData({ ...editData, ingredients: e.target.value })}
+                    onChange={(e) => setEditData({ ...editData, ingredients: sanitizeInput(e.target.value) })}
                     rows={6}
                   />
                 </div>
@@ -187,7 +213,7 @@ export default function RecipeDetail() {
                   <label>Instructions</label>
                   <textarea
                     value={editData.instructions || ''}
-                    onChange={(e) => setEditData({ ...editData, instructions: e.target.value })}
+                    onChange={(e) => setEditData({ ...editData, instructions: sanitizeInput(e.target.value) })}
                     rows={8}
                   />
                 </div>

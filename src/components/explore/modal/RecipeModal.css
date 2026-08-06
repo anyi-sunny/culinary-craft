@@ -83,10 +83,13 @@
   height: 100%;
 }
 
-.placeholder-text {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1.2rem;
+.modal-monogram {
+  font-family: var(--font-display);
+  font-size: 5rem;
   font-weight: 500;
+  line-height: 1;
+  color: rgba(255, 253, 249, 0.28);
+  user-select: none;
 }
 
 .image-upload-overlay {
@@ -181,20 +184,34 @@
 }
 .modal-heart {
   flex-shrink: 0;
-  font-size: 1.2rem;
-  background: none;
-  border: none;
-  color: #888;
-  padding: 0;
+  background: none !important;
+  border: none !important;
+  outline: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 6px;
   cursor: pointer;
-  transition: color 0.3s ease;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: color var(--transition-fast), transform var(--transition-fast);
 }
+
+.modal-heart:focus,
+.modal-heart:active {
+  outline: none !important;
+  border: none !important;
+}
+
 .modal-heart:hover {
-  color: #FFD700;
+  color: var(--accent);
+  transform: scale(1.15);
 }
+
 .modal-heart.hearted {
-  color: #FFD700;
+  color: var(--accent);
 }
 
 /* Actions */

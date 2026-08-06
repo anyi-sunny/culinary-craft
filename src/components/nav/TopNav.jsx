@@ -1,44 +1,86 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { X, Lock, ChevronDown } from "lucide-react";
 import AccountWidget from "../auth/AccountWidget";
 import { useAuthModal } from "../auth/authModalContext";
 import "./TopNav.css";
 
-const LINKS = [
+const NAV_ITEMS = [
     { label: "Home", path: "/" },
-    { label: "Explore", path: "/explore" },
     { label: "Create Recipe", path: "/chat" },
+    {
+        label: "Explore Recipes",
+        children: [
+            { label: "All", path: "/explore" },
+            { label: "Saved", path: "/favorites", auth: true },
+            { label: "My Creations", path: "/my-recipes", auth: true },
+        ],
+    },
     { label: "Inventory", path: "/inventory", auth: true },
-    { label: "My Recipes", path: "/my-recipes", auth: true },
-    { label: "Favorites", path: "/favorites", auth: true },
+    { label: "Shopping List", path: "/shopping-list" },
 ];
 
 export default function TopNav({ title = "Culinary Craft" }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [open, setOpen] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
     const { authStatus } = useAuthenticator((ctx) => [ctx.authStatus]);
     const { requireLogin } = useAuthModal();
     const isAuthed = authStatus === "authenticated";
+    const dropdownRef = useRef(null);
 
-    // Close the drawer on Escape.
+    const exploreGroup = NAV_ITEMS.find((item) => item.children);
+    const isGroupActive = (group) =>
+        group.children.some((child) => location.pathname === child.path);
+
+    // Expand the drawer group when one of its pages is open.
+    const [drawerGroupOpen, setDrawerGroupOpen] = useState(
+        () => isGroupActive(exploreGroup)
+    );
+
+    // Close the drawer and dropdown on Escape.
     useEffect(() => {
-        if (!open) return;
-        const onKey = (e) => e.key === "Escape" && setOpen(false);
+        if (!open && !dropdownOpen) return;
+        const onKey = (e) => {
+            if (e.key === "Escape") {
+                setOpen(false);
+                setDropdownOpen(false);
+            }
+        };
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [open]);
+    }, [open, dropdownOpen]);
+
+    // Close the desktop dropdown when clicking anywhere else.
+    useEffect(() => {
+        if (!dropdownOpen) return;
+        const onClick = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onClick);
+        return () => document.removeEventListener("mousedown", onClick);
+    }, [dropdownOpen]);
 
     const go = (link) => {
         setOpen(false);
+        setDropdownOpen(false);
         if (link.auth && !isAuthed) {
             requireLogin();
             return;
         }
         navigate(link.path);
     };
+
+    const renderLock = () => (
+        <span className="nav-lock">
+            <Lock size={12} strokeWidth={2} />
+        </span>
+    );
 
     return (
         <>
@@ -57,8 +99,70 @@ export default function TopNav({ title = "Culinary Craft" }) {
                         <img src="/favicon.ico" alt="Logo" className="brand-logo" />
                         {title}
                     </button>
+
+                    {/* Inline links on wide screens */}
+                    <nav className="topnav-links">
+                        {NAV_ITEMS.map((item) => {
+                            if (item.children) {
+                                const groupActive = isGroupActive(item);
+                                return (
+                                    <div
+                                        key={item.label}
+                                        className="nav-dropdown"
+                                        ref={dropdownRef}
+                                    >
+                                        <button
+                                            className={`topnav-link${groupActive ? " active" : ""}${dropdownOpen ? " open" : ""}`}
+                                            onClick={() => setDropdownOpen((v) => !v)}
+                                            aria-expanded={dropdownOpen}
+                                        >
+                                            {item.label}
+                                            <ChevronDown size={14} strokeWidth={2.2} className="nav-chevron" />
+                                        </button>
+                                        <AnimatePresence>
+                                            {dropdownOpen && (
+                                                <motion.div
+                                                    className="nav-dropdown-panel"
+                                                    initial={{ opacity: 0, y: -6 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -6 }}
+                                                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                                                >
+                                                    {item.children.map((child) => {
+                                                        const locked = child.auth && !isAuthed;
+                                                        return (
+                                                            <button
+                                                                key={child.path}
+                                                                className={`nav-dropdown-item${location.pathname === child.path ? " active" : ""}`}
+                                                                onClick={() => go(child)}
+                                                            >
+                                                                <span>{child.label}</span>
+                                                                {locked && renderLock()}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                );
+                            }
+
+                            const locked = item.auth && !isAuthed;
+                            return (
+                                <button
+                                    key={item.path}
+                                    className={`topnav-link${location.pathname === item.path ? " active" : ""}`}
+                                    onClick={() => go(item)}
+                                >
+                                    {item.label}
+                                    {locked && renderLock()}
+                                </button>
+                            );
+                        })}
+                    </nav>
                 </div>
-                <AccountWidget variant="light" />
+                <AccountWidget variant="on-accent" />
             </header>
 
             <AnimatePresence>
@@ -87,22 +191,74 @@ export default function TopNav({ title = "Culinary Craft" }) {
                                     aria-label="Close menu"
                                     onClick={() => setOpen(false)}
                                 >
-                                    ✕
+                                    <X size={16} />
                                 </button>
                             </div>
 
                             <nav className="drawer-links">
-                                {LINKS.map((link) => {
-                                    const active = location.pathname === link.path;
-                                    const locked = link.auth && !isAuthed;
+                                {NAV_ITEMS.map((item) => {
+                                    if (item.children) {
+                                        const groupActive = isGroupActive(item);
+                                        return (
+                                            <div key={item.label} className="drawer-group">
+                                                <button
+                                                    className={`drawer-link drawer-group-toggle${groupActive ? " active" : ""}`}
+                                                    onClick={() => setDrawerGroupOpen((v) => !v)}
+                                                    aria-expanded={drawerGroupOpen}
+                                                >
+                                                    <span>{item.label}</span>
+                                                    <ChevronDown
+                                                        size={15}
+                                                        strokeWidth={2.2}
+                                                        className={`drawer-chevron${drawerGroupOpen ? " open" : ""}`}
+                                                    />
+                                                </button>
+                                                <AnimatePresence initial={false}>
+                                                    {drawerGroupOpen && (
+                                                        <motion.div
+                                                            className="drawer-sublinks"
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: "auto", opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                                                        >
+                                                            {item.children.map((child) => {
+                                                                const locked = child.auth && !isAuthed;
+                                                                return (
+                                                                    <button
+                                                                        key={child.path}
+                                                                        className={`drawer-link drawer-sublink${location.pathname === child.path ? " active" : ""}`}
+                                                                        onClick={() => go(child)}
+                                                                    >
+                                                                        <span>{child.label}</span>
+                                                                        {locked && (
+                                                                            <span className="drawer-lock">
+                                                                                <Lock size={13} strokeWidth={2} />
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        );
+                                    }
+
+                                    const locked = item.auth && !isAuthed;
                                     return (
                                         <button
-                                            key={link.path}
-                                            className={`drawer-link${active ? " active" : ""}`}
-                                            onClick={() => go(link)}
+                                            key={item.path}
+                                            className={`drawer-link${location.pathname === item.path ? " active" : ""}`}
+                                            onClick={() => go(item)}
                                         >
-                                            <span>{link.label}</span>
-                                            {locked && <span className="drawer-lock">🔒</span>}
+                                            <span>{item.label}</span>
+                                            {locked && (
+                                                <span className="drawer-lock">
+                                                    <Lock size={13} strokeWidth={2} />
+                                                </span>
+                                            )}
                                         </button>
                                     );
                                 })}

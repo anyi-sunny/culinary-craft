@@ -43,7 +43,7 @@ export function useRecipes() {
             )
         );
         try {
-            await setHeart(recipe.recipeId, userId, on);
+            await setHeart(recipe.recipeId, on);
         } catch (err) {
             console.error("Heart toggle failed:", err);
             // Revert on failure.

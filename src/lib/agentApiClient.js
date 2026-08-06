@@ -17,8 +17,8 @@ async function getAuthToken() {
             console.log("✅ User authenticated:", user.userId);
             return user.userId;
         }
-    } catch (err) {
-        console.log("ℹ️ User not authenticated (this is OK for testing)");
+    } catch {
+        console.log("User not authenticated (this is OK for testing)");
     }
 
     // Generate/retrieve anonymous ID for guest users
@@ -61,7 +61,9 @@ async function apiCall(method, path, body = null) {
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         console.error("❌ API error:", error);
-        throw new Error(error.error || `API error: ${response.status}`);
+        const err = new Error(error.error || `API error: ${response.status}`);
+        err.status = response.status;
+        throw err;
     }
 
     const result = await response.json();

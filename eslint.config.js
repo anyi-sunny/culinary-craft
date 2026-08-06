@@ -28,7 +28,9 @@ export default defineConfig([
       // Mark identifiers used only via JSX (e.g. framer-motion's <motion.div>)
       // as "used" so no-unused-vars doesn't false-positive on them.
       'react/jsx-uses-vars': 'error',
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Underscore-prefixed args mark params kept only for call-site
+      // compatibility (e.g. userId now derived server-side from the token).
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }],
     },
   },
 ])

@@ -20,7 +20,7 @@ export async function saveRecipe(item) {
 }
 
 /** Delete a recipe by id (owner only) */
-export async function deleteRecipe(recipeId, userId) {
+export async function deleteRecipe(recipeId, _userId) {
     // userId is passed for backwards compatibility but handled server-side
     return apiDeleteRecipe(recipeId);
 }

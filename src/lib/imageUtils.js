@@ -215,15 +215,24 @@ export async function validateImage(file) {
  */
 export function getPlaceholderColor(recipeId) {
     const colors = [
-        '#FF8C42', // Orange
-        '#FF9D5C', // Light orange
-        '#FFA366', // Lighter orange
-        '#FFB380', // Even lighter
-        '#FFC29A', // Very light orange
+        '#b45a38', // terracotta
+        '#a97155', // clay
+        '#8a6f4d', // ochre
+        '#5f7259', // sage
+        '#7d5a50', // cocoa rose
     ];
 
     const hash = recipeId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
+}
+
+/**
+ * Rich two-stop gradient for image placeholders. Deterministic per recipe
+ * so a card keeps its identity between renders.
+ */
+export function getPlaceholderGradient(recipeId) {
+    const base = getPlaceholderColor(recipeId || 'default');
+    return `linear-gradient(150deg, ${base} 0%, color-mix(in srgb, ${base} 72%, #2b1d14) 100%)`;
 }
 
 /**

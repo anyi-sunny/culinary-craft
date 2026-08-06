@@ -20,7 +20,7 @@ function Explore() {
                 <div className="page-head">
                     <h1>Recipe Collection</h1>
                     <p className="page-sub">
-                        Browse every creation — heart your favorites or remix any recipe with AI.
+                        Browse every creation — save the ones you love or remix any recipe with AI.
                     </p>
                 </div>
 

@@ -1,0 +1,203 @@
+.consult-inventory-modal {
+  max-width: 900px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.consult-inventory-modal h2 {
+  margin: 0;
+  padding: 24px 24px 0;
+  font-size: 28px;
+}
+
+.modal-subtitle {
+  margin: 0;
+  padding: 8px 24px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.consult-inventory-header {
+  padding: 24px 24px 16px;
+}
+
+.consult-inventory-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 0;
+  padding: 0 24px 24px 24px;
+}
+
+.progress-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.progress-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.checked-count {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.ingredients-section,
+.shopping-list-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.ingredients-section h3,
+.shopping-list-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ingredients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ingredient-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  gap: 10px;
+}
+
+.ingredient-info {
+  flex: 1;
+}
+
+.ingredient-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+}
+
+.ingredient-checkbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.ingredient-checkbox input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ingredient-checkbox .ai-matched {
+  color: var(--success);
+  font-weight: 500;
+}
+
+.ai-matched-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--success);
+  background: rgba(63, 109, 84, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.badge-in-list {
+  background: var(--primary);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.shopping-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shopping-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--primary);
+  transition: all 0.2s ease;
+}
+
+.shopping-item.checked {
+  background: #16a34a;
+  border-left-color: #16a34a;
+}
+
+.shopping-item.checked .shopping-item-name {
+  color: white;
+  font-weight: 600;
+}
+
+.shopping-item-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.empty-shopping-list {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  padding: 20px;
+  text-align: center;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  margin: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .consult-inventory-content {
+    grid-template-columns: 1fr;
+  }
+
+  .consult-inventory-modal {
+    max-height: 90vh;
+  }
+}

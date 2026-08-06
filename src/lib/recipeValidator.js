@@ -7,7 +7,7 @@ export function extractRecipeIngredients(recipeText) {
     if (!recipeText) return [];
 
     // Try to find INGREDIENTS section first
-    const ingredientsMatch = recipeText.match(/ingredients:\s*([\s\S]*?)(?=instructions:|$/i);
+    const ingredientsMatch = recipeText.match(/ingredients:\s*([\s\S]*?)(?=instructions:|$)/i);
     const ingredientSection = ingredientsMatch ? ingredientsMatch[1] : recipeText;
 
     // Split by common delimiters
@@ -18,7 +18,7 @@ export function extractRecipeIngredients(recipeText) {
         .map((ing) => {
             // Remove quantities and units (e.g., "2 cups flour" -> "flour")
             return ing
-                .replace(/^[\d\s\/\.]+/, '') // Remove leading numbers
+                .replace(/^[\d\s/.]+/, '') // Remove leading numbers
                 .replace(/^\s*(cups?|tbsp|tsp|grams?|oz|ml|lbs?|kg)\s+/i, '') // Remove units
                 .toLowerCase()
                 .trim();

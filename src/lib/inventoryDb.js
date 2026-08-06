@@ -13,7 +13,7 @@ export const PREDEFINED_CATEGORIES = [
 ];
 
 /** Fetch all inventory items for a specific user. */
-export async function fetchUserInventory(userId) {
+export async function fetchUserInventory(_userId) {
     try {
         return await apiClient.fetchInventoryItems();
     } catch (err) {
@@ -74,7 +74,7 @@ export async function deleteInventoryItem(userId, itemId) {
 }
 
 /** Fetch all user-created categories. */
-export async function fetchUserCategories(userId) {
+export async function fetchUserCategories(_userId) {
     try {
         const categories = await apiClient.fetchCategories();
         // Filter to only custom categories (not predefined)
@@ -96,7 +96,7 @@ export async function addCustomCategory(userId, category) {
 }
 
 /** Delete a custom category. */
-export async function deleteCustomCategory(userId, categoryId) {
+export async function deleteCustomCategory(_userId, _categoryId) {
     // Note: Backend doesn't support deleting categories yet, but the pattern is here for future use
     try {
         throw new Error("Category deletion not yet supported via API");

@@ -75,8 +75,9 @@
 }
 
 .welcome-nav-title {
-  font-weight: 700;
-  font-size: 1.15rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
   color: var(--text);
   letter-spacing: -0.01em;
   opacity: 0;
@@ -196,21 +197,24 @@
 }
 
 .welcome-title {
-  font-size: clamp(2.8rem, 8vw, 4.5rem);
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 9vw, 5.2rem);
   margin: 0;
-  font-weight: 800;
+  font-weight: 480;
   letter-spacing: -0.02em;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  line-height: 1.1;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  line-height: 1.06;
   flex-shrink: 0;
+  font-variation-settings: "opsz" 144;
 }
 
 .welcome-hero-subtitle {
-  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  font-size: clamp(1.05rem, 3vw, 1.45rem);
   margin: 0;
-  opacity: 0.98;
+  opacity: 0.95;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-  font-weight: 500;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   line-height: 1.4;
   flex-shrink: 0;
 }
@@ -222,11 +226,10 @@
   z-index: 60;
   background: none;
   border: none;
-  font-size: 2.5rem;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.85);
   cursor: pointer;
-  transition: color var(--transition);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: color var(--transition-fast);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
   padding-top: 40px;
   line-height: 1;
 
@@ -238,7 +241,33 @@
 }
 
 .scroll-arrow:hover {
-  color: var(--accent);
+  color: #fff;
+}
+
+/* Video Attribution */
+.video-attribution {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 60;
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: opacity var(--transition);
+}
+
+.video-attribution:hover {
+  opacity: 1;
+}
+
+.video-attribution a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.video-attribution a:hover {
+  color: #fff;
+  text-decoration: underline;
 }
 
 /* Slogan Section */
@@ -291,7 +320,9 @@
 .welcome-cta {
   position: relative;
   z-index: 20;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(255, 255, 255, 0.06), transparent),
+    linear-gradient(160deg, #8a4a2e 0%, #70402a 60%, #5e3523 100%);
   text-align: center;
   color: white;
 
@@ -356,13 +387,36 @@
 }
 
 .primary-btn {
-  background: #fff;
-  color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform var(--transition-slow);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .primary-btn:hover {
+  background: var(--accent-hover);
   transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--shadow-accent);
+}
+
+.primary-btn:hover::before {
+  transform: translateX(110%);
 }
 
 .secondary-btn {
@@ -376,6 +430,7 @@
   transform: translateY(-3px);
   background: rgba(255, 255, 255, 0.2);
   border-color: #fff;
+  box-shadow: 0 8px 20px rgba(234, 88, 12, 0.25);
 }
 
 .welcome-cta .secondary-btn {
@@ -412,6 +467,11 @@
 }
 
 .drawer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
   background: none;
   border: none;
   color: white;
@@ -420,12 +480,41 @@
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: background var(--transition-fast), padding-left var(--transition-fast);
   text-decoration: none;
 }
 
 .drawer-item:hover {
   background: rgba(0, 0, 0, 0.15);
+  padding-left: 30px;
+}
+
+.drawer-item-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-item-chevron {
+  transition: transform var(--transition-fast);
+  opacity: 0.8;
+}
+.drawer-item-chevron.open {
+  transform: rotate(180deg);
+}
+
+.drawer-item-sublinks {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawer-item-sub {
+  padding: 12px 24px 12px 42px;
+  font-size: 0.94rem;
+  opacity: 0.92;
+}
+.drawer-item-sub:hover {
+  padding-left: 48px;
 }
 
 /* Responsive */

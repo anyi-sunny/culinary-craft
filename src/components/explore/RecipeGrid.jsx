@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import RecipeCard from "./card/RecipeCard";
+import SkeletonRecipeCard from "./card/SkeletonRecipeCard";
 import RecipeModal from "./modal/RecipeModal";
 import { recipeTitle } from "../../lib/recipeUtils";
 import "./Explore.css";
@@ -68,7 +69,9 @@ export default function RecipeGrid({
 
             <div className="recipe-grid">
                 {loading ? (
-                    <p className="loading-text">Loading…</p>
+                    Array.from({ length: 6 }).map((_, index) => (
+                        <SkeletonRecipeCard key={`skeleton-${index}`} />
+                    ))
                 ) : filtered.length === 0 ? (
                     <div className="empty-state">
                         <p>{query ? "No matches found for your search." : emptyText}</p>

@@ -1,6 +1,22 @@
 /* =========================================================
    Login modal
    ========================================================= */
+
+/* Align the Amplify Authenticator with the app's design system —
+   its widgets ship their own font tokens, which made the login
+   modal look off-brand. */
+[data-amplify-authenticator] {
+  --amplify-fonts-default-variable: var(--font-body);
+  --amplify-fonts-default-static: var(--font-body);
+  --amplify-components-button-primary-background-color: var(--accent);
+  --amplify-components-button-primary-hover-background-color: var(--accent-hover);
+  --amplify-components-button-link-color: var(--accent);
+  --amplify-components-button-link-hover-color: var(--accent-hover);
+  --amplify-components-tabs-item-active-color: var(--accent);
+  --amplify-components-tabs-item-active-border-color: var(--accent);
+  --amplify-components-fieldcontrol-focus-border-color: var(--accent);
+}
+
 .auth-overlay {
   position: fixed;
   inset: 0;

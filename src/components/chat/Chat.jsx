@@ -1,14 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
+import { Paperclip } from 'lucide-react';
 
-import { saveRecipe, deleteRecipe } from '../../lib/db';
+import { saveRecipe } from '../../lib/db';
 import { invokeAgent } from '../../lib/agentApiClient';
+import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
 import awsConfig from '../../lib/awsConfig';
 import TopNav from '../nav/TopNav';
 import { useAuthModal } from '../auth/authModalContext';
 import IngredientSelector from './IngredientSelector';
+import Paywall from '../Paywall';
 
 // Styling Imports
 import './Chat.css';
@@ -77,10 +80,10 @@ function Chat() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [messages, setMessages] = useState([]);
     const [activeRecipeId, setActiveRecipeId] = useState(null);
+    const [quotaExceeded, setQuotaExceeded] = useState(false);
 
     // Ingredient selector state
     const [showIngredientSelector, setShowIngredientSelector] = useState(false);
-    const [ingredientsSelected, setIngredientsSelected] = useState(false);
     const ingredientContextRef = useRef(null);
 
     const messagesEndRef = useRef(null);
@@ -99,12 +102,30 @@ function Chat() {
 
     useEffect(() => {
         if (!location.state?.recipeToImprove) {
-            // Only show tutorial if user is NOT authenticated
-            if (authStatus !== 'authenticated') {
+            // Only show tutorial if user is explicitly NOT authenticated (not just loading)
+            if (authStatus === 'unauthenticated') {
                 setShowTutorial(true);
+            } else {
+                setShowTutorial(false);
             }
         }
     }, [location.state, authStatus]);
+
+    const callAgent = useCallback(async (textToSend) => {
+        try {
+            // File handling is not yet supported through the API
+            // TODO: Add file upload support to backend API
+            const response = await invokeAgent(sessionId, textToSend, []);
+            return response;
+        } catch (error) {
+            console.error("Error calling agent:", error);
+            // Check if error is rate limit (429)
+            if (error.status === 429) {
+                setQuotaExceeded(true);
+            }
+            throw error;
+        }
+    }, [sessionId]);
 
     useEffect(() => {
         const loadContext = async () => {
@@ -136,20 +157,18 @@ function Chat() {
                 } finally {
                     setLoading(false);
                 }
-                setIngredientsSelected(true); // Skip ingredient selector in edit mode
             } else {
                 // Show ingredient selector for new recipe generation
                 if (authStatus === 'authenticated') {
                     setShowIngredientSelector(true);
                 } else {
                     setMessages([{ role: 'assistant', content: 'Hello! I am your Culinary Architect. Tell me about a recipe you want to refine or save.' }]);
-                    setIngredientsSelected(true);
                 }
             }
         };
 
         loadContext();
-    }, [location.state, authStatus]);
+    }, [location.state, authStatus, callAgent]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -159,31 +178,18 @@ function Chat() {
         if (e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]);
     };
 
-    const callAgent = async (textToSend, file = null) => {
-        try {
-            // File handling is not yet supported through the API
-            // TODO: Add file upload support to backend API
-            const response = await invokeAgent(sessionId, textToSend, []);
-            return response;
-        } catch (error) {
-            console.error("Error calling agent:", error);
-            throw error;
-        }
-    };
-
     const handleIngredientConfirm = (mode, selectedItems) => {
         ingredientContextRef.current = { mode, selectedItems };
         setShowIngredientSelector(false);
-        setIngredientsSelected(true);
 
         // Prepare greeting message acknowledging ingredient selection
         let ingredientMessage = '';
         if (mode === 'none') {
-            ingredientMessage = 'No ingredient constraints. I\'ll help you create any recipe!';
+            ingredientMessage = "No ingredient constraints. I'll help you create any recipe!";
         } else if (mode === 'some') {
-            ingredientMessage = `I\'ll help you create recipes using some of these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
+            ingredientMessage = `I'll help you create recipes using some of these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
         } else if (mode === 'solely') {
-            ingredientMessage = `I\'ll create recipes using ONLY these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
+            ingredientMessage = `I'll create recipes using ONLY these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
         }
 
         setMessages([
@@ -196,8 +202,11 @@ function Chat() {
 
     const sendMessage = async () => {
         if (!input.trim() && !selectedFile) return;
+        if (quotaExceeded) return;
 
-        const displayInput = input;
+        // Sanitize user input to prevent injection attacks
+        const sanitizedInput = sanitizeInput(input);
+        const displayInput = sanitizedInput;
         const displayFile = selectedFile;
 
         setMessages(prev => [...prev, {
@@ -239,7 +248,7 @@ function Chat() {
                 recipeContextRef.current = null;
             }
 
-            const botResponse = await callAgent(agentInput, displayFile);
+            const botResponse = await callAgent(agentInput);
             setMessages(prev => [...prev, { role: 'assistant', content: botResponse }]);
         } catch (error) {
             console.error("Error:", error);
@@ -265,19 +274,17 @@ function Chat() {
                 "Put the dish name on the same line as TITLE: (do not put it on a separate line). " +
                 "Use the tags TITLE:, INGREDIENTS:, and INSTRUCTIONS: exactly, each starting a new line. " +
                 "Separate each ingredient within the section using a dash at the beginning of each and a new line in between. " +
-                "Crucially, use vertical bars '|' to separate the recipe, the emoji, and your closing remarks. " +
+                "Crucially, use a vertical bar '|' to separate the recipe from your closing remarks. " +
                 "Format exactly like this:\n" +
                 "TITLE: Buffalo Chicken Dip\n" +
                 "INGREDIENTS:\n- 2 cans chicken\n- 8 oz cream cheese\n" +
                 "INSTRUCTIONS:\n- Preheat oven to 350F\n- Mix and bake\n" +
-                "| [Insert 1 Emoji Here] | [Closing remarks]"
+                "| [Closing remarks]"
             );
 
             const parts = botResponse.split('|');
             // Strip markdown BEFORE regex so wrapped tags like "**TITLE:**" still parse.
             const cleanRecipeData = stripMarkdown(parts[0]);
-            let rawEmoji = (parts.length > 1) ? parts[1] : null;
-            const aiEmoji = rawEmoji ? rawEmoji.trim() : '🥘';
 
             const nameMatch = cleanRecipeData.match(/(?:TITLE|RECIPE_NAME):\s*(.*)/i);
             const ingMatch = cleanRecipeData.match(/(?:INGREDIENTS|RECIPE_INGREDIENTS):\s*([\s\S]*?)(?=INSTRUCTIONS|RECIPE_INSTRUCTIONS|$)/i);
@@ -290,7 +297,6 @@ function Chat() {
                     title: stripMarkdown(nameMatch[1]),
                     ingredients: stripMarkdown(ingMatch[1]),
                     instructions: stripMarkdown(insMatch[1]),
-                    emoji: aiEmoji,
                     recipeId: activeRecipeId
                 });
                 setIsConfirmingSave(true);
@@ -312,13 +318,17 @@ function Chat() {
             // recipes are owned by the logged-in creator.
             const base = isUpdate ? (editingOriginalRef.current || {}) : {};
 
+            // Sanitize recipe fields to prevent injection attacks
+            const sanitizedRecipe = sanitizeObject(finalRecipe, ['title', 'ingredients', 'instructions']);
+
             const finalItem = {
                 ...base,
-                title: finalRecipe.title,
-                emoji: finalRecipe.emoji || '🥘',
-                ingredients: finalRecipe.ingredients,
-                instructions: finalRecipe.instructions,
+                title: sanitizedRecipe.title,
+                ingredients: sanitizedRecipe.ingredients,
+                instructions: sanitizedRecipe.instructions,
             };
+            // Recipes no longer carry a decorative emoji field.
+            delete finalItem.emoji;
 
             // Only include recipeId for updates; backend will generate ID for new recipes
             if (isUpdate) {
@@ -329,9 +339,10 @@ function Chat() {
                 finalItem.ownerId = user?.userId;
             }
 
-            await saveRecipe(finalItem);
+            const savedRecipe = await saveRecipe(finalItem);
 
-            navigate('/explore');
+            // Navigate to recipe detail page instead of explore
+            navigate(`/recipe/${savedRecipe.recipeId}`);
         } catch (err) {
             console.error("Commit Save Error:", err);
             alert("Final save failed.");
@@ -340,13 +351,14 @@ function Chat() {
 
     return (
         <SplashTransition>
+            {quotaExceeded && <Paywall />}
+
             <IngredientSelector
                 userId={user?.userId}
                 isOpen={showIngredientSelector}
                 onConfirm={handleIngredientConfirm}
                 onCancel={() => {
                     setShowIngredientSelector(false);
-                    setIngredientsSelected(true);
                     setMessages([
                         {
                             role: 'assistant',
@@ -370,7 +382,7 @@ function Chat() {
                             <div className="fake-btn-display">
                                 <button className="icon-button" style={{pointerEvents: 'none'}}>
                                     <span className='btn-text'>Upload Recipe</span>
-                                    <span className="btn-icon">📎</span>
+                                    <span className="btn-icon"><Paperclip size={15} /></span>
                                 </button>
                             </div>
 
@@ -389,7 +401,7 @@ function Chat() {
                     </div>
                 )}
 
-                <div className="messages-area">
+                <div className="messages-area" data-lenis-prevent>
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`message ${msg.role}`}>
                             <div className="message-bubble">
@@ -405,7 +417,7 @@ function Chat() {
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/jpeg,image/png,image/webp" />
                     <button className={`icon-button ${selectedFile ? 'active' : ''}`} onClick={() => fileInputRef.current.click()}>
                         <span className='btn-text'>Upload Recipe</span>
-                        <span className="btn-icon">📎</span>
+                        <span className="btn-icon"><Paperclip size={15} /></span>
                     </button>
                     {messages.length > 0 && (
                         <button className="save-btn" onClick={handleSaveCommand} disabled={loading}>
@@ -439,7 +451,7 @@ function Chat() {
                             onChange={(e) => setStagingRecipe({...stagingRecipe, instructions: e.target.value})}
                         />
                         <div style={{display: 'flex', gap: '10px', marginTop: '24px'}}>
-                            <button className="btn btn-primary" onClick={() => commitSave(stagingRecipe)}>🚀 Save &amp; Go to Explore</button>
+                            <button className="btn btn-primary" onClick={() => commitSave(stagingRecipe)}>Save &amp; Continue</button>
                             <button className="btn btn-secondary" onClick={() => setIsConfirmingSave(false)}>Keep Chatting</button>
                         </div>
                     </div>

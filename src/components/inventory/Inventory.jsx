@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { X, Plus } from 'lucide-react';
 import TopNav from '../nav/TopNav';
+import { sanitizeInput } from '../../lib/sanitizer';
 import {
     fetchUserInventory,
     fetchUserCategories,
@@ -49,31 +51,32 @@ const Inventory = () => {
     // Load inventory on mount
     useEffect(() => {
         if (!user?.userId) return;
+
+        const loadInventory = async () => {
+            try {
+                setLoading(true);
+                // Initialize predefined categories for this user (idempotent)
+                await initializeUserCategories(user.userId);
+
+                const items = await fetchUserInventory(user.userId);
+                const customCats = await fetchUserCategories(user.userId);
+
+                setInventoryItems(items);
+                setUserCategories(customCats);
+                setAllCategories([
+                    ...PREDEFINED_CATEGORIES,
+                    ...customCats.map((cat) => ({ id: cat.categoryId, label: cat.name })),
+                ]);
+            } catch (err) {
+                console.error('Error loading inventory:', err);
+                setError('Failed to load inventory');
+            } finally {
+                setLoading(false);
+            }
+        };
+
         loadInventory();
     }, [user?.userId]);
-
-    const loadInventory = async () => {
-        try {
-            setLoading(true);
-            // Initialize predefined categories for this user (idempotent)
-            await initializeUserCategories(user.userId);
-
-            const items = await fetchUserInventory(user.userId);
-            const customCats = await fetchUserCategories(user.userId);
-
-            setInventoryItems(items);
-            setUserCategories(customCats);
-            setAllCategories([
-                ...PREDEFINED_CATEGORIES,
-                ...customCats.map((cat) => ({ id: cat.categoryId, label: cat.name })),
-            ]);
-        } catch (err) {
-            console.error('Error loading inventory:', err);
-            setError('Failed to load inventory');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleAddItem = async (e) => {
         e.preventDefault();
@@ -83,13 +86,16 @@ const Inventory = () => {
         }
 
         try {
-            const newItem = await addInventoryItem(user.userId, {
-                name: formData.name,
+            // Sanitize inputs to prevent injection attacks
+            const sanitizedData = {
+                name: sanitizeInput(formData.name),
                 category: formData.category,
-                quantity: formData.quantity,
-                unit: formData.unit,
-                notes: formData.notes,
-            });
+                quantity: sanitizeInput(formData.quantity),
+                unit: sanitizeInput(formData.unit),
+                notes: sanitizeInput(formData.notes),
+            };
+
+            const newItem = await addInventoryItem(user.userId, sanitizedData);
 
             setInventoryItems([...inventoryItems, newItem]);
             setFormData({
@@ -142,8 +148,10 @@ const Inventory = () => {
         }
 
         try {
+            // Sanitize category name
+            const sanitizedName = sanitizeInput(newCategoryName);
             const newCat = await addCustomCategory(user.userId, {
-                name: newCategoryName,
+                name: sanitizedName,
                 description: '',
             });
 
@@ -194,13 +202,13 @@ const Inventory = () => {
                         className="btn btn-primary"
                         onClick={() => setShowAddForm(!showAddForm)}
                     >
-                        {showAddForm ? '✕ Cancel' : '+ Add Item'}
+                        {showAddForm ? <><X size={15} /> Cancel</> : <><Plus size={15} /> Add Item</>}
                     </button>
                     <button
                         className="btn btn-secondary"
                         onClick={() => setShowCategoryForm(!showCategoryForm)}
                     >
-                        {showCategoryForm ? '✕ Cancel' : '+ Custom Category'}
+                        {showCategoryForm ? <><X size={15} /> Cancel</> : <><Plus size={15} /> Custom Category</>}
                     </button>
                 </div>
 
@@ -218,7 +226,7 @@ const Inventory = () => {
                                 type="text"
                                 value={formData.name}
                                 onChange={(e) =>
-                                    setFormData({ ...formData, name: e.target.value })
+                                    setFormData({ ...formData, name: sanitizeInput(e.target.value) })
                                 }
                                 placeholder="e.g., Chicken Breast, Olive Oil"
                             />
@@ -247,7 +255,7 @@ const Inventory = () => {
                                     type="text"
                                     value={formData.quantity}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, quantity: e.target.value })
+                                        setFormData({ ...formData, quantity: sanitizeInput(e.target.value) })
                                     }
                                     placeholder="e.g., 2, 500g"
                                 />
@@ -259,7 +267,7 @@ const Inventory = () => {
                                     type="text"
                                     value={formData.unit}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, unit: e.target.value })
+                                        setFormData({ ...formData, unit: sanitizeInput(e.target.value) })
                                     }
                                     placeholder="e.g., cups, grams"
                                 />
@@ -271,7 +279,7 @@ const Inventory = () => {
                             <textarea
                                 value={formData.notes}
                                 onChange={(e) =>
-                                    setFormData({ ...formData, notes: e.target.value })
+                                    setFormData({ ...formData, notes: sanitizeInput(e.target.value) })
                                 }
                                 placeholder="Any additional notes..."
                                 rows="2"
@@ -297,7 +305,7 @@ const Inventory = () => {
                             <input
                                 type="text"
                                 value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                onChange={(e) => setNewCategoryName(sanitizeInput(e.target.value))}
                                 placeholder="e.g., Frozen Foods"
                             />
                         </div>
@@ -335,7 +343,7 @@ const Inventory = () => {
                                                             onChange={(e) =>
                                                                 setEditingItem({
                                                                     ...editingItem,
-                                                                    quantity: e.target.value,
+                                                                    quantity: sanitizeInput(e.target.value),
                                                                 })
                                                             }
                                                             placeholder="Quantity"
@@ -345,7 +353,7 @@ const Inventory = () => {
                                                             onChange={(e) =>
                                                                 setEditingItem({
                                                                     ...editingItem,
-                                                                    notes: e.target.value,
+                                                                    notes: sanitizeInput(e.target.value),
                                                                 })
                                                             }
                                                             placeholder="Notes"

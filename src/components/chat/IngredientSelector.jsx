@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 import { fetchUserInventory, PREDEFINED_CATEGORIES } from '../../lib/inventoryDb';
 import './IngredientSelector.css';
 
@@ -12,26 +13,27 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
 
     useEffect(() => {
         if (!isOpen) return;
+
+        const loadInventory = async () => {
+            try {
+                setLoading(true);
+                const items = await fetchUserInventory(userId);
+                setInventoryItems(items);
+                // Initialize expanded categories for all
+                const expanded = {};
+                PREDEFINED_CATEGORIES.forEach((cat) => {
+                    expanded[cat.id] = true;
+                });
+                setExpandedCategories(expanded);
+            } catch (err) {
+                console.error('Error loading inventory:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         loadInventory();
     }, [isOpen, userId]);
-
-    const loadInventory = async () => {
-        try {
-            setLoading(true);
-            const items = await fetchUserInventory(userId);
-            setInventoryItems(items);
-            // Initialize expanded categories for all
-            const expanded = {};
-            PREDEFINED_CATEGORIES.forEach((cat) => {
-                expanded[cat.id] = true;
-            });
-            setExpandedCategories(expanded);
-        } catch (err) {
-            console.error('Error loading inventory:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const toggleCategory = (categoryId) => {
         setExpandedCategories((prev) => ({
@@ -121,7 +123,7 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
                                 onClick={onCancel}
                                 aria-label="Close"
                             >
-                                ✕
+                                <X size={16} />
                             </button>
                         </div>
 

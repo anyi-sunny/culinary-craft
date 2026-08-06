@@ -61,10 +61,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 5rem;
-  color: rgba(255, 255, 255, 0.4);
   width: 100%;
   height: 100%;
+}
+
+.detail-monogram {
+  font-family: var(--font-display);
+  font-size: 7rem;
+  font-weight: 500;
+  line-height: 1;
+  color: rgba(255, 253, 249, 0.26);
+  user-select: none;
 }
 
 /* Content Section */
@@ -143,32 +150,36 @@
   color: var(--accent);
 }
 
-.heart-btn {
+.recipe-detail-actions .heart-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(128, 128, 128, 0.5);
+  padding: 0;
+  background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--border);
   border-radius: 50%;
-  font-size: 1.4rem;
   line-height: 1;
-  color: #999;
+  color: var(--muted);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: color var(--transition-fast), border-color var(--transition-fast),
+    background var(--transition-fast), transform var(--transition-fast);
 }
 
-.heart-btn:hover {
-  border-color: #FFD700;
-  color: #FFD700;
-  background: rgba(255, 215, 0, 0.1);
+.recipe-detail-actions .heart-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.08);
 }
 
-.heart-btn.hearted {
-  border-color: #FFD700;
-  color: #FFD700;
-  background: rgba(255, 215, 0, 0.12);
+.recipe-detail-actions .heart-btn.hearted {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 /* View Mode */
@@ -241,7 +252,7 @@
 .form-group textarea {
   resize: vertical;
   min-height: 120px;
-  font-family: monospace;
+  font-family: inherit;
 }
 
 /* Responsive */
