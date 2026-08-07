@@ -65,31 +65,44 @@
 .message-bubble p { margin: 0 0 8px; }
 .message-bubble p:last-child { margin-bottom: 0; }
 
-/* --- Input Area --- */
-.input-area {
-  padding: 14px 20px;
+/* --- Input Bar ---
+   Full-width grounded strip so the prompt entry never looks cut off;
+   the controls inside stay aligned with the 900px message column. */
+.input-bar {
+  flex-shrink: 0;
+  width: 100%;
   background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 28px rgba(38, 26, 18, 0.06);
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+.input-area {
   display: flex;
   gap: 10px;
-  align-items: center;
-  flex-shrink: 0;
+  align-items: flex-end;
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
 }
 
-.input-area input {
+.chat-input {
   flex: 1;
   padding: 12px 18px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 22px;
   outline: none;
   font-size: 15.5px;
+  font-family: inherit;
+  line-height: 1.5;
   min-width: 0;
   background: var(--bg);
+  resize: none;
+  overflow-y: auto;
+  max-height: 140px;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
-.input-area input:focus {
+.chat-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -179,11 +192,48 @@
   justify-content: center;
   margin: 20px 0 24px;
 }
-.typing-indicator {
-  color: var(--muted);
-  font-style: italic;
-  font-size: 0.9rem;
-  padding: 6px 2px;
+/* --- Thinking indicator --- */
+.thinking-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-bottom-left-radius: 4px;
+  box-shadow: var(--shadow-sm);
+}
+.thinking-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  /* Black source logo tinted to the nav-bar espresso (#261a12) */
+  filter: brightness(0) invert(12%) sepia(100%) saturate(200%) hue-rotate(-20deg) brightness(75%);
+  animation: thinkingPulse 2.6s ease-in-out infinite;
+}
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.thinking-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dotBounce 1.3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.16s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes dotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+@keyframes thinkingPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 .got-it-btn {
   background: var(--accent);
@@ -199,11 +249,57 @@
 }
 .got-it-btn:hover { background: var(--accent-hover); }
 
+/* --- Review & save modal ---
+   .modal-content.review-modal (two classes) so this always beats
+   RecipeModal.css's `.modal-content { padding: 0 }` regardless of the
+   order the two stylesheets land in the bundle. */
+.modal-content.review-modal {
+  padding: 32px 34px;
+  overflow-y: auto;
+}
+.review-modal h2 {
+  margin: 0 0 22px;
+  font-size: 26px;
+}
+.review-label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 20px 0 8px;
+}
+.review-modal .review-label:first-of-type {
+  margin-top: 0;
+}
+.review-modal .edit-textarea {
+  margin-top: 0;
+}
+/* Double-height instructions box — makes it deliberate that the user
+   scrolls through the full recipe before reaching the save actions. */
+.review-modal .edit-textarea.review-instructions {
+  min-height: 300px;
+}
+.review-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .modal-content.review-modal { padding: 24px 20px; }
+  .review-actions { flex-direction: column; }
+  .review-actions .btn { width: 100%; }
+}
+
 /* --- Mobile --- */
 @media (max-width: 600px) {
   .messages-area { padding: 16px 12px; }
   .message { max-width: 92%; }
-  .input-area { padding: 10px; gap: 8px; }
+  .input-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .input-area { gap: 8px; }
   .send-btn { padding: 10px 16px; }
   .icon-button {
     width: 44px;

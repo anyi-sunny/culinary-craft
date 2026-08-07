@@ -96,7 +96,7 @@ export default function TopNav({ title = "Culinary Craft" }) {
                         <span />
                     </button>
                     <button className="topnav-brand" onClick={() => navigate("/")}>
-                        <img src="/favicon.ico" alt="Logo" className="brand-logo" />
+                        <img src="/logo.png" alt="Logo" className="brand-logo" />
                         {title}
                     </button>
 
@@ -184,7 +184,7 @@ export default function TopNav({ title = "Culinary Craft" }) {
                             transition={{ type: "tween", duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
                         >
                             <div className="drawer-header">
-                                <img src="/favicon.ico" alt="Logo" className="drawer-logo" />
+                                <img src="/logo.png" alt="Logo" className="drawer-logo" />
                                 <span className="drawer-title">Culinary Craft</span>
                                 <button
                                     className="drawer-close"

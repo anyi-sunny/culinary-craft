@@ -21,10 +21,6 @@
   width: 100%;
 }
 
-.constrained-width {
-  max-width: 900px;
-}
-
 .section-horizontal-padding {
   padding-left: 20px;
   padding-right: 20px;

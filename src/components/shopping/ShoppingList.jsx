@@ -79,31 +79,28 @@ const ShoppingList = () => {
   }, [location.state, user?.userId]);
 
   const handleCheckItem = (itemId) => {
-    setCheckedItems(prev => {
-      const newState = { ...prev };
-      newState[itemId] = !newState[itemId];
-      return newState;
-    });
+    const newChecked = { ...checkedItems, [itemId]: !checkedItems[itemId] };
+    setCheckedItems(newChecked);
 
     // Add to undo stack
     setUndoStack(prev => [...prev, { itemId, action: 'toggle' }]);
 
     // Save to backend
     if (shoppingListId && user?.userId) {
-      saveShoppingListToBackend();
+      saveShoppingListToBackend(shoppingList, newChecked);
     }
   };
 
-  const saveShoppingListToBackend = async () => {
+  const saveShoppingListToBackend = async (list = shoppingList, checked = checkedItems) => {
     if (!shoppingListId) {
       console.warn('No shopping list ID to save');
       return;
     }
 
     try {
-      const updatedItems = shoppingList.map(item => ({
+      const updatedItems = list.map(item => ({
         ...item,
-        checked: checkedItems[item.id] || false
+        checked: checked[item.id] || false
       }));
 
       console.log('Saving shopping list:', { shoppingListId, itemCount: updatedItems.length });
@@ -170,19 +167,18 @@ const ShoppingList = () => {
   };
 
   const handleRemoveItem = (itemId) => {
-    setShoppingList(prev => prev.filter(item => item.id !== itemId));
-    setCheckedItems(prev => {
-      const newState = { ...prev };
-      delete newState[itemId];
-      return newState;
-    });
+    const newList = shoppingList.filter(item => item.id !== itemId);
+    const newChecked = { ...checkedItems };
+    delete newChecked[itemId];
+    setShoppingList(newList);
+    setCheckedItems(newChecked);
 
     // Add to undo stack
     setUndoStack(prev => [...prev, { itemId, action: 'remove' }]);
 
     // Save to backend
     if (shoppingListId && user?.userId) {
-      saveShoppingListToBackend();
+      saveShoppingListToBackend(newList, newChecked);
     }
   };
 

@@ -47,6 +47,8 @@
   width: 32px;
   height: 32px;
   object-fit: contain;
+  /* Black source logo rendered white on the espresso bar */
+  filter: brightness(0) invert(1);
 }
 
 /* =========================================================
@@ -236,6 +238,8 @@
   width: 28px;
   height: 28px;
   object-fit: contain;
+  /* Black source logo tinted to the nav-bar espresso (#261a12) */
+  filter: brightness(0) invert(12%) sepia(100%) saturate(200%) hue-rotate(-20deg) brightness(75%);
 }
 .drawer-title {
   font-family: var(--font-display);

@@ -20,6 +20,27 @@ import SplashTransition from '../SplashTransition';
 
 const AWS_REGION = awsConfig.region;
 
+// Chat context cache — survives sleep/refresh so a conversation can be
+// restored even after the Bedrock agent's server-side session has expired.
+const CHAT_CACHE_KEY = 'culinary_craft_chat_cache';
+const CHAT_INPUT_MAX_HEIGHT = 140; // px (~5 lines) before the textarea scrolls
+
+const readChatCache = () => {
+    try {
+        const raw = localStorage.getItem(CHAT_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed?.messages) || parsed.messages.length === 0) return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+};
+
+const clearChatCache = () => {
+    try { localStorage.removeItem(CHAT_CACHE_KEY); } catch { /* ignore */ }
+};
+
 // Strips markdown formatting that the agent sometimes adds (e.g. **bold**, #
 // headings, `code`). The review modal uses plain <input>/<textarea> fields and
 // the saved record is plain text, so any leftover markdown shows up literally
@@ -74,7 +95,16 @@ function Chat() {
     const { authStatus, user } = useAuthenticator(context => [context.authStatus, context.user]);
     const { requireLogin } = useAuthModal();
 
-    const [sessionId] = useState(() => `session-${crypto.randomUUID()}`);
+    // Snapshot the cache once on mount. Entering with a recipe to improve
+    // always starts a fresh session and ignores any cached conversation.
+    const initialCacheRef = useRef(undefined);
+    if (initialCacheRef.current === undefined) {
+        initialCacheRef.current = location.state?.recipeToImprove ? null : readChatCache();
+    }
+
+    const [sessionId] = useState(() =>
+        initialCacheRef.current?.sessionId || `session-${crypto.randomUUID()}`
+    );
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -86,7 +116,9 @@ function Chat() {
     const [showIngredientSelector, setShowIngredientSelector] = useState(false);
     const ingredientContextRef = useRef(null);
 
-    const messagesEndRef = useRef(null);
+    const messagesAreaRef = useRef(null);
+    const chatInputRef = useRef(null);
+    const restoredFromCacheRef = useRef(false);
     const fileInputRef = useRef(null);
     const recipeContextRef = useRef(null);
     // Original recipe being edited (UPDATE mode) so we can preserve ownerId / heartedBy.
@@ -157,6 +189,45 @@ function Chat() {
                 } finally {
                     setLoading(false);
                 }
+            } else if (initialCacheRef.current) {
+                // A previous conversation is cached (e.g. the tab sat idle or the
+                // computer slept). Restore it, then check whether the agent still
+                // remembers the session; if not, replay the transcript so the
+                // agent regains context.
+                if (restoredFromCacheRef.current) return;
+                restoredFromCacheRef.current = true;
+
+                const cached = initialCacheRef.current;
+                setMessages(cached.messages);
+                if (cached.activeRecipeId) setActiveRecipeId(cached.activeRecipeId);
+                if (cached.ingredientContext) ingredientContextRef.current = cached.ingredientContext;
+
+                setLoading(true);
+                try {
+                    const probe = await callAgent(
+                        'SYSTEM MEMORY CHECK: Do you currently remember the recipe conversation we have been having in this session? ' +
+                        'Reply with only the single word YES or NO. Do not add anything else.'
+                    );
+                    const remembers = /\bYES\b/i.test(probe) && !/\bNO\b/i.test(probe);
+
+                    if (!remembers) {
+                        const transcript = cached.messages
+                            .filter((m) => m.role !== 'error')
+                            .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+                            .join('\n\n');
+
+                        const reply = await callAgent(
+                            'Our session was interrupted and you have lost context. Here is the full transcript of the conversation so far:\n\n' +
+                            `${transcript}\n\n` +
+                            'Absorb this context so we can continue where we left off. Reply with one short, friendly sentence letting the user know you are caught up and ready to continue.'
+                        );
+                        setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
+                    }
+                } catch (error) {
+                    console.error('Error verifying agent memory:', error);
+                } finally {
+                    setLoading(false);
+                }
             } else {
                 // Show ingredient selector for new recipe generation
                 if (authStatus === 'authenticated') {
@@ -170,9 +241,52 @@ function Chat() {
         loadContext();
     }, [location.state, authStatus, callAgent]);
 
+    // Persist the conversation so it can be restored if the agent's session
+    // expires while the page sits idle. Pure greetings are not worth caching.
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (!messages.some((m) => m.role === 'user')) return;
+        try {
+            localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify({
+                sessionId,
+                messages,
+                activeRecipeId,
+                ingredientContext: ingredientContextRef.current,
+                savedAt: Date.now(),
+            }));
+        } catch { /* storage full / unavailable */ }
+    }, [messages, sessionId, activeRecipeId]);
+
+    // Warn before the tab closes/refreshes while an unsaved conversation exists.
+    useEffect(() => {
+        if (!messages.some((m) => m.role === 'user')) return;
+        const onBeforeUnload = (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', onBeforeUnload);
+        return () => window.removeEventListener('beforeunload', onBeforeUnload);
     }, [messages]);
+
+    // Enter the page at the top — scrollIntoView-style helpers must never
+    // drag the whole document down to the footer.
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
+    // Auto-scroll to the newest message, but only inside the chat log itself.
+    useEffect(() => {
+        const area = messagesAreaRef.current;
+        if (!area) return;
+        area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
+    }, [messages, loading]);
+
+    // Auto-grow the prompt box as the text wraps; past the cap it scrolls.
+    useEffect(() => {
+        const el = chatInputRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = `${Math.min(el.scrollHeight, CHAT_INPUT_MAX_HEIGHT)}px`;
+    }, [input]);
 
     const handleFileSelect = (e) => {
         if (e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]);
@@ -341,6 +455,9 @@ function Chat() {
 
             const savedRecipe = await saveRecipe(finalItem);
 
+            // The conversation reached its goal — drop the cached transcript.
+            clearChatCache();
+
             // Navigate to recipe detail page instead of explore
             navigate(`/recipe/${savedRecipe.recipeId}`);
         } catch (err) {
@@ -401,7 +518,7 @@ function Chat() {
                     </div>
                 )}
 
-                <div className="messages-area" data-lenis-prevent>
+                <div className="messages-area" ref={messagesAreaRef} data-lenis-prevent>
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`message ${msg.role}`}>
                             <div className="message-bubble">
@@ -409,48 +526,79 @@ function Chat() {
                             </div>
                         </div>
                     ))}
-                    {loading && <div className="message assistant"><div className="typing-indicator">Thinking...</div></div>}
-                    <div ref={messagesEndRef} />
+                    {loading && (
+                        <div className="message assistant">
+                            <div className="thinking-indicator" aria-label="Assistant is thinking">
+                                <img src="/logo.png" alt="" className="thinking-logo" />
+                                <span className="thinking-dots">
+                                    <span />
+                                    <span />
+                                    <span />
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <div className="input-area">
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/jpeg,image/png,image/webp" />
-                    <button className={`icon-button ${selectedFile ? 'active' : ''}`} onClick={() => fileInputRef.current.click()}>
-                        <span className='btn-text'>Upload Recipe</span>
-                        <span className="btn-icon"><Paperclip size={15} /></span>
-                    </button>
-                    {messages.length > 0 && (
-                        <button className="save-btn" onClick={handleSaveCommand} disabled={loading}>
-                            Save
+                <div className="input-bar">
+                    <div className="input-area">
+                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/jpeg,image/png,image/webp" />
+                        <button className={`icon-button ${selectedFile ? 'active' : ''}`} onClick={() => fileInputRef.current.click()}>
+                            <span className='btn-text'>Upload Recipe</span>
+                            <span className="btn-icon"><Paperclip size={15} /></span>
                         </button>
-                    )}
+                        {messages.length > 0 && (
+                            <button className="save-btn" onClick={handleSaveCommand} disabled={loading}>
+                                Save
+                            </button>
+                        )}
 
-                    <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} placeholder={selectedFile ? `File: ${selectedFile.name}` : "Type instructions..."} />
-                    <button className="send-btn" onClick={sendMessage} disabled={loading}>Send</button>
+                        <textarea
+                            ref={chatInputRef}
+                            className="chat-input"
+                            rows={1}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    sendMessage();
+                                }
+                            }}
+                            placeholder={selectedFile ? `File: ${selectedFile.name}` : "Type instructions..."}
+                            data-lenis-prevent
+                        />
+                        <button className="send-btn" onClick={sendMessage} disabled={loading}>Send</button>
+                    </div>
                 </div>
             </div>
 
             {isConfirmingSave && (
                 <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h2 style={{padding: '5px', margin: '0px', fontSize: '28px'}}>Review &amp; Name Your Recipe</h2>
+                    <div className="modal-content review-modal" data-lenis-prevent>
+                        <h2>Review &amp; Name Your Recipe</h2>
+                        <label className="review-label" htmlFor="review-title">Title</label>
                         <input
+                            id="review-title"
                             className="edit-input-title"
-                            style={{ marginTop: '16px' }}
                             value={stagingRecipe.title || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, title: e.target.value})}
                         />
+                        <label className="review-label" htmlFor="review-ingredients">Ingredients</label>
                         <textarea
+                            id="review-ingredients"
                             className="edit-textarea"
                             value={stagingRecipe.ingredients || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, ingredients: e.target.value})}
                         />
+                        <label className="review-label" htmlFor="review-instructions">Instructions</label>
                         <textarea
-                            className="edit-textarea"
+                            id="review-instructions"
+                            className="edit-textarea review-instructions"
                             value={stagingRecipe.instructions || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, instructions: e.target.value})}
                         />
-                        <div style={{display: 'flex', gap: '10px', marginTop: '24px'}}>
+                        <div className="review-actions">
                             <button className="btn btn-primary" onClick={() => commitSave(stagingRecipe)}>Save &amp; Continue</button>
                             <button className="btn btn-secondary" onClick={() => setIsConfirmingSave(false)}>Keep Chatting</button>
                         </div>
