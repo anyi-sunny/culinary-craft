@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Check, Undo2 } from 'lucide-react';
+import { Check, Undo2, Trash2 } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
 import { addInventoryItem } from '../../lib/inventoryDb';
@@ -187,7 +187,7 @@ const ShoppingList = () => {
 
   return (
     <SplashTransition>
-      <div className="page constrained-width">
+      <div className="page shopping-page">
         <TopNav />
 
         <div className="shopping-list-container">
@@ -260,10 +260,12 @@ const ShoppingList = () => {
                         )}
                         {!isChecked && (
                           <button
-                            className="btn btn-sm btn-danger"
+                            className="btn btn-sm btn-danger btn-remove-item"
                             onClick={() => handleRemoveItem(item.id)}
+                            aria-label={`Remove ${item.name}`}
                           >
-                            Remove
+                            <Trash2 size={15} strokeWidth={2} />
+                            <span className="remove-label">Remove</span>
                           </button>
                         )}
                       </div>

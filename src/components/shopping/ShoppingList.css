@@ -1,11 +1,28 @@
-.shopping-list-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+/* The list sits directly on the page background — no floating card. */
+.shopping-page {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(185, 102, 63, 0.07), transparent),
+    radial-gradient(ellipse 55% 40% at 98% 60%, rgba(95, 114, 89, 0.06), transparent 60%),
+    var(--bg);
 }
 
+.shopping-list-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px 60px;
+}
+
+/* Header — left aligned with the content, separated from it by a ruled
+   line like the top margin of a written shopping list. */
 .shopping-list-header {
-  margin-bottom: 30px;
+  text-align: left;
+  padding-bottom: 18px;
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--accent);
 }
 
 .shopping-list-header h1 {
@@ -42,38 +59,35 @@
 .shopping-items {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
+/* Lined-paper rows: transparent background, ruled lines only on the
+   tops/bottoms of items, sharp corners. */
 .shopping-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 16px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
   gap: 12px;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, opacity 0.2s ease;
 }
 
 .shopping-item:hover {
-  border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.1);
+  background: rgba(185, 102, 63, 0.05);
 }
 
 .shopping-item.checked {
-  background: var(--bg-tertiary);
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .shopping-item.checked .item-name {
   text-decoration: line-through;
   color: var(--text-tertiary);
-}
-
-.shopping-item.added {
-  border-left: 4px solid #16a34a;
 }
 
 .item-left {
@@ -83,32 +97,65 @@
   flex: 1;
 }
 
+/* Custom checkbox: the native input is invisible but still clickable and
+   focusable; .checkmark is the single visible box, so nothing can drift
+   out of alignment. */
 .item-checkbox {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   cursor: pointer;
   position: relative;
 }
 
 .item-checkbox input {
-  width: 20px;
-  height: 20px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
   cursor: pointer;
-  accent-color: var(--primary);
 }
 
 .item-checkbox input:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .checkmark {
+  display: inline-block;
+  box-sizing: border-box;
   width: 20px;
   height: 20px;
-  border: 2px solid var(--primary);
-  border-radius: 4px;
-  margin-left: -28px;
+  border: 2px solid var(--accent);
+  border-radius: 0;
+  background: transparent;
+  position: relative;
   pointer-events: none;
+  transition: background 0.15s ease;
+}
+
+.item-checkbox input:checked + .checkmark {
+  background: var(--accent);
+}
+
+.item-checkbox input:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.item-checkbox input:focus-visible + .checkmark {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.item-checkbox input:disabled + .checkmark {
+  opacity: 0.5;
 }
 
 .item-details {
@@ -131,6 +178,12 @@
 .item-actions {
   display: flex;
   gap: 8px;
+}
+
+.btn-remove-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .badge-success {
@@ -208,7 +261,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .shopping-list-container {
-    padding: 16px;
+    padding: 24px 16px 48px;
   }
 
   .shopping-list-header h1 {
@@ -222,10 +275,25 @@
 
   .item-actions {
     width: 100%;
+    justify-content: flex-end;
   }
 
   .item-actions button {
     flex: 1;
+  }
+
+  /* On mobile the remove button collapses to a compact trash icon
+     instead of a full-width bar. */
+  .item-actions .btn-remove-item {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .item-actions .btn-remove-item .remove-label {
+    display: none;
   }
 
   .shopping-list-footer {

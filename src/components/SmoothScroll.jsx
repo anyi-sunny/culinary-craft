@@ -3,8 +3,8 @@ import Lenis from 'lenis';
 
 /**
  * Wraps the app with Lenis inertial smooth scrolling.
- * The low lerp value gives scrolling a soft, trailing feel so the page
- * decelerates gently instead of stopping abruptly.
+ * The lerp keeps a hint of softness while staying close to the user's
+ * actual scroll input — higher values track the wheel more directly.
  *
  * Inner scrollable regions (chat log, modals) must opt out with the
  * `data-lenis-prevent` attribute so their native scrolling still works.
@@ -12,8 +12,8 @@ import Lenis from 'lenis';
 export default function SmoothScroll({ children }) {
     useEffect(() => {
         const lenis = new Lenis({
-            lerp: 0.08,
-            wheelMultiplier: 0.9,
+            lerp: 0.18,
+            wheelMultiplier: 1,
             smoothWheel: true,
         });
 
