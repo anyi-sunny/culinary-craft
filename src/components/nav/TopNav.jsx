@@ -12,8 +12,9 @@ const NAV_ITEMS = [
     { label: "Create Recipe", path: "/chat" },
     {
         label: "Explore Recipes",
+        path: "/explore", // clicking the group itself opens the explore hub
         children: [
-            { label: "All", path: "/explore" },
+            { label: "All", path: "/explore/all" },
             { label: "Saved", path: "/favorites", auth: true },
             { label: "My Creations", path: "/my-recipes", auth: true },
         ],
@@ -22,11 +23,22 @@ const NAV_ITEMS = [
     { label: "Shopping List", path: "/shopping-list" },
 ];
 
-export default function TopNav({ title = "Culinary Craft" }) {
+export default function TopNav({ title = "Culinary Craft", overlay = false }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [open, setOpen] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    // Overlay mode (home hero): transparent while at the top of the page,
+    // solid espresso once the user scrolls.
+    const [solid, setSolid] = useState(false);
+
+    useEffect(() => {
+        if (!overlay) return;
+        const onScroll = () => setSolid(window.scrollY > 50);
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, [overlay]);
     const { authStatus } = useAuthenticator((ctx) => [ctx.authStatus]);
     const { requireLogin } = useAuthModal();
     const isAuthed = authStatus === "authenticated";
@@ -34,7 +46,21 @@ export default function TopNav({ title = "Culinary Craft" }) {
 
     const exploreGroup = NAV_ITEMS.find((item) => item.children);
     const isGroupActive = (group) =>
+        location.pathname === group.path ||
         group.children.some((child) => location.pathname === child.path);
+
+    // Desktop dropdown opens on hover; a short close delay bridges the
+    // pointer gap between the trigger and the panel.
+    const closeTimerRef = useRef(null);
+    const openDropdown = () => {
+        clearTimeout(closeTimerRef.current);
+        setDropdownOpen(true);
+    };
+    const scheduleDropdownClose = () => {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = setTimeout(() => setDropdownOpen(false), 180);
+    };
+    useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
     // Expand the drawer group when one of its pages is open.
     const [drawerGroupOpen, setDrawerGroupOpen] = useState(
@@ -84,7 +110,7 @@ export default function TopNav({ title = "Culinary Craft" }) {
 
     return (
         <>
-            <header className="topnav">
+            <header className={`topnav${overlay ? " topnav--overlay" : ""}${overlay && solid ? " topnav--solid" : ""}`}>
                 <div className="topnav-left">
                     <button
                         className="hamburger"
@@ -110,10 +136,12 @@ export default function TopNav({ title = "Culinary Craft" }) {
                                         key={item.label}
                                         className="nav-dropdown"
                                         ref={dropdownRef}
+                                        onMouseEnter={openDropdown}
+                                        onMouseLeave={scheduleDropdownClose}
                                     >
                                         <button
                                             className={`topnav-link${groupActive ? " active" : ""}${dropdownOpen ? " open" : ""}`}
-                                            onClick={() => setDropdownOpen((v) => !v)}
+                                            onClick={() => go(item)}
                                             aria-expanded={dropdownOpen}
                                         >
                                             {item.label}
@@ -222,7 +250,7 @@ export default function TopNav({ title = "Culinary Craft" }) {
                                                             exit={{ height: 0, opacity: 0 }}
                                                             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                                                         >
-                                                            {item.children.map((child) => {
+                                                            {[{ label: "Explore Home", path: item.path }, ...item.children].map((child) => {
                                                                 const locked = child.auth && !isAuthed;
                                                                 return (
                                                                     <button

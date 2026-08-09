@@ -9,10 +9,19 @@
   padding-bottom: 60px;
 }
 
+/* Explore hub: a deeper parchment wash so the white carousel bands read
+   as distinct rows sitting on a colored page. */
+.page.explore-hub-page {
+  background:
+    radial-gradient(ellipse 70% 45% at 15% 0%, rgba(185, 102, 63, 0.12), transparent 65%),
+    radial-gradient(ellipse 55% 40% at 98% 20%, rgba(95, 114, 89, 0.11), transparent 60%),
+    linear-gradient(180deg, #f1e4d2 0%, #f5eddf 100%);
+}
+
 .page-head {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 36px 24px 8px;
+  padding: 36px 24px 16px;
   text-align: center;
 }
 .page-head h1 {
@@ -40,12 +49,22 @@
   margin-top: 16px;
 }
 
-/* Search bar (rendered by RecipeGrid) */
-.grid-search {
-  position: relative;
-  max-width: 560px;
+/* Search bar + filter (rendered by RecipeGrid).
+   Note: `width: 100%` matters — with `margin: auto` on a flex-column child,
+   the row would otherwise shrink to the input's intrinsic ~250px width. */
+.grid-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 860px;
   margin: 22px auto 0;
   padding: 0 24px;
+}
+.grid-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
 }
 .search-input {
   width: 100%;
@@ -64,7 +83,7 @@
 }
 .clear-search {
   position: absolute;
-  right: 34px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   border: none;
@@ -81,6 +100,278 @@
 }
 .clear-search:hover {
   color: var(--accent);
+}
+
+/* Filter toggle button */
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  padding: 0 18px;
+  height: 47px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition),
+    background var(--transition);
+}
+.filter-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.filter-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* Filter panel */
+.filter-panel {
+  width: 100%;
+  max-width: 860px;
+  margin: 14px auto 0;
+  padding: 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  box-sizing: border-box;
+}
+@media (min-width: 601px) {
+  .filter-panel {
+    width: calc(100% - 48px);
+  }
+}
+
+.filter-section {
+  margin-bottom: 16px;
+}
+.filter-label {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* Category multi-select dropdown */
+.cat-dropdown {
+  position: relative;
+  display: inline-block;
+}
+.cat-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition);
+}
+.cat-dropdown-toggle:hover {
+  border-color: var(--accent);
+}
+.cat-dropdown-chevron {
+  transition: transform var(--transition);
+}
+.cat-dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+.cat-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 2px 14px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}
+.cat-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cat-option input {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* Ingredient mini search + add */
+.ingredient-add {
+  display: flex;
+  gap: 8px;
+  max-width: 380px;
+}
+.ingredient-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.ingredient-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.ingredient-add-btn {
+  flex-shrink: 0;
+  padding: 0 18px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.ingredient-add-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+.ingredient-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Filter chips (draft inside the panel, applied below the search row) */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.filter-chips--active {
+  width: 100%;
+  max-width: 860px;
+  margin: 14px auto 0;
+  padding: 0 24px;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 13px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.filter-chip--ingredient {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.filter-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.filter-chip-remove:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+.apply-filters-btn {
+  padding: 11px 24px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition), opacity var(--transition);
+}
+.apply-filters-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.apply-filters-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .filter-btn {
+    width: 47px;
+    padding: 0;
+    justify-content: center;
+  }
+  .filter-btn-label {
+    display: none;
+  }
+  .filter-count {
+    position: absolute;
+    transform: translate(14px, -14px);
+  }
+  .filter-btn {
+    position: relative;
+  }
+  .cat-dropdown-menu {
+    grid-template-columns: 1fr;
+  }
+  .filter-panel {
+    margin-left: 12px;
+    margin-right: 12px;
+    width: calc(100% - 24px);
+  }
 }
 
 /* Card grid — fluid: column count and card size track the window width. */

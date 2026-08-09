@@ -4,11 +4,14 @@ import { AnimatePresence } from 'framer-motion';
 import Welcome from './components/Welcome';
 import Chat from './components/chat/Chat';
 import Explore from './components/explore/Explore';
+import ExploreHub from './components/explore/ExploreHub';
 import RecipeDetail from './components/explore/RecipeDetail';
 import MyRecipes from './components/myrecipes/MyRecipes';
 import Favorites from './components/favorites/Favorites';
 import Inventory from './components/inventory/Inventory';
 import ShoppingList from './components/shopping/ShoppingList';
+import Profile from './components/profile/Profile';
+import { ProfileProvider } from './components/profile/ProfileProvider';
 import Footer from './components/Footer';
 import SmoothScroll from './components/SmoothScroll';
 import './App.css';
@@ -23,12 +26,14 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Welcome />} />
         <Route path="/chat" element={<Chat />} />
-        <Route path="/explore" element={<Explore />} />
+        <Route path="/explore" element={<ExploreHub />} />
+        <Route path="/explore/all" element={<Explore />} />
         <Route path="/recipe/:id" element={<RecipeDetail />} />
         <Route path="/my-recipes" element={<MyRecipes />} />
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/shopping-list" element={<ShoppingList />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </AnimatePresence>
   );
@@ -37,10 +42,12 @@ function AnimatedRoutes() {
 function App() {
   return (
     <Router>
-      <SmoothScroll>
-        <AnimatedRoutes />
-        <Footer />
-      </SmoothScroll>
+      <ProfileProvider>
+        <SmoothScroll>
+          <AnimatedRoutes />
+          <Footer />
+        </SmoothScroll>
+      </ProfileProvider>
     </Router>
   );
 }

@@ -26,114 +26,7 @@
   padding-right: 20px;
 }
 
-/* Fixed Navigation Bar */
-.welcome-navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-  background: transparent;
-  backdrop-filter: none;
-  transition: all var(--transition);
-  padding: 0 20px;
-  pointer-events: none;
-}
-
-.welcome-navbar * {
-  pointer-events: auto;
-}
-
-.welcome-navbar.opaque {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.welcome-nav-content {
-  width: 100%;
-  max-width: 1400px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.welcome-nav-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.welcome-nav-title {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.2rem;
-  color: var(--text);
-  letter-spacing: -0.01em;
-  opacity: 0;
-  transition: opacity var(--transition);
-}
-
-.welcome-navbar.opaque .welcome-nav-title {
-  opacity: 1;
-}
-
-.welcome-account {
-  flex-shrink: 0;
-}
-
-/* Hamburger on Welcome */
-.welcome-hamburger {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  width: 40px;
-  height: 40px;
-  padding: 0 9px;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  transition: all var(--transition);
-}
-
-.welcome-hamburger:hover {
-  border-color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.welcome-hamburger span {
-  display: block;
-  height: 2px;
-  width: 100%;
-  border-radius: 2px;
-  background: #fff;
-  transition: all var(--transition);
-}
-
-.welcome-navbar.opaque .welcome-hamburger {
-  border-color: var(--border);
-  background: var(--surface);
-}
-
-.welcome-navbar.opaque .welcome-hamburger:hover {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.welcome-navbar.opaque .welcome-hamburger span {
-  background: var(--text);
-}
-
-.welcome-navbar.opaque .welcome-hamburger:hover span {
-  background: var(--accent);
-}
+/* The navbar is the shared TopNav in overlay mode (see TopNav.css). */
 
 /* Hero Section */
 .welcome-hero {
@@ -439,86 +332,8 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Drawer (Hamburger Menu) */
-.welcome-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1499;
-}
-
-.welcome-drawer {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 280px;
-  height: 100vh;
-  height: 100dvh;
-  background: linear-gradient(135deg, var(--placeholder-bg) 0%, var(--placeholder-bg-alt) 100%);
-  z-index: 1600;
-  display: flex;
-  flex-direction: column;
-  padding-top: 60px;
-  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.3);
-}
-
-.drawer-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  background: none;
-  border: none;
-  color: white;
-  padding: 16px 24px;
-  text-align: left;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--transition-fast), padding-left var(--transition-fast);
-  text-decoration: none;
-}
-
-.drawer-item:hover {
-  background: rgba(0, 0, 0, 0.15);
-  padding-left: 30px;
-}
-
-.drawer-item-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.drawer-item-chevron {
-  transition: transform var(--transition-fast);
-  opacity: 0.8;
-}
-.drawer-item-chevron.open {
-  transform: rotate(180deg);
-}
-
-.drawer-item-sublinks {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.drawer-item-sub {
-  padding: 12px 24px 12px 42px;
-  font-size: 0.94rem;
-  opacity: 0.92;
-}
-.drawer-item-sub:hover {
-  padding-left: 48px;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
-  .welcome-navbar {
-    height: 56px;
-  }
-
   .welcome-hero {
     margin-top: 0;
     height: 180vh;
@@ -607,20 +422,6 @@
 }
 
 @media (max-width: 480px) {
-  .welcome-navbar {
-    height: 48px;
-    padding: 0 12px;
-  }
-
-  .welcome-hero {
-    margin-top: 48px;
-  }
-
-  .welcome-video {
-    top: 48px;
-    height: calc(100vh - 48px);
-  }
-
   .button-group {
     flex-direction: column;
     gap: 10px;
@@ -630,11 +431,5 @@
   .secondary-btn {
     width: 100%;
     padding: 12px 20px;
-  }
-
-  .welcome-hamburger {
-    width: 36px;
-    height: 36px;
-    padding: 0 6px;
   }
 }

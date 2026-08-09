@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, CircleUserRound } from "lucide-react";
+import { ChevronDown, CircleUserRound, User } from "lucide-react";
 import { useAuthModal } from "./authModalContext";
+import { useProfile } from "../profile/profileContext";
+import { iconUrl } from "../../lib/profileIcons";
 import "./auth.css";
 
 /**
@@ -18,6 +21,8 @@ export default function AccountWidget({ variant = "light" }) {
         ctx.user,
     ]);
     const { requireLogin } = useAuthModal();
+    const { profile } = useProfile();
+    const navigate = useNavigate();
 
     const [open, setOpen] = useState(false);
     const [displayName, setDisplayName] = useState("");
@@ -82,7 +87,9 @@ export default function AccountWidget({ variant = "light" }) {
                 aria-expanded={open}
                 aria-haspopup="menu"
             >
-                <span className="account-name">{displayName || "Chef"}</span>
+                <span className="account-name">
+                    {profile?.username || displayName || "Chef"}
+                </span>
                 <ChevronDown
                     size={14}
                     strokeWidth={2.2}
@@ -90,7 +97,7 @@ export default function AccountWidget({ variant = "light" }) {
                 />
             </button>
 
-            {/* Mobile trigger: person icon */}
+            {/* Mobile trigger: chosen profile avatar, or the default person icon */}
             <button
                 className="account-trigger account-trigger--icon"
                 onClick={() => setOpen((v) => !v)}
@@ -98,7 +105,22 @@ export default function AccountWidget({ variant = "light" }) {
                 aria-haspopup="menu"
                 aria-label="Account"
             >
-                <CircleUserRound size={22} strokeWidth={1.8} />
+                {profile?.icon || profile?.iconBg ? (
+                    <span
+                        className="account-avatar"
+                        style={{ background: profile.iconBg || "var(--accent)" }}
+                    >
+                        {profile.icon ? (
+                            <img src={iconUrl(profile.icon)} alt="" />
+                        ) : (
+                            <span className="account-avatar-monogram">
+                                {(profile.name || profile.username || "C").charAt(0).toUpperCase()}
+                            </span>
+                        )}
+                    </span>
+                ) : (
+                    <CircleUserRound size={22} strokeWidth={1.8} />
+                )}
             </button>
 
             <AnimatePresence>
@@ -116,6 +138,17 @@ export default function AccountWidget({ variant = "light" }) {
                             {email || "Unknown"}
                         </div>
                         <div className="account-menu-divider" />
+                        <button
+                            className="account-menu-item"
+                            role="menuitem"
+                            onClick={() => {
+                                setOpen(false);
+                                navigate("/profile");
+                            }}
+                        >
+                            <User size={15} strokeWidth={2} />
+                            Profile
+                        </button>
                         <button
                             className="account-menu-signout"
                             role="menuitem"

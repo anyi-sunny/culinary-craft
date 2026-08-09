@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, Lock } from 'lucide-react';
 
 import { saveRecipe } from '../../lib/db';
+import { fetchUserInventory } from '../../lib/inventoryDb';
 import { invokeAgent } from '../../lib/agentApiClient';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
 import awsConfig from '../../lib/awsConfig';
@@ -16,6 +17,7 @@ import Paywall from '../Paywall';
 // Styling Imports
 import './Chat.css';
 import './../explore/modal/RecipeModal.css';
+import './../explore/Explore.css'; // .gate styles for the login-required screen
 import SplashTransition from '../SplashTransition';
 
 const AWS_REGION = awsConfig.region;
@@ -90,8 +92,6 @@ function Chat() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [showTutorial, setShowTutorial] = useState(false);
-
     const { authStatus, user } = useAuthenticator(context => [context.authStatus, context.user]);
     const { requireLogin } = useAuthModal();
 
@@ -132,16 +132,14 @@ function Chat() {
     });
     const [isConfirmingSave, setIsConfirmingSave] = useState(false);
 
+    // Tracks whether the user's inventory has any items; the ingredient
+    // selector modal is only worth showing when there is something to pick.
+    const [inventoryEmpty, setInventoryEmpty] = useState(null);
+
+    // Chat requires an account: prompt login immediately on entry.
     useEffect(() => {
-        if (!location.state?.recipeToImprove) {
-            // Only show tutorial if user is explicitly NOT authenticated (not just loading)
-            if (authStatus === 'unauthenticated') {
-                setShowTutorial(true);
-            } else {
-                setShowTutorial(false);
-            }
-        }
-    }, [location.state, authStatus]);
+        if (authStatus === 'unauthenticated') requireLogin();
+    }, [authStatus, requireLogin]);
 
     const callAgent = useCallback(async (textToSend) => {
         try {
@@ -161,6 +159,9 @@ function Chat() {
 
     useEffect(() => {
         const loadContext = async () => {
+            // The chat is account-gated; nothing to set up until login completes.
+            if (authStatus !== 'authenticated') return;
+
             if (location.state?.recipeToImprove) {
                 const { recipeToImprove, saveMode } = location.state;
                 const name = recipeToImprove.title || "Recipe";
@@ -229,17 +230,27 @@ function Chat() {
                     setLoading(false);
                 }
             } else {
-                // Show ingredient selector for new recipe generation
-                if (authStatus === 'authenticated') {
-                    setShowIngredientSelector(true);
+                // New recipe generation: only offer the ingredient selector when
+                // the user actually has inventory items to choose from.
+                let empty = true;
+                try {
+                    const items = await fetchUserInventory(user?.userId);
+                    empty = !items || items.length === 0;
+                } catch (err) {
+                    console.error('Error checking inventory:', err);
+                }
+                setInventoryEmpty(empty);
+
+                if (empty) {
+                    setMessages([{ role: 'assistant', content: 'Hello! I am your Culinary Architect. Tell me about a recipe you want to create or refine!' }]);
                 } else {
-                    setMessages([{ role: 'assistant', content: 'Hello! I am your Culinary Architect. Tell me about a recipe you want to refine or save.' }]);
+                    setShowIngredientSelector(true);
                 }
             }
         };
 
         loadContext();
-    }, [location.state, authStatus, callAgent]);
+    }, [location.state, authStatus, callAgent, user?.userId]);
 
     // Persist the conversation so it can be restored if the agent's session
     // expires while the page sits idle. Pure greetings are not worth caching.
@@ -373,12 +384,6 @@ function Chat() {
     };
 
     const handleSaveCommand = async () => {
-        // Saving requires an account; prompt login for guests.
-        if (authStatus !== 'authenticated') {
-            requireLogin();
-            return;
-        }
-
         setLoading(true);
         try {
             const botResponse = await callAgent(
@@ -466,13 +471,38 @@ function Chat() {
         }
     };
 
+    // Account gate: the chat (and saving recipes) requires being logged in.
+    // The login modal opens automatically; this screen backs it so there is
+    // no usable chat behind it if the modal is dismissed.
+    if (authStatus !== 'authenticated') {
+        return (
+            <SplashTransition>
+                <div className="chat-container">
+                    <TopNav title="Culinary Craft AI" />
+                    {authStatus === 'unauthenticated' && (
+                        <div className="gate">
+                            <div className="gate-icon">
+                                <Lock size={30} strokeWidth={1.8} />
+                            </div>
+                            <h2>Log in to start crafting</h2>
+                            <p>Create an account or log in to chat with the Culinary Architect and save your recipes.</p>
+                            <button className="btn btn-primary" onClick={requireLogin}>
+                                Log in or sign up
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </SplashTransition>
+        );
+    }
+
     return (
         <SplashTransition>
             {quotaExceeded && <Paywall />}
 
             <IngredientSelector
                 userId={user?.userId}
-                isOpen={showIngredientSelector}
+                isOpen={showIngredientSelector && inventoryEmpty === false}
                 onConfirm={handleIngredientConfirm}
                 onCancel={() => {
                     setShowIngredientSelector(false);
@@ -487,36 +517,6 @@ function Chat() {
 
             <div className="chat-container">
                 <TopNav title="Culinary Craft AI" />
-
-                {showTutorial && (
-                    <div className="modal-overlay">
-                        <div className="modal-content tutorial-modal">
-                            <h2 style={{margin: '0 0 10px 0'}}>Welcome to Culinary Craft!</h2>
-                            <p style={{fontSize: '1.1rem'}}>Chat with us to generate a recipe from scratch!</p>
-                            <hr style={{width: '100%', border: '0', borderTop: '1px solid var(--border)', margin: '10px 0'}}/>
-                            <p>You can also upload a recipe you already have using this button:</p>
-
-                            <div className="fake-btn-display">
-                                <button className="icon-button" style={{pointerEvents: 'none'}}>
-                                    <span className='btn-text'>Upload Recipe</span>
-                                    <span className="btn-icon"><Paperclip size={15} /></span>
-                                </button>
-                            </div>
-
-                            <p>Once you're done, click the save button to save this recipe:</p>
-
-                            <div className="fake-btn-display">
-                                <button className="save-btn" style={{pointerEvents: 'none'}}>
-                                    Save
-                                </button>
-                            </div>
-
-                            <button className="got-it-btn" onClick={() => setShowTutorial(false)}>
-                                Got it, let's cook!
-                            </button>
-                        </div>
-                    </div>
-                )}
 
                 <div className="messages-area" ref={messagesAreaRef} data-lenis-prevent>
                     {messages.map((msg, idx) => (

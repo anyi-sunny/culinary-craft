@@ -72,8 +72,10 @@ Vite loads environment variables prefixed with `VITE_`. The frontend requires:
 VITE_AWS_REGION=us-east-1                         # AWS region (for Amplify)
 VITE_USER_POOL_ID=us-east-1_...                   # Cognito User Pool ID
 VITE_CLIENT_ID=...                                # Cognito App Client ID
-VITE_IDENTITY_POOL_ID=us-east-1:uuid...           # Cognito Identity Pool ID
 VITE_API_ENDPOINT=https://xxxxx.execute-api.us-east-1.amazonaws.com  # Backend HTTP API Gateway URL
+
+# Note: VITE_IDENTITY_POOL_ID is no longer used — the frontend authenticates
+# with user pool tokens only; all AWS service calls go through the backend.
 ```
 
 **Security Note:** No AWS credentials are stored in the frontend. All AWS service calls go through the backend API.

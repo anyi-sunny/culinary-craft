@@ -188,6 +188,53 @@
   margin: 12px 0;
 }
 
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 12px;
+  margin-bottom: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition), color var(--transition);
+}
+.account-menu-item:hover {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+/* Mobile avatar chip (chosen icon or monogram on the chosen color) */
+.account-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.account-avatar img {
+  width: 62%;
+  height: 62%;
+  object-fit: contain;
+  /* Black source icons rendered white over the colored disc */
+  filter: brightness(0) invert(1);
+}
+.account-avatar-monogram {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 253, 249, 0.95);
+  line-height: 1;
+}
+
 .account-menu-signout {
   width: 100%;
   padding: 9px 12px;

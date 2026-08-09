@@ -1,0 +1,62 @@
+.feature-showcase {
+  width: 100%;
+  max-width: 1180px;
+  margin: 64px auto 0;
+}
+
+.feature-block + .feature-block {
+  margin-top: 90px;
+}
+
+.feature-images {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+/* Uniform crop: every step renders at the same 3:2 frame regardless of the
+   source screenshot's dimensions. */
+.feature-image-frame {
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 6px 22px rgba(138, 74, 46, 0.12);
+  aspect-ratio: 3 / 2;
+}
+
+.feature-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.feature-subtext {
+  margin: 30px auto 0;
+  max-width: 640px;
+  text-align: center;
+  font-size: 1.18rem;
+  line-height: 1.7;
+  color: var(--text);
+  font-weight: 500;
+}
+
+@media (max-width: 1024px) {
+  .feature-images {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .feature-images {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .feature-showcase {
+    margin-top: 44px;
+  }
+  .feature-subtext {
+    font-size: 1.02rem;
+  }
+}

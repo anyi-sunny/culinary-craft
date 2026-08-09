@@ -18,9 +18,9 @@ function Explore() {
             <div className="page">
                 <TopNav />
                 <div className="page-head">
-                    <h1>Recipe Collection</h1>
+                    <h1>All Recipes</h1>
                     <p className="page-sub">
-                        Browse every creation — save the ones you love or remix any recipe with AI.
+                        Browse creations from all users — save the ones you love or remix any recipe with AI.
                     </p>
                 </div>
 

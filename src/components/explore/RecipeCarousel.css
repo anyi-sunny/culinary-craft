@@ -1,0 +1,139 @@
+/* Each carousel is a distinct surface band over the tinted hub background. */
+.carousel-row {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto 44px;
+  padding: 20px 26px 4px;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 601px) {
+  .carousel-row {
+    width: calc(100% - 48px);
+  }
+}
+
+.carousel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.carousel-head h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.view-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color var(--transition), gap var(--transition);
+}
+.view-more-btn:hover {
+  color: var(--accent-hover);
+  gap: 10px;
+}
+
+/* Overflow hides off-stage cards; vertical padding leaves room for the
+   center card's larger scale so shadows aren't clipped. */
+.carousel-viewport {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 0 18px;
+  margin: 0 -9px;
+}
+
+/* Compact cards inside carousels: shorter media and tighter body so several
+   rows fit on screen at once. */
+.carousel-cell .card-media {
+  aspect-ratio: 16 / 9;
+}
+.carousel-cell .card-body {
+  padding: 12px 14px 14px;
+}
+.carousel-cell .card-title {
+  font-size: 1.02rem;
+}
+.carousel-cell .card-creator {
+  font-size: 0.7rem;
+  margin-top: 4px;
+}
+.carousel-cell .view-btn {
+  padding-top: 10px;
+  font-size: 0.8rem;
+}
+.carousel-cell .card-monogram {
+  font-size: 3rem;
+}
+
+.carousel-track {
+  display: flex;
+  will-change: transform;
+}
+
+.carousel-cell {
+  flex-grow: 0;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 0 9px;
+}
+
+/* Scaled from JS by distance to the row center (middlemost = largest). */
+.carousel-cell-inner {
+  will-change: transform;
+}
+
+/* Mobile step arrows */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 253, 249, 0.92);
+  backdrop-filter: blur(4px);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: color var(--transition-fast), border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+.carousel-arrow:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: #fff;
+}
+.carousel-arrow--left {
+  left: 14px;
+}
+.carousel-arrow--right {
+  right: 14px;
+}
+
+@media (max-width: 600px) {
+  .carousel-row {
+    padding: 18px 16px 2px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+  }
+}

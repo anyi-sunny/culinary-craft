@@ -167,7 +167,10 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
                         </div>
 
                         {mode !== 'none' && (
-                            <div className="selector-content">
+                            /* data-lenis-prevent: without it the Lenis smooth-scroll
+                               wrapper swallows wheel events and scrolls the page
+                               behind the modal instead of this list. */
+                            <div className="selector-content" data-lenis-prevent>
                                 {loading ? (
                                     <div className="selector-loading">Loading inventory...</div>
                                 ) : inventoryItems.length === 0 ? (
