@@ -8,6 +8,8 @@ import { saveRecipe } from '../../lib/db';
 import { fetchUserInventory } from '../../lib/inventoryDb';
 import { invokeAgent } from '../../lib/agentApiClient';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
+import { extractCategoryTags, normalizeTags } from '../../lib/categories';
+import { CategoryChecklist } from '../tags/CategoryTags';
 import awsConfig from '../../lib/awsConfig';
 import TopNav from '../nav/TopNav';
 import { useAuthModal } from '../auth/authModalContext';
@@ -123,11 +125,16 @@ function Chat() {
     const recipeContextRef = useRef(null);
     // Original recipe being edited (UPDATE mode) so we can preserve ownerId / heartedBy.
     const editingOriginalRef = useRef(null);
+    // Latest category tags the agent picked for the recipe under discussion.
+    // The agent appends them behind an @@TAGS: ...@@ marker that never reaches
+    // the chat transcript; this ref caches them for the review modal.
+    const agentTagsRef = useRef([]);
 
     const [stagingRecipe, setStagingRecipe] = useState({
         title: '',
         ingredients: '',
         instructions: '',
+        tags: [],
         recipeId: null
     });
     const [isConfirmingSave, setIsConfirmingSave] = useState(false);
@@ -146,7 +153,11 @@ function Chat() {
             // File handling is not yet supported through the API
             // TODO: Add file upload support to backend API
             const response = await invokeAgent(sessionId, textToSend, []);
-            return response;
+            // Strip the hidden @@TAGS: ...@@ marker before anything renders or
+            // parses the response; cache the agent's category picks instead.
+            const { text, tags } = extractCategoryTags(response);
+            if (tags.length > 0) agentTagsRef.current = tags;
+            return text;
         } catch (error) {
             console.error("Error calling agent:", error);
             // Check if error is rate limit (429)
@@ -170,6 +181,10 @@ function Chat() {
                     setActiveRecipeId(recipeToImprove.recipeId);
                     editingOriginalRef.current = recipeToImprove;
                 }
+
+                // Start from the recipe's existing tags; the agent's own picks
+                // will replace these as the recipe evolves in chat.
+                agentTagsRef.current = normalizeTags(recipeToImprove.tags);
 
                 recipeContextRef.current = recipeToImprove;
 
@@ -202,6 +217,7 @@ function Chat() {
                 setMessages(cached.messages);
                 if (cached.activeRecipeId) setActiveRecipeId(cached.activeRecipeId);
                 if (cached.ingredientContext) ingredientContextRef.current = cached.ingredientContext;
+                if (cached.agentTags) agentTagsRef.current = normalizeTags(cached.agentTags);
 
                 setLoading(true);
                 try {
@@ -262,6 +278,7 @@ function Chat() {
                 messages,
                 activeRecipeId,
                 ingredientContext: ingredientContextRef.current,
+                agentTags: agentTagsRef.current,
                 savedAt: Date.now(),
             }));
         } catch { /* storage full / unavailable */ }
@@ -398,7 +415,8 @@ function Chat() {
                 "TITLE: Buffalo Chicken Dip\n" +
                 "INGREDIENTS:\n- 2 cans chicken\n- 8 oz cream cheese\n" +
                 "INSTRUCTIONS:\n- Preheat oven to 350F\n- Mix and bake\n" +
-                "| [Closing remarks]"
+                "| [Closing remarks]\n" +
+                "@@TAGS: [applicable category tags, comma-separated]@@"
             );
 
             const parts = botResponse.split('|');
@@ -416,6 +434,9 @@ function Chat() {
                     title: stripMarkdown(nameMatch[1]),
                     ingredients: stripMarkdown(ingMatch[1]),
                     instructions: stripMarkdown(insMatch[1]),
+                    // Agent-selected categories come pre-checked; the user can
+                    // adjust them in the review modal before saving.
+                    tags: agentTagsRef.current,
                     recipeId: activeRecipeId
                 });
                 setIsConfirmingSave(true);
@@ -445,6 +466,7 @@ function Chat() {
                 title: sanitizedRecipe.title,
                 ingredients: sanitizedRecipe.ingredients,
                 instructions: sanitizedRecipe.instructions,
+                tags: normalizeTags(finalRecipe.tags),
             };
             // Recipes no longer carry a decorative emoji field.
             delete finalItem.emoji;
@@ -597,6 +619,18 @@ function Chat() {
                             className="edit-textarea review-instructions"
                             value={stagingRecipe.instructions || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, instructions: e.target.value})}
+                        />
+                        <label className="review-label">Categories</label>
+                        <CategoryChecklist
+                            selected={stagingRecipe.tags || []}
+                            onToggle={(tag) =>
+                                setStagingRecipe((prev) => ({
+                                    ...prev,
+                                    tags: (prev.tags || []).includes(tag)
+                                        ? prev.tags.filter((t) => t !== tag)
+                                        : [...(prev.tags || []), tag],
+                                }))
+                            }
                         />
                         <div className="review-actions">
                             <button className="btn btn-primary" onClick={() => commitSave(stagingRecipe)}>Save &amp; Continue</button>

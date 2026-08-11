@@ -98,6 +98,10 @@
   letter-spacing: 0.01em;
 }
 
+.card-tags {
+  margin-top: 10px;
+}
+
 .view-btn {
   display: inline-flex;
   align-items: center;

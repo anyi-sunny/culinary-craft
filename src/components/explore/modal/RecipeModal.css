@@ -1,34 +1,9 @@
-/* Canonical modal styles (also reused by Chat's review/tutorial modals). */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(28, 25, 23, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal-overlay);
-  backdrop-filter: blur(3px);
-  animation: modalFade 0.2s ease;
-  padding: 20px;
-}
-
-.modal-content {
-  background: var(--surface);
-  color: var(--text);
-  width: 100%;
-  max-width: 600px;
-  max-height: 86vh;
-  border-radius: var(--radius-lg);
-  padding: 0;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  animation: modalSlide 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-}
-
-.close-btn {
+/* The canonical .modal-overlay / .modal-content chrome lives in index.css
+   (shared with ConsultInventoryModal and Chat's review/tutorial modals).
+   This file only styles RecipeModal-specific pieces, scoped so nothing
+   leaks into the other modals. The frosted close button is scoped under
+   .modal-content because ConsultInventoryModal reuses it too. */
+.modal-content .close-btn {
   position: absolute;
   top: 20px;
   right: 20px;
@@ -47,7 +22,7 @@
   z-index: 100;
   transition: all var(--transition);
 }
-.close-btn:hover {
+.modal-content .close-btn:hover {
   background: rgba(255, 255, 255, 0.25);
   color: white;
 }
@@ -217,7 +192,7 @@
 /* Actions: always a single row. The text button (View Full Recipe, or
    Save/Cancel while editing) is the flexible one — it shrinks and ellipsizes
    before the circular save/kebab chips ever deform. */
-.modal-actions {
+.recipe-modal .modal-actions {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -226,7 +201,7 @@
   padding: 0 30px;
   position: relative;
 }
-.modal-actions .btn {
+.recipe-modal .modal-actions .btn {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -351,23 +326,17 @@
   color: #adb5bd;
 }
 
-@keyframes modalFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes modalSlide {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
+/* modalFade / modalSlide keyframes and the mobile .modal-content tweak
+   live with the shared modal chrome in index.css. */
 @media (max-width: 600px) {
-  .modal-content {
-    padding: 22px;
-    max-height: 90dvh;
-  }
   /* Tighter text button so the row fits; circular chips keep their size. */
-  .modal-actions .btn {
+  .recipe-modal .modal-actions .btn {
     padding: 10px 14px;
     font-size: 0.85rem;
   }
+}
+
+/* Category tag ovals shown under the modal title */
+.modal-tags {
+  margin: 2px 0 14px;
 }

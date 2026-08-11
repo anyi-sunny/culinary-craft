@@ -206,9 +206,9 @@
 }
 
 /* --- Review & save modal ---
-   .modal-content.review-modal (two classes) so this always beats
-   RecipeModal.css's `.modal-content { padding: 0 }` regardless of the
-   order the two stylesheets land in the bundle. */
+   .modal-content.review-modal (two classes) so this always beats the
+   shared `.modal-content { padding: 0 }` chrome in index.css regardless
+   of the order the stylesheets land in the bundle. */
 .modal-content.review-modal {
   padding: 32px 34px;
   overflow-y: auto;

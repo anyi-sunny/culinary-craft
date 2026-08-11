@@ -276,20 +276,24 @@
   gap: 24px;
 }
 
-.form-group {
+/* Scoped under .recipe-detail-edit: Inventory.css has its own .form-group
+   styles, and all component CSS lands in one global bundle. Direct-child
+   combinators keep the text-field styling off the nested category
+   checklist (its labels and checkboxes style themselves). */
+.recipe-detail-edit .form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.form-group label {
+.recipe-detail-edit .form-group > label {
   font-weight: 600;
   color: var(--text);
   font-size: 1rem;
 }
 
-.form-group input,
-.form-group textarea {
+.recipe-detail-edit .form-group > input,
+.recipe-detail-edit .form-group > textarea {
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -300,15 +304,18 @@
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
+.recipe-detail-edit .form-group > input:focus,
+.recipe-detail-edit .form-group > textarea:focus {
   outline: none;
   border-color: var(--accent) !important;
   box-shadow: 0 0 0 3px var(--accent-soft) !important;
 }
 
-.form-group textarea {
-  resize: vertical;
+/* Textareas auto-grow to their content (AutoGrowTextarea sets the height),
+   so hide internal scrolling and the manual resize handle. */
+.recipe-detail-edit .form-group textarea {
+  resize: none;
+  overflow: hidden;
   min-height: 120px;
   font-family: inherit;
 }
@@ -359,4 +366,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Category tag ovals under the recipe title */
+.detail-tags {
+  margin-top: 10px;
 }

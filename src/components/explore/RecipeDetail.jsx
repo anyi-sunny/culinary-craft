@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, ChefHat, Camera, MessageSquare } from 'lucide-react';
@@ -11,10 +11,25 @@ import { useRecipes } from '../../lib/useRecipes';
 import { useAuthModal } from '../auth/authModalContext';
 import { saveRecipe } from '../../lib/db';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
+import { normalizeTags } from '../../lib/categories';
+import { TagOvals, CategoryChecklist } from '../tags/CategoryTags';
 import { getPlaceholderGradient, uploadImageToS3, validateImage } from '../../lib/imageUtils';
 import { fireConfetti } from '../../lib/confetti';
 import ConsultInventoryModal from './modal/ConsultInventoryModal';
 import './RecipeDetail.css';
+
+/* Grows to fit its content instead of scrolling internally. */
+function AutoGrowTextarea({ value, ...props }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    // scrollHeight excludes borders; add them back for border-box sizing.
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+  }, [value]);
+  return <textarea ref={ref} value={value} {...props} />;
+}
 
 export default function RecipeDetail() {
   const { id } = useParams();
@@ -102,6 +117,7 @@ export default function RecipeDetail() {
       recipeId: recipe.recipeId,
       // Preserve ownership; manual edit never re-owns a recipe.
       ownerId: recipe.ownerId,
+      tags: normalizeTags(sanitized.tags),
     };
     delete finalItem.emoji;
 
@@ -258,6 +274,7 @@ export default function RecipeDetail() {
             <div className="recipe-detail-header">
               <div>
                 <h1>{recipe.title}</h1>
+                {!isEditing && <TagOvals tags={recipe.tags} className="detail-tags" />}
               </div>
               <div className="recipe-detail-actions">
                 {!isEditing && (
@@ -292,18 +309,30 @@ export default function RecipeDetail() {
                 </div>
                 <div className="form-group">
                   <label>Ingredients</label>
-                  <textarea
+                  <AutoGrowTextarea
                     value={editData.ingredients || ''}
                     onChange={(e) => setEditData({ ...editData, ingredients: sanitizeInput(e.target.value) })}
-                    rows={6}
                   />
                 </div>
                 <div className="form-group">
                   <label>Instructions</label>
-                  <textarea
+                  <AutoGrowTextarea
                     value={editData.instructions || ''}
                     onChange={(e) => setEditData({ ...editData, instructions: sanitizeInput(e.target.value) })}
-                    rows={8}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Categories</label>
+                  <CategoryChecklist
+                    selected={editData.tags || []}
+                    onToggle={(tag) =>
+                      setEditData((prev) => ({
+                        ...prev,
+                        tags: (prev.tags || []).includes(tag)
+                          ? prev.tags.filter((t) => t !== tag)
+                          : [...(prev.tags || []), tag],
+                      }))
+                    }
                   />
                 </div>
                 <div className="recipe-detail-edit-actions">

@@ -5,25 +5,8 @@ import RecipeCard from "./card/RecipeCard";
 import SkeletonRecipeCard from "./card/SkeletonRecipeCard";
 import RecipeModal from "./modal/RecipeModal";
 import { recipeTitle } from "../../lib/recipeUtils";
+import { CATEGORY_OPTIONS } from "../../lib/categories";
 import "./Explore.css";
-
-// Category tags for filtering. Recipes carry these in a future `tags` field —
-// generated recipes will be tagged at creation; untagged recipes simply don't
-// match category filters (they remain findable by ingredient/text).
-const CATEGORY_OPTIONS = [
-    "Breakfast",
-    "Dessert",
-    "Drinks",
-    "Small Bites",
-    "Savory",
-    "Pasta",
-    "Soups & Stews",
-    "Salads",
-    "Baked Goods",
-    "Seafood",
-    "Vegetarian",
-    "Quick & Easy",
-];
 
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 
@@ -122,8 +105,11 @@ export default function RecipeGrid({
         if (!ingredientsOk) return false;
 
         if (applied.categories.length > 0) {
-            const tags = (r.tags || []).map((t) => String(t).toLowerCase());
-            if (!applied.categories.some((c) => tags.includes(c.toLowerCase()))) {
+            // Set membership keeps the tag check O(1) per applied filter.
+            // Untagged recipes simply don't match category filters (they
+            // remain findable by ingredient/text search).
+            const tagSet = new Set((r.tags || []).map((t) => String(t).toLowerCase()));
+            if (!applied.categories.some((c) => tagSet.has(c.toLowerCase()))) {
                 return false;
             }
         }

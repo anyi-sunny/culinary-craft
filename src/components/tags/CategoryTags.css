@@ -1,0 +1,51 @@
+/* Faint oval chips for a recipe's category tags */
+.tag-ovals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag-oval {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    white-space: nowrap;
+}
+
+/* Checkbox list over the full category set (review modal + manual edit) */
+.category-checklist {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.4rem 0.9rem;
+}
+
+/* The .category-checklist qualifier out-specifies global `.form-group label`
+   and `.form-group input` rules leaked from other pages' stylesheets, which
+   otherwise force the label to block and the checkbox to full width. */
+.category-checklist .category-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+}
+
+.category-checklist .category-check input {
+    width: auto;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}

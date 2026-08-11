@@ -56,7 +56,7 @@
   margin-bottom: 30px;
 }
 
-.shopping-items {
+.shopping-page .shopping-items {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -64,7 +64,7 @@
 
 /* Lined-paper rows: transparent background, ruled lines only on the
    tops/bottoms of items, sharp corners. */
-.shopping-item {
+.shopping-page .shopping-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -77,15 +77,15 @@
   transition: background 0.2s ease, opacity 0.2s ease;
 }
 
-.shopping-item:hover {
+.shopping-page .shopping-item:hover {
   background: rgba(185, 102, 63, 0.05);
 }
 
-.shopping-item.checked {
+.shopping-page .shopping-item.checked {
   opacity: 0.65;
 }
 
-.shopping-item.checked .item-name {
+.shopping-page .shopping-item.checked .item-name {
   text-decoration: line-through;
   color: var(--text-tertiary);
 }
@@ -100,14 +100,14 @@
 /* Custom checkbox: the native input is invisible but still clickable and
    focusable; .checkmark is the single visible box, so nothing can drift
    out of alignment. */
-.item-checkbox {
+.shopping-page .item-checkbox {
   display: inline-flex;
   align-items: center;
   cursor: pointer;
   position: relative;
 }
 
-.item-checkbox input {
+.shopping-page .item-checkbox input {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -117,7 +117,7 @@
   cursor: pointer;
 }
 
-.item-checkbox input:disabled {
+.shopping-page .item-checkbox input:disabled {
   cursor: not-allowed;
 }
 
@@ -134,11 +134,11 @@
   transition: background 0.15s ease;
 }
 
-.item-checkbox input:checked + .checkmark {
+.shopping-page .item-checkbox input:checked + .checkmark {
   background: var(--accent);
 }
 
-.item-checkbox input:checked + .checkmark::after {
+.shopping-page .item-checkbox input:checked + .checkmark::after {
   content: '';
   position: absolute;
   left: 5px;
@@ -150,11 +150,11 @@
   transform: rotate(45deg);
 }
 
-.item-checkbox input:focus-visible + .checkmark {
+.shopping-page .item-checkbox input:focus-visible + .checkmark {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.item-checkbox input:disabled + .checkmark {
+.shopping-page .item-checkbox input:disabled + .checkmark {
   opacity: 0.5;
 }
 
@@ -175,7 +175,7 @@
   color: var(--text-tertiary);
 }
 
-.item-actions {
+.shopping-page .item-actions {
   display: flex;
   gap: 8px;
 }
@@ -228,13 +228,13 @@
   box-shadow: var(--shadow-accent);
 }
 
-.empty-shopping-list {
+.shopping-page .empty-shopping-list {
   text-align: center;
   padding: 60px 20px;
   color: var(--text-tertiary);
 }
 
-.empty-shopping-list p {
+.shopping-page .empty-shopping-list p {
   margin-bottom: 20px;
   font-size: 16px;
 }
@@ -268,23 +268,23 @@
     font-size: 24px;
   }
 
-  .shopping-item {
+  .shopping-page .shopping-item {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .item-actions {
+  .shopping-page .item-actions {
     width: 100%;
     justify-content: flex-end;
   }
 
-  .item-actions button {
+  .shopping-page .item-actions button {
     flex: 1;
   }
 
   /* On mobile the remove button collapses to a compact trash icon
      instead of a full-width bar. */
-  .item-actions .btn-remove-item {
+  .shopping-page .item-actions .btn-remove-item {
     flex: 0 0 auto;
     width: 40px;
     height: 36px;
@@ -292,7 +292,7 @@
     justify-content: center;
   }
 
-  .item-actions .btn-remove-item .remove-label {
+  .shopping-page .item-actions .btn-remove-item .remove-label {
     display: none;
   }
 

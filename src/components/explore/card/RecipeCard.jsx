@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Bookmark, ArrowRight } from "lucide-react";
 import { recipeTitle, isHearted, heartedByList } from "../../../lib/recipeUtils";
 import { getPlaceholderGradient } from "../../../lib/imageUtils";
+import { TagOvals } from "../../tags/CategoryTags";
 import "./RecipeCard.css";
 
 const RecipeCard = ({ recipe, onClick, onToggleHeart, userId }) => {
@@ -66,6 +67,7 @@ const RecipeCard = ({ recipe, onClick, onToggleHeart, userId }) => {
                 {(recipe.creatorEmail || recipe.ownerId) && (
                     <p className="card-creator">by {recipe.creatorEmail || "Unknown creator"}</p>
                 )}
+                <TagOvals tags={recipe.tags} className="card-tags" />
                 <span className="view-btn">
                     View Recipe
                     <ArrowRight size={15} strokeWidth={2.2} className="view-arrow" />

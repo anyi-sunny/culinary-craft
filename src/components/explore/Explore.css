@@ -1,13 +1,4 @@
-/* Shared page shell for Explore / Saved / My Creations */
-.page {
-  min-height: 100vh;
-  background:
-    radial-gradient(ellipse 70% 45% at 15% 0%, rgba(185, 102, 63, 0.07), transparent 65%),
-    radial-gradient(ellipse 55% 40% at 98% 20%, rgba(95, 114, 89, 0.07), transparent 60%),
-    radial-gradient(ellipse 50% 35% at 50% 100%, rgba(169, 113, 85, 0.06), transparent 65%),
-    var(--bg);
-  padding-bottom: 60px;
-}
+/* The shared .page shell and .page-head title block live in App.css. */
 
 /* Explore hub: a deeper parchment wash so the white carousel bands read
    as distinct rows sitting on a colored page. */
@@ -16,39 +7,6 @@
     radial-gradient(ellipse 70% 45% at 15% 0%, rgba(185, 102, 63, 0.12), transparent 65%),
     radial-gradient(ellipse 55% 40% at 98% 20%, rgba(95, 114, 89, 0.11), transparent 60%),
     linear-gradient(180deg, #f1e4d2 0%, #f5eddf 100%);
-}
-
-.page-head {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 36px 24px 16px;
-  text-align: center;
-  box-sizing: border-box;
-}
-.page-head h1 {
-  font-size: 2.4rem;
-  margin: 0 0 6px;
-}
-/* Short copper hairline under page titles */
-.page-head h1::after {
-  content: "";
-  display: block;
-  width: 56px;
-  height: 3px;
-  border-radius: 2px;
-  margin: 14px auto 0;
-  background: linear-gradient(90deg, var(--accent), #d29268);
-}
-.page-head .page-sub {
-  color: var(--muted);
-  margin: 0;
-  font-size: 1rem;
-}
-
-.page-cta {
-  display: inline-flex;
-  margin-top: 16px;
 }
 
 /* Search bar + filter (rendered by RecipeGrid).

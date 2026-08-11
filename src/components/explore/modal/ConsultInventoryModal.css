@@ -140,13 +140,15 @@
   font-weight: 600;
 }
 
-.shopping-items {
+/* Scoped under .consult-inventory-modal: ShoppingList.css and RecipeModal.css
+   use the same class names for their own layouts. */
+.consult-inventory-modal .shopping-items {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.shopping-item {
+.consult-inventory-modal .shopping-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -157,23 +159,23 @@
   transition: all 0.2s ease;
 }
 
-.shopping-item.checked {
+.consult-inventory-modal .shopping-item.checked {
   background: #16a34a;
   border-left-color: #16a34a;
 }
 
-.shopping-item.checked .shopping-item-name {
+.consult-inventory-modal .shopping-item.checked .shopping-item-name {
   color: white;
   font-weight: 600;
 }
 
-.shopping-item-name {
+.consult-inventory-modal .shopping-item-name {
   flex: 1;
   font-size: 14px;
   font-weight: 500;
 }
 
-.empty-shopping-list {
+.consult-inventory-modal .empty-shopping-list {
   color: var(--text-tertiary);
   font-size: 13px;
   padding: 20px;
@@ -183,8 +185,9 @@
   margin: 0;
 }
 
-.modal-actions {
+.consult-inventory-modal .modal-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   justify-content: flex-end;
   padding: 20px 24px;

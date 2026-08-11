@@ -45,7 +45,7 @@
     flex-wrap: wrap;
 }
 
-.btn-sm {
+.inventory-container .btn-sm {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
 }
@@ -59,20 +59,20 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
 }
 
-.form-group {
+.inventory-container .form-group {
     margin-bottom: 1rem;
 }
 
-.form-group label {
+.inventory-container .form-group label {
     display: block;
     font-weight: 600;
     color: #2c3e50;
     margin-bottom: 0.5rem;
 }
 
-.form-group input,
-.form-group textarea,
-.form-group select {
+.inventory-container .form-group input,
+.inventory-container .form-group textarea,
+.inventory-container .form-group select {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #bdc3c7;
@@ -177,7 +177,7 @@
     font-style: italic;
 }
 
-.item-actions {
+.inventory-container .item-actions {
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
@@ -225,11 +225,11 @@
         align-items: flex-start;
     }
 
-    .item-actions {
+    .inventory-container .item-actions {
         width: 100%;
     }
 
-    .item-actions .btn {
+    .inventory-container .item-actions .btn {
         flex: 1;
     }
 

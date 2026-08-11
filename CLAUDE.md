@@ -128,6 +128,7 @@ CDK needs AWS credentials in your environment. Either:
 - **`src/lib/recipeValidator.js`** — Recipe field validation
 
 **Key Patterns:**
+- **Category Tags:** Canonical tag list lives in `src/lib/categories.js` (kept in sync with the agent prompt in the backend CDK stack and `ALLOWED_CATEGORY_TAGS` in `lambda/recipes_api/index.py`). The agent appends `@@TAGS: tag1, tag2@@` to any response containing a full recipe; Chat.jsx strips the marker before display and caches the tags for the review modal, where they appear as a pre-checked checkbox list. Recipes store `tags` as an array of canonical strings; cards/modal/detail render them as faint oval chips (`src/components/tags/CategoryTags.jsx`), owners can edit them in manual-edit mode, and RecipeGrid's category filter matches against them.
 - **Authorization:** Bearer token in Authorization header contains userId (Cognito ID or anonymous temp ID)
 - **Markdown Stripping:** Chat responses cleaned before saving to DynamoDB (plain text only)
 - **Creator Attribution:** All new recipes store `creatorEmail` (extracted from Cognito). Recipe cards display this in grey text.

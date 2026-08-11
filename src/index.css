@@ -340,6 +340,54 @@ button:focus {
   -webkit-backdrop-filter: blur(6px);
 }
 
+/* Canonical modal chrome, shared by RecipeModal, ConsultInventoryModal and
+   Chat's review/tutorial modals. Component stylesheets extend these under
+   their own root class (e.g. .consult-inventory-modal, .review-modal). */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal-overlay);
+  backdrop-filter: blur(3px);
+  animation: modalFade 0.2s ease;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+  max-width: 600px;
+  max-height: 86vh;
+  border-radius: var(--radius-lg);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  animation: modalSlide 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes modalFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalSlide {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 600px) {
+  .modal-content {
+    padding: 22px;
+    max-height: 90dvh;
+  }
+}
+
 /* Input focus state (used by forms, modals, searchboxes) */
 input:focus,
 textarea:focus,

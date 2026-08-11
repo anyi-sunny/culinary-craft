@@ -6,6 +6,8 @@ import { saveRecipe } from "../../../lib/db";
 import { recipeTitle, isOwner, isHearted } from "../../../lib/recipeUtils";
 import { uploadImageToS3, getPlaceholderGradient, validateImage } from "../../../lib/imageUtils";
 import { sanitizeInput, sanitizeObject } from "../../../lib/sanitizer";
+import { normalizeTags } from "../../../lib/categories";
+import { TagOvals, CategoryChecklist } from "../../tags/CategoryTags";
 import RecipeActionsMenu from "../RecipeActionsMenu";
 import ConsultInventoryModal from "./ConsultInventoryModal";
 import "./RecipeModal.css";
@@ -123,6 +125,7 @@ const RecipeModal = ({
                 recipeId: sanitized.recipeId || recipe.recipeId,
                 // Preserve ownership; manual edit never re-owns a recipe.
                 ownerId: recipe.ownerId,
+                tags: normalizeTags(sanitized.tags),
             };
             // Recipes no longer carry a decorative emoji field.
             delete finalItem.emoji;
@@ -174,7 +177,7 @@ const RecipeModal = ({
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} data-lenis-prevent>
+            <div className="modal-content recipe-modal" onClick={(e) => e.stopPropagation()} data-lenis-prevent>
                 <button className="close-btn" onClick={onClose} aria-label="Close">
                     ×
                 </button>
@@ -246,6 +249,8 @@ const RecipeModal = ({
                         <h2 className="modal-title">{recipeTitle(recipe)}</h2>
                     )}
                 </div>
+
+                {!isEditing && <TagOvals tags={recipe.tags} className="modal-tags" />}
 
                 {/* Actions: View Full Recipe stays standalone; everything else
                     lives in the three-dot menu. Editing swaps in Save/Cancel. */}
@@ -327,6 +332,23 @@ const RecipeModal = ({
                         <ReactMarkdown>
                             {recipe.instructions || "_No instructions listed_"}
                         </ReactMarkdown>
+                    )}
+
+                    {isEditing && isRecipeOwner && (
+                        <>
+                            <h3>Categories</h3>
+                            <CategoryChecklist
+                                selected={editedRecipe.tags || []}
+                                onToggle={(tag) =>
+                                    setEditedRecipe((prev) => ({
+                                        ...prev,
+                                        tags: (prev.tags || []).includes(tag)
+                                            ? prev.tags.filter((t) => t !== tag)
+                                            : [...(prev.tags || []), tag],
+                                    }))
+                                }
+                            />
+                        </>
                     )}
                 </div>
                 </div>
