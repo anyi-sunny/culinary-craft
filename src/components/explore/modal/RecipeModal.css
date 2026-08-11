@@ -214,14 +214,53 @@
   color: var(--accent);
 }
 
-/* Actions */
+/* Actions: always a single row. The text button (View Full Recipe, or
+   Save/Cancel while editing) is the flexible one — it shrinks and ellipsizes
+   before the circular save/kebab chips ever deform. */
 .modal-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
-  margin-bottom: 22px;
-  flex-wrap: wrap;
+  margin-bottom: 0px;
+  flex-wrap: nowrap;
   padding: 0 30px;
   position: relative;
+}
+.modal-actions .btn {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Save (bookmark) chip in the actions row, matching the kebab button */
+.modal-actions-heart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), border-color var(--transition-fast),
+    background var(--transition-fast), transform var(--transition-fast);
+}
+.modal-actions-heart:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.08);
+}
+.modal-actions-heart.hearted {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 /* Body */
@@ -326,10 +365,9 @@
     padding: 22px;
     max-height: 90dvh;
   }
-  .modal-actions {
-    flex-direction: column;
-  }
+  /* Tighter text button so the row fits; circular chips keep their size. */
   .modal-actions .btn {
-    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.85rem;
   }
 }

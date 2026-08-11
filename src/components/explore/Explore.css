@@ -19,10 +19,12 @@
 }
 
 .page-head {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   padding: 36px 24px 16px;
   text-align: center;
+  box-sizing: border-box;
 }
 .page-head h1 {
   font-size: 2.4rem;
@@ -404,7 +406,7 @@
 
 /* Auth gate shown on My Recipes / Favorites for guests */
 .gate {
-  max-width: 460px;
+  width: min(460px, calc(100% - 40px));
   margin: 80px auto;
   text-align: center;
   background: var(--surface);

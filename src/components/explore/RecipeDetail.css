@@ -1,8 +1,13 @@
 .recipe-detail-container {
+  /* width:100% matters: as a flex-column child with auto margins, the
+     container would otherwise shrink-wrap to its content's minimum width
+     and overflow narrow phones. */
+  width: 100%;
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
   padding-top: 80px;
+  box-sizing: border-box;
 }
 
 .recipe-detail-back {
@@ -39,6 +44,7 @@
 
 /* Image Section */
 .recipe-detail-image-container {
+  position: relative;
   width: 100%;
   height: 400px;
   background: var(--placeholder-bg);
@@ -49,6 +55,51 @@
   justify-content: center;
   margin-bottom: 40px;
   box-shadow: var(--shadow-lg);
+}
+
+/* Edit-mode image controls: frosted pills pinned over the photo */
+.detail-image-upload-overlay {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  display: flex;
+  gap: 10px;
+  z-index: 3;
+}
+.detail-image-upload-overlay .btn-upload-image,
+.detail-image-upload-overlay .btn-remove-image {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 253, 249, 0.4);
+  background: rgba(34, 26, 19, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.detail-image-upload-overlay .btn-upload-image:hover {
+  background: var(--accent);
+  border-color: transparent;
+}
+.detail-image-upload-overlay .btn-remove-image:hover {
+  background: var(--danger);
+  border-color: transparent;
+}
+.detail-image-error {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  right: auto;
+  max-width: 60%;
+  background: var(--danger);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  z-index: 3;
 }
 
 .recipe-detail-image-container img {
@@ -82,8 +133,11 @@
   box-shadow: var(--shadow);
 }
 
+/* Title and action icons share one row at every screen size; the title
+   text wraps within its own column instead of pushing the icons down. */
 .recipe-detail-header {
   display: flex;
+  flex-wrap: nowrap;
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
@@ -102,9 +156,13 @@
 
 .recipe-detail-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   flex-shrink: 0;
   position: relative;
+  min-width: 0;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .detail-copy-dropdown {
@@ -272,20 +330,33 @@
   }
 
   .recipe-detail-header {
-    flex-direction: column;
+    flex-direction: row;
     gap: 16px;
   }
 
   .recipe-detail-header h1 {
     font-size: 1.8rem;
+    min-width: 0;
   }
 
   .recipe-detail-actions {
-    width: 100%;
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 
   .recipe-detail-text {
     font-size: 1rem;
   }
+}
+
+/* Save/Cancel row in edit mode */
+.recipe-detail-edit-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.start-cooking-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }

@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy } from "lucide-react";
 import { saveRecipe } from "../../../lib/db";
 import { recipeTitle, isOwner, isHearted } from "../../../lib/recipeUtils";
 import { uploadImageToS3, getPlaceholderGradient, validateImage } from "../../../lib/imageUtils";
 import { sanitizeInput, sanitizeObject } from "../../../lib/sanitizer";
-import OwnerActions from "./OwnerActions";
-import NonOwnerActions from "./NonOwnerActions";
+import RecipeActionsMenu from "../RecipeActionsMenu";
 import ConsultInventoryModal from "./ConsultInventoryModal";
 import "./RecipeModal.css";
 
@@ -139,6 +138,30 @@ const RecipeModal = ({
         }
     };
 
+    // Owners improve their own recipe in place (UPDATE); the chat preserves
+    // ownership and recipeId through this flow.
+    const handleImproveWithAI = () => {
+        if (!userId) {
+            onRequireLogin?.();
+            return;
+        }
+        navigate('/chat', { state: { recipeToImprove: { ...recipe }, saveMode: 'UPDATE' } });
+        onClose?.();
+    };
+
+    const menuItems = isRecipeOwner
+        ? [
+              { label: "Consult Inventory", icon: Package, onClick: () => setShowConsultInventory(true) },
+              { label: "Manual Edit", icon: Pencil, onClick: () => setIsEditing(true) },
+              { label: "Improve with AI", icon: Sparkles, onClick: handleImproveWithAI },
+              ...(onDelete ? [{ label: "Delete", icon: Trash2, danger: true, onClick: handleDelete }] : []),
+          ]
+        : [
+              { label: "Consult Inventory", icon: Package, onClick: () => setShowConsultInventory(true) },
+              { label: "Copy & Edit", icon: Copy, onClick: () => handleCopyAndEdit(recipe) },
+              { label: "Copy & Improve with AI", icon: Sparkles, onClick: () => handleCopyAndImprove(recipe) },
+          ];
+
     if (showConsultInventory) {
         return (
             <ConsultInventoryModal
@@ -220,46 +243,33 @@ const RecipeModal = ({
                             }
                         />
                     ) : (
-                        <>
-                            <h2 className="modal-title">{recipeTitle(recipe)}</h2>
-                            <button
-                                className={`heart-btn modal-heart${hearted ? " hearted" : ""}`}
-                                title={hearted ? "Remove from saved" : "Save recipe"}
-                                onClick={handleHeart}
-                            >
-                                <Bookmark
-                                    size={17}
-                                    strokeWidth={2}
-                                    fill={hearted ? "currentColor" : "none"}
-                                />
-                            </button>
-                        </>
+                        <h2 className="modal-title">{recipeTitle(recipe)}</h2>
                     )}
                 </div>
 
-                {/* Actions */}
+                {/* Actions: View Full Recipe stays standalone; everything else
+                    lives in the three-dot menu. Editing swaps in Save/Cancel. */}
                 <div className="modal-actions">
-                    {isRecipeOwner ? (
-                        <OwnerActions
-                            recipe={recipe}
-                            isEditing={isEditing}
-                            isSaving={isSaving}
-                            onEdit={() => setIsEditing(true)}
-                            onDelete={handleDelete}
-                            onSave={handleManualSave}
-                            onCancel={() => {
-                                setIsEditing(false);
-                                setEditedRecipe({ ...recipe });
-                            }}
-                        />
+                    {isEditing ? (
+                        <>
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleManualSave}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? "Saving…" : "Save Changes"}
+                            </button>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => {
+                                    setIsEditing(false);
+                                    setEditedRecipe({ ...recipe });
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </>
                     ) : (
-                        <NonOwnerActions
-                            recipe={recipe}
-                            onCopyAndEdit={handleCopyAndEdit}
-                            onCopyAndImprove={handleCopyAndImprove}
-                        />
-                    )}
-                    {!isEditing && (
                         <>
                             <button
                                 className="btn btn-secondary"
@@ -271,11 +281,18 @@ const RecipeModal = ({
                                 View Full Recipe
                             </button>
                             <button
-                                className="btn btn-primary"
-                                onClick={() => setShowConsultInventory(true)}
+                                className={`modal-actions-heart${hearted ? " hearted" : ""}`}
+                                title={hearted ? "Remove from saved" : "Save recipe"}
+                                aria-label={hearted ? "Remove from saved" : "Save recipe"}
+                                onClick={handleHeart}
                             >
-                                Consult Inventory
+                                <Bookmark
+                                    size={18}
+                                    strokeWidth={2}
+                                    fill={hearted ? "currentColor" : "none"}
+                                />
                             </button>
+                            <RecipeActionsMenu items={menuItems} />
                         </>
                     )}
                 </div>

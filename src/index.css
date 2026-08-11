@@ -90,6 +90,25 @@
   box-sizing: border-box;
 }
 
+/* Mobile guardrails: the page must never scroll horizontally. body alone
+   isn't enough on iOS Safari — html needs the clamp too. Media scales down
+   to its container, and long unbreakable words wrap instead of overflowing. */
+html {
+  overflow-x: hidden;
+}
+img,
+video,
+canvas {
+  max-width: 100%;
+}
+h1,
+h2,
+h3,
+h4,
+p {
+  overflow-wrap: break-word;
+}
+
 body {
   margin: 0;
   min-width: 320px;
