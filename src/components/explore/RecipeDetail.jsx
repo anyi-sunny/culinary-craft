@@ -13,7 +13,7 @@ import { useAuthModal } from '../auth/authModalContext';
 import { saveRecipe } from '../../lib/db';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
 import { normalizeTags } from '../../lib/categories';
-import { isPublished } from '../../lib/recipeUtils';
+import { isPublished, creatorName } from '../../lib/recipeUtils';
 import { normalizeServings, formatServings } from '../../lib/servings';
 import { TagOvals, CategoryChecklist } from '../tags/CategoryTags';
 import { getPlaceholderGradient, uploadImageToS3, validateImage } from '../../lib/imageUtils';
@@ -336,6 +336,9 @@ export default function RecipeDetail() {
             <div className="recipe-detail-header">
               <div>
                 <h1>{recipe.title}</h1>
+                {!isEditing && creatorName(recipe) && (
+                  <p className="detail-creator">by {creatorName(recipe)}</p>
+                )}
                 {!isEditing && formatServings(recipe.servings) && (
                   <p className="detail-servings">{formatServings(recipe.servings)}</p>
                 )}

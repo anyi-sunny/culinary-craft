@@ -336,9 +336,29 @@
   }
 }
 
+/* The sub-title blocks (creator, servings, private badge, tags) sit directly
+   on .modal-scrollable, which has no padding of its own — the 30px gutter is
+   applied per block in this modal (.modal-header, .modal-actions, .modal-body).
+   Without it they run flush to the modal edge, so they take the same 30px. */
+.modal-creator,
+.modal-servings,
+.modal-tags {
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
 /* Category tag ovals shown under the modal title */
 .modal-tags {
   margin: 2px 0 14px;
+}
+
+/* Creator attribution under the modal title */
+.modal-creator {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
 }
 
 /* Faint approximate serving size under the modal title */
@@ -350,12 +370,13 @@
   letter-spacing: 0.02em;
 }
 
-/* Owner-only marker on a recipe that hasn't been published to Explore */
+/* Owner-only marker on a recipe that hasn't been published to Explore.
+   Its own padding draws the pill, so the gutter has to come from the margin. */
 .modal-private {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 0 0 10px;
+  margin: 0 0 10px 30px;
   padding: 4px 11px;
   border-radius: 999px;
   background: var(--surface-2);

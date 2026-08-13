@@ -6,6 +6,17 @@ export function recipeTitle(recipe) {
 }
 
 /**
+ * Who to credit on a recipe. The backend resolves `creatorUsername` from the
+ * author's profile on every read, so a rename shows up everywhere at once;
+ * authors with no profile (anonymous saves) fall back to a generic label.
+ * Returns null when there is nothing to credit at all.
+ */
+export function creatorName(recipe) {
+    if (recipe?.creatorUsername) return recipe.creatorUsername;
+    return recipe?.ownerId ? "Anonymous chef" : null;
+}
+
+/**
  * Normalize `heartedBy` to a plain array of userIds. DynamoDB string sets come
  * back from lib-dynamodb as a JS Set, but older/edited items may be arrays.
  */

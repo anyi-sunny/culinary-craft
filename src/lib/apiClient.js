@@ -1,4 +1,4 @@
-import { fetchAuthSession, getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser } from "aws-amplify/auth";
 
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT;
 
@@ -13,17 +13,6 @@ async function getAuthToken() {
         return user.userId;
     } catch (err) {
         console.debug("User not authenticated:", err.message);
-        return null;
-    }
-}
-
-async function getUserEmail() {
-    try {
-        const session = await fetchAuthSession();
-        const claims = session.tokens?.idToken?.payload;
-        return claims?.email || null;
-    } catch (err) {
-        console.debug("Could not fetch user email:", err.message);
         return null;
     }
 }
@@ -70,13 +59,8 @@ export async function fetchAllRecipes() {
  */
 export async function saveRecipe(item) {
     try {
-        // Add creator email for new recipes
-        if (!item.recipeId) {
-            const email = await getUserEmail();
-            if (email) {
-                item.creatorEmail = email;
-            }
-        }
+        // Creator attribution is server-side: the backend reads the caller's
+        // profile username, so nothing about the author is sent from here.
         const result = await apiCall('POST', '/recipes', item);
         return result.recipe;
     } catch (err) {

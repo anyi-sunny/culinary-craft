@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, Globe, EyeOff } from "lucide-react";
 import { saveRecipe } from "../../../lib/db";
-import { recipeTitle, isOwner, isHearted, isPublished } from "../../../lib/recipeUtils";
+import { recipeTitle, isOwner, isHearted, isPublished, creatorName } from "../../../lib/recipeUtils";
 import { uploadImageToS3, getPlaceholderGradient, validateImage } from "../../../lib/imageUtils";
 import { sanitizeInput, sanitizeObject } from "../../../lib/sanitizer";
 import { normalizeTags } from "../../../lib/categories";
@@ -258,6 +258,9 @@ const RecipeModal = ({
                     )}
                 </div>
 
+                {!isEditing && creatorName(recipe) && (
+                    <p className="modal-creator">by {creatorName(recipe)}</p>
+                )}
                 {!isEditing && formatServings(recipe.servings) && (
                     <p className="modal-servings">{formatServings(recipe.servings)}</p>
                 )}

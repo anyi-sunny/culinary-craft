@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Bookmark, ArrowRight, EyeOff, Globe } from "lucide-react";
-import { recipeTitle, isHearted, heartedByList, isOwner, isPublished } from "../../../lib/recipeUtils";
+import { recipeTitle, isHearted, heartedByList, isOwner, isPublished, creatorName } from "../../../lib/recipeUtils";
 import { getPlaceholderGradient } from "../../../lib/imageUtils";
 import { TagOvals } from "../../tags/CategoryTags";
 import "./RecipeCard.css";
@@ -11,6 +11,7 @@ const RecipeCard = ({ recipe, onClick, onToggleHeart, onTogglePublish, userId })
     const hearted = isHearted(recipe, userId);
     const heartCount = heartedByList(recipe).length;
     const monogram = (name || "R").trim().charAt(0).toUpperCase();
+    const creator = creatorName(recipe);
     // Only the owner ever sees an unpublished recipe, so the private badge
     // and publish shortcut are theirs alone.
     const showPrivate = isOwner(recipe, userId) && !isPublished(recipe);
@@ -73,9 +74,7 @@ const RecipeCard = ({ recipe, onClick, onToggleHeart, onTogglePublish, userId })
 
             <div className="card-body">
                 <h3 className="card-title">{name}</h3>
-                {(recipe.creatorEmail || recipe.ownerId) && (
-                    <p className="card-creator">by {recipe.creatorEmail || "Unknown creator"}</p>
-                )}
+                {creator && <p className="card-creator">by {creator}</p>}
                 <TagOvals tags={recipe.tags} className="card-tags" />
                 <div className="card-footer">
                     <span className="view-btn">

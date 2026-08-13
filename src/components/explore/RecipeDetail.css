@@ -373,6 +373,15 @@
   margin-top: 10px;
 }
 
+/* Creator attribution under the recipe title */
+.detail-creator {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
 /* Faint approximate serving size under the recipe title */
 .detail-servings {
   margin: 6px 0 0;
