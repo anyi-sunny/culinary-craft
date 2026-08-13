@@ -4,8 +4,10 @@ import { SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import RecipeCard from "./card/RecipeCard";
 import SkeletonRecipeCard from "./card/SkeletonRecipeCard";
 import RecipeModal from "./modal/RecipeModal";
+import AdCard from "../ads/AdCard";
 import { recipeTitle } from "../../lib/recipeUtils";
 import { CATEGORY_OPTIONS } from "../../lib/categories";
+import { AD_CARD_INTERVAL } from "../../lib/ads";
 import "./Explore.css";
 
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
@@ -18,9 +20,11 @@ const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x))
  *  - userId            current user id (or null)
  *  - onRequireLogin()  prompt login when a guest tries to heart
  *  - onToggleHeart(r)  toggle a heart (login already ensured)
+ *  - onTogglePublish(r, published)  show/hide an owned recipe on Explore
  *  - onDelete(r)       delete a recipe (owner-gated by the card)
  *  - onRefresh()       refetch after a modal save
  *  - emptyText         message when there are no recipes
+ *  - showAds           interleave an AdSense card every few recipes (Explore only)
  */
 export default function RecipeGrid({
     recipes,
@@ -28,11 +32,16 @@ export default function RecipeGrid({
     userId,
     onRequireLogin,
     onToggleHeart,
+    onTogglePublish,
     onDelete,
     onRefresh,
     emptyText = "No recipes found.",
+    showAds = false,
 }) {
-    const [selected, setSelected] = useState(null);
+    // Track the open recipe by id, not by value, so the modal re-renders with
+    // the list (e.g. after a publish toggle) instead of showing a stale copy.
+    const [selectedId, setSelectedId] = useState(null);
+    const selected = recipes.find((r) => r.recipeId === selectedId) ?? null;
     const [query, setQuery] = useState("");
 
     // Filter UI state: draft edits live in the panel until "Apply Filters".
@@ -297,15 +306,23 @@ export default function RecipeGrid({
                         </p>
                     </div>
                 ) : (
-                    filtered.map((recipe, index) => (
-                        <RecipeCard
-                            key={recipe.recipeId || index}
-                            recipe={recipe}
-                            userId={userId}
-                            onClick={() => setSelected(recipe)}
-                            onToggleHeart={handleHeart}
-                        />
-                    ))
+                    filtered.flatMap((recipe, index) => {
+                        const nodes = [
+                            <RecipeCard
+                                key={recipe.recipeId || index}
+                                recipe={recipe}
+                                userId={userId}
+                                onClick={() => setSelectedId(recipe.recipeId)}
+                                onToggleHeart={handleHeart}
+                                onTogglePublish={onTogglePublish}
+                            />,
+                        ];
+                        // Slot an ad after every AD_CARD_INTERVAL-th recipe.
+                        if (showAds && (index + 1) % AD_CARD_INTERVAL === 0) {
+                            nodes.push(<AdCard key={`ad-${index}`} />);
+                        }
+                        return nodes;
+                    })
                 )}
             </div>
 
@@ -315,11 +332,12 @@ export default function RecipeGrid({
                     userId={userId}
                     onRequireLogin={onRequireLogin}
                     onToggleHeart={handleHeart}
+                    onTogglePublish={onTogglePublish}
                     onDelete={onDelete ? handleDelete : undefined}
-                    onClose={() => setSelected(null)}
+                    onClose={() => setSelectedId(null)}
                     onRefresh={() => {
                         onRefresh?.();
-                        setSelected(null);
+                        setSelectedId(null);
                     }}
                 />
             )}

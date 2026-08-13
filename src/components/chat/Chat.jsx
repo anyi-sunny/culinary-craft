@@ -9,12 +9,15 @@ import { fetchUserInventory } from '../../lib/inventoryDb';
 import { invokeAgent } from '../../lib/agentApiClient';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
 import { extractCategoryTags, normalizeTags } from '../../lib/categories';
+import { extractServings, normalizeServings } from '../../lib/servings';
+import { parseRecipeBlock } from '../../lib/recipeText';
 import { CategoryChecklist } from '../tags/CategoryTags';
 import awsConfig from '../../lib/awsConfig';
 import TopNav from '../nav/TopNav';
 import { useAuthModal } from '../auth/authModalContext';
 import IngredientSelector from './IngredientSelector';
 import Paywall from '../Paywall';
+import RecipeSavedModal from '../ads/RecipeSavedModal';
 
 // Styling Imports
 import './Chat.css';
@@ -44,24 +47,6 @@ const readChatCache = () => {
 const clearChatCache = () => {
     try { localStorage.removeItem(CHAT_CACHE_KEY); } catch { /* ignore */ }
 };
-
-// Strips markdown formatting that the agent sometimes adds (e.g. **bold**, #
-// headings, `code`). The review modal uses plain <input>/<textarea> fields and
-// the saved record is plain text, so any leftover markdown shows up literally
-// (e.g. a title that reads "**"). This guarantees clean text regardless of how
-// strictly the model follows the formatting contract.
-const stripMarkdown = (text = '') =>
-    String(text)
-        .replace(/\*\*/g, '')          // bold markers
-        .replace(/__/g, '')            // alt bold / underline
-        .replace(/`/g, '')             // inline code ticks
-        .replace(/^\s*#{1,6}\s*/gm, '') // ATX headings
-        .split('\n')
-        .map((line) => line.replace(/\s+$/, '')) // trailing whitespace per line
-        // collapse runs of blank lines down to a single blank line
-        .filter((line, idx, arr) => !(line.trim() === '' && (arr[idx - 1]?.trim() ?? '') === ''))
-        .join('\n')
-        .trim();
 
 const formatBedrockError = (error) => {
     const name = error?.name || 'UnknownError';
@@ -113,6 +98,9 @@ function Chat() {
     const [messages, setMessages] = useState([]);
     const [activeRecipeId, setActiveRecipeId] = useState(null);
     const [quotaExceeded, setQuotaExceeded] = useState(false);
+    // Set after a successful save: shows the "Recipe Saved!" ad interstitial,
+    // and its Continue button carries this id to the detail page.
+    const [savedRecipeId, setSavedRecipeId] = useState(null);
 
     // Ingredient selector state
     const [showIngredientSelector, setShowIngredientSelector] = useState(false);
@@ -129,12 +117,15 @@ function Chat() {
     // The agent appends them behind an @@TAGS: ...@@ marker that never reaches
     // the chat transcript; this ref caches them for the review modal.
     const agentTagsRef = useRef([]);
+    // Same idea for the agent's @@SERVINGS: N@@ estimate (null = unknown).
+    const agentServingsRef = useRef(null);
 
     const [stagingRecipe, setStagingRecipe] = useState({
         title: '',
         ingredients: '',
         instructions: '',
         tags: [],
+        servings: null,
         recipeId: null
     });
     const [isConfirmingSave, setIsConfirmingSave] = useState(false);
@@ -153,10 +144,14 @@ function Chat() {
             // File handling is not yet supported through the API
             // TODO: Add file upload support to backend API
             const response = await invokeAgent(sessionId, textToSend, []);
-            // Strip the hidden @@TAGS: ...@@ marker before anything renders or
-            // parses the response; cache the agent's category picks instead.
-            const { text, tags } = extractCategoryTags(response);
+            // Strip the hidden @@TAGS: ...@@ and @@SERVINGS: ...@@ markers
+            // before anything renders or parses the response; cache the
+            // agent's picks instead. (The agent still mentions the yield in
+            // prose, so the user sees it in chat.)
+            const { text: tagless, tags } = extractCategoryTags(response);
             if (tags.length > 0) agentTagsRef.current = tags;
+            const { text, servings } = extractServings(tagless);
+            if (servings !== null) agentServingsRef.current = servings;
             return text;
         } catch (error) {
             console.error("Error calling agent:", error);
@@ -182,9 +177,10 @@ function Chat() {
                     editingOriginalRef.current = recipeToImprove;
                 }
 
-                // Start from the recipe's existing tags; the agent's own picks
-                // will replace these as the recipe evolves in chat.
+                // Start from the recipe's existing tags/servings; the agent's
+                // own picks will replace these as the recipe evolves in chat.
                 agentTagsRef.current = normalizeTags(recipeToImprove.tags);
+                agentServingsRef.current = normalizeServings(recipeToImprove.servings);
 
                 recipeContextRef.current = recipeToImprove;
 
@@ -218,6 +214,7 @@ function Chat() {
                 if (cached.activeRecipeId) setActiveRecipeId(cached.activeRecipeId);
                 if (cached.ingredientContext) ingredientContextRef.current = cached.ingredientContext;
                 if (cached.agentTags) agentTagsRef.current = normalizeTags(cached.agentTags);
+                if (cached.agentServings) agentServingsRef.current = normalizeServings(cached.agentServings);
 
                 setLoading(true);
                 try {
@@ -279,6 +276,7 @@ function Chat() {
                 activeRecipeId,
                 ingredientContext: ingredientContextRef.current,
                 agentTags: agentTagsRef.current,
+                agentServings: agentServingsRef.current,
                 savedAt: Date.now(),
             }));
         } catch { /* storage full / unavailable */ }
@@ -416,27 +414,23 @@ function Chat() {
                 "INGREDIENTS:\n- 2 cans chicken\n- 8 oz cream cheese\n" +
                 "INSTRUCTIONS:\n- Preheat oven to 350F\n- Mix and bake\n" +
                 "| [Closing remarks]\n" +
-                "@@TAGS: [applicable category tags, comma-separated]@@"
+                "@@TAGS: [applicable category tags, comma-separated]@@\n" +
+                "@@SERVINGS: [single whole number: piece count for discrete items, standard servings otherwise]@@"
             );
 
-            const parts = botResponse.split('|');
-            // Strip markdown BEFORE regex so wrapped tags like "**TITLE:**" still parse.
-            const cleanRecipeData = stripMarkdown(parts[0]);
+            // Closing remarks live after a "|"; only the block before it parses.
+            const parsed = parseRecipeBlock(botResponse.split('|')[0]);
 
-            const nameMatch = cleanRecipeData.match(/(?:TITLE|RECIPE_NAME):\s*(.*)/i);
-            const ingMatch = cleanRecipeData.match(/(?:INGREDIENTS|RECIPE_INGREDIENTS):\s*([\s\S]*?)(?=INSTRUCTIONS|RECIPE_INSTRUCTIONS|$)/i);
-            const insMatch = cleanRecipeData.match(/(?:INSTRUCTIONS|RECIPE_INSTRUCTIONS):\s*([\s\S]*)/i);
-
-            if (nameMatch && ingMatch && insMatch) {
-                // Defense-in-depth: sanitize each field again in case markdown
-                // survived inside a captured group.
+            if (parsed) {
                 setStagingRecipe({
-                    title: stripMarkdown(nameMatch[1]),
-                    ingredients: stripMarkdown(ingMatch[1]),
-                    instructions: stripMarkdown(insMatch[1]),
-                    // Agent-selected categories come pre-checked; the user can
-                    // adjust them in the review modal before saving.
+                    title: parsed.title,
+                    ingredients: parsed.ingredients,
+                    instructions: parsed.instructions,
+                    // Agent-selected categories come pre-checked and the
+                    // serving estimate pre-filled; the user can adjust both
+                    // in the review modal before saving.
                     tags: agentTagsRef.current,
+                    servings: agentServingsRef.current,
                     recipeId: activeRecipeId
                 });
                 setIsConfirmingSave(true);
@@ -467,6 +461,7 @@ function Chat() {
                 ingredients: sanitizedRecipe.ingredients,
                 instructions: sanitizedRecipe.instructions,
                 tags: normalizeTags(finalRecipe.tags),
+                servings: normalizeServings(finalRecipe.servings),
             };
             // Recipes no longer carry a decorative emoji field.
             delete finalItem.emoji;
@@ -485,8 +480,10 @@ function Chat() {
             // The conversation reached its goal — drop the cached transcript.
             clearChatCache();
 
-            // Navigate to recipe detail page instead of explore
-            navigate(`/recipe/${savedRecipe.recipeId}`);
+            // Show the saved confirmation (with ad) first; its Continue button
+            // navigates to the recipe detail page.
+            setIsConfirmingSave(false);
+            setSavedRecipeId(savedRecipe.recipeId);
         } catch (err) {
             console.error("Commit Save Error:", err);
             alert("Final save failed.");
@@ -620,6 +617,21 @@ function Chat() {
                             value={stagingRecipe.instructions || ''}
                             onChange={(e) => setStagingRecipe({...stagingRecipe, instructions: e.target.value})}
                         />
+                        <label className="review-label" htmlFor="review-servings">Serving Size (approx.)</label>
+                        <input
+                            id="review-servings"
+                            className="edit-input-servings"
+                            type="number"
+                            min="1"
+                            max="999"
+                            value={stagingRecipe.servings ?? ''}
+                            onChange={(e) =>
+                                setStagingRecipe({
+                                    ...stagingRecipe,
+                                    servings: e.target.value === '' ? null : Number(e.target.value),
+                                })
+                            }
+                        />
                         <label className="review-label">Categories</label>
                         <CategoryChecklist
                             selected={stagingRecipe.tags || []}
@@ -632,12 +644,22 @@ function Chat() {
                                 }))
                             }
                         />
+                        <p className="review-privacy-note">
+                            Saved recipes stay private to your account. You can publish it to Explore
+                            from the recipe page whenever you're ready.
+                        </p>
                         <div className="review-actions">
                             <button className="btn btn-primary" onClick={() => commitSave(stagingRecipe)}>Save &amp; Continue</button>
                             <button className="btn btn-secondary" onClick={() => setIsConfirmingSave(false)}>Keep Chatting</button>
                         </div>
                     </div>
                 </div>
+            )}
+
+            {savedRecipeId && (
+                <RecipeSavedModal
+                    onContinue={() => navigate(`/recipe/${savedRecipeId}`)}
+                />
             )}
         </SplashTransition>
     );

@@ -1,16 +1,19 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Bookmark, ArrowRight } from "lucide-react";
-import { recipeTitle, isHearted, heartedByList } from "../../../lib/recipeUtils";
+import { Bookmark, ArrowRight, EyeOff, Globe } from "lucide-react";
+import { recipeTitle, isHearted, heartedByList, isOwner, isPublished } from "../../../lib/recipeUtils";
 import { getPlaceholderGradient } from "../../../lib/imageUtils";
 import { TagOvals } from "../../tags/CategoryTags";
 import "./RecipeCard.css";
 
-const RecipeCard = ({ recipe, onClick, onToggleHeart, userId }) => {
+const RecipeCard = ({ recipe, onClick, onToggleHeart, onTogglePublish, userId }) => {
     const name = recipeTitle(recipe);
     const hearted = isHearted(recipe, userId);
     const heartCount = heartedByList(recipe).length;
     const monogram = (name || "R").trim().charAt(0).toUpperCase();
+    // Only the owner ever sees an unpublished recipe, so the private badge
+    // and publish shortcut are theirs alone.
+    const showPrivate = isOwner(recipe, userId) && !isPublished(recipe);
 
     return (
         <motion.article
@@ -60,6 +63,12 @@ const RecipeCard = ({ recipe, onClick, onToggleHeart, userId }) => {
                     </motion.span>
                     {heartCount > 0 && <span className="heart-count">{heartCount}</span>}
                 </button>
+
+                {showPrivate && (
+                    <span className="card-private-badge">
+                        <EyeOff size={12} strokeWidth={2.2} /> Private
+                    </span>
+                )}
             </div>
 
             <div className="card-body">
@@ -68,10 +77,24 @@ const RecipeCard = ({ recipe, onClick, onToggleHeart, userId }) => {
                     <p className="card-creator">by {recipe.creatorEmail || "Unknown creator"}</p>
                 )}
                 <TagOvals tags={recipe.tags} className="card-tags" />
-                <span className="view-btn">
-                    View Recipe
-                    <ArrowRight size={15} strokeWidth={2.2} className="view-arrow" />
-                </span>
+                <div className="card-footer">
+                    <span className="view-btn">
+                        View Recipe
+                        <ArrowRight size={15} strokeWidth={2.2} className="view-arrow" />
+                    </span>
+                    {showPrivate && onTogglePublish && (
+                        <button
+                            className="card-publish-btn"
+                            title="Show this recipe on Explore"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onTogglePublish(recipe, true);
+                            }}
+                        >
+                            <Globe size={13} strokeWidth={2.2} /> Publish
+                        </button>
+                    )}
+                </div>
             </div>
         </motion.article>
     );

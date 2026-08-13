@@ -340,3 +340,49 @@
 .modal-tags {
   margin: 2px 0 14px;
 }
+
+/* Faint approximate serving size under the modal title */
+.modal-servings {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+/* Owner-only marker on a recipe that hasn't been published to Explore */
+.modal-private {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.modal-private svg {
+  flex-shrink: 0;
+}
+
+/* Compact number input for the serving estimate (also used by Chat's
+   review modal, like .edit-input-title above). */
+.edit-input-servings {
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 110px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+.edit-input-servings:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}

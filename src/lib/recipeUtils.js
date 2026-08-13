@@ -38,3 +38,12 @@ export function canEdit(recipe, userId) {
 export function isOwner(recipe, userId) {
     return Boolean(recipe?.ownerId) && recipe.ownerId === userId;
 }
+
+/**
+ * Is this recipe visible on Explore? New recipes start private until their
+ * owner publishes them; recipes predating the flag are public.
+ * The backend applies the same rule when it decides what to return.
+ */
+export function isPublished(recipe) {
+    return recipe?.published !== false;
+}

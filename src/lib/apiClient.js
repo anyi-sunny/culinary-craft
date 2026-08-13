@@ -108,3 +108,16 @@ export async function setHeart(recipeId, on) {
         throw err;
     }
 }
+
+/**
+ * Show (publish) or hide (unpublish) a recipe on Explore. Owner only —
+ * the backend rejects anyone else.
+ */
+export async function setPublished(recipeId, published) {
+    try {
+        await apiCall('PUT', `/recipes/${recipeId}/publish`, { published });
+    } catch (err) {
+        console.error("Error updating publish state:", err);
+        throw err;
+    }
+}

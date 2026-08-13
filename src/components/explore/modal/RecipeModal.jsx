@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy } from "lucide-react";
+import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, Globe, EyeOff } from "lucide-react";
 import { saveRecipe } from "../../../lib/db";
-import { recipeTitle, isOwner, isHearted } from "../../../lib/recipeUtils";
+import { recipeTitle, isOwner, isHearted, isPublished } from "../../../lib/recipeUtils";
 import { uploadImageToS3, getPlaceholderGradient, validateImage } from "../../../lib/imageUtils";
 import { sanitizeInput, sanitizeObject } from "../../../lib/sanitizer";
 import { normalizeTags } from "../../../lib/categories";
+import { normalizeServings, formatServings } from "../../../lib/servings";
 import { TagOvals, CategoryChecklist } from "../../tags/CategoryTags";
 import RecipeActionsMenu from "../RecipeActionsMenu";
 import ConsultInventoryModal from "./ConsultInventoryModal";
@@ -18,6 +19,7 @@ const RecipeModal = ({
     onClose,
     onRefresh,
     onToggleHeart,
+    onTogglePublish,
     onRequireLogin,
     onDelete,
     isEditing: initialIsEditing = false,
@@ -126,6 +128,7 @@ const RecipeModal = ({
                 // Preserve ownership; manual edit never re-owns a recipe.
                 ownerId: recipe.ownerId,
                 tags: normalizeTags(sanitized.tags),
+                servings: normalizeServings(sanitized.servings),
             };
             // Recipes no longer carry a decorative emoji field.
             delete finalItem.emoji;
@@ -152,11 +155,16 @@ const RecipeModal = ({
         onClose?.();
     };
 
+    const published = isPublished(recipe);
+
     const menuItems = isRecipeOwner
         ? [
               { label: "Consult Inventory", icon: Package, onClick: () => setShowConsultInventory(true) },
               { label: "Manual Edit", icon: Pencil, onClick: () => setIsEditing(true) },
               { label: "Improve with AI", icon: Sparkles, onClick: handleImproveWithAI },
+              ...(published && onTogglePublish
+                  ? [{ label: "Hide from Explore", icon: EyeOff, onClick: () => onTogglePublish(recipe, false) }]
+                  : []),
               ...(onDelete ? [{ label: "Delete", icon: Trash2, danger: true, onClick: handleDelete }] : []),
           ]
         : [
@@ -250,6 +258,14 @@ const RecipeModal = ({
                     )}
                 </div>
 
+                {!isEditing && formatServings(recipe.servings) && (
+                    <p className="modal-servings">{formatServings(recipe.servings)}</p>
+                )}
+                {!isEditing && isRecipeOwner && !published && (
+                    <p className="modal-private">
+                        <EyeOff size={13} strokeWidth={2} /> Private — only you can see this
+                    </p>
+                )}
                 {!isEditing && <TagOvals tags={recipe.tags} className="modal-tags" />}
 
                 {/* Actions: View Full Recipe stays standalone; everything else
@@ -276,6 +292,15 @@ const RecipeModal = ({
                         </>
                     ) : (
                         <>
+                            {isRecipeOwner && !published && onTogglePublish && (
+                                <button
+                                    className="btn btn-success"
+                                    onClick={() => onTogglePublish(recipe, true)}
+                                    title="Show this recipe on Explore for everyone"
+                                >
+                                    <Globe size={16} strokeWidth={2.2} /> Publish
+                                </button>
+                            )}
                             <button
                                 className="btn btn-secondary"
                                 onClick={() => {
@@ -336,6 +361,20 @@ const RecipeModal = ({
 
                     {isEditing && isRecipeOwner && (
                         <>
+                            <h3>Serving Size (approx.)</h3>
+                            <input
+                                className="edit-input-servings"
+                                type="number"
+                                min="1"
+                                max="999"
+                                value={editedRecipe.servings ?? ""}
+                                onChange={(e) =>
+                                    setEditedRecipe({
+                                        ...editedRecipe,
+                                        servings: e.target.value === "" ? null : Number(e.target.value),
+                                    })
+                                }
+                            />
                             <h3>Categories</h3>
                             <CategoryChecklist
                                 selected={editedRecipe.tags || []}

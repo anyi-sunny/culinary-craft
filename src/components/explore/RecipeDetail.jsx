@@ -1,17 +1,20 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, ChefHat, Camera, MessageSquare } from 'lucide-react';
+import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, ChefHat, Camera, MessageSquare, Users, EyeOff, Globe } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
 import RecipeActionsMenu from './RecipeActionsMenu';
 import RecipeComments from './RecipeComments';
 import CookMode from '../cook/CookMode';
+import ServingsAdjuster from '../servings/ServingsAdjuster';
 import { useRecipes } from '../../lib/useRecipes';
 import { useAuthModal } from '../auth/authModalContext';
 import { saveRecipe } from '../../lib/db';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
 import { normalizeTags } from '../../lib/categories';
+import { isPublished } from '../../lib/recipeUtils';
+import { normalizeServings, formatServings } from '../../lib/servings';
 import { TagOvals, CategoryChecklist } from '../tags/CategoryTags';
 import { getPlaceholderGradient, uploadImageToS3, validateImage } from '../../lib/imageUtils';
 import { fireConfetti } from '../../lib/confetti';
@@ -36,10 +39,13 @@ export default function RecipeDetail() {
   const navigate = useNavigate();
   const { user } = useAuthenticator((ctx) => [ctx.user]);
   const userId = user?.userId || null;
-  const { recipes, toggleHeart, removeRecipe } = useRecipes();
+  const { recipes, refresh, toggleHeart, togglePublish, removeRecipe } = useRecipes();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [showConsultInventory, setShowConsultInventory] = useState(false);
+  const [showServingsAdjuster, setShowServingsAdjuster] = useState(false);
+  // A serving-size adjustment the user chose to cook without saving.
+  const [cookOverride, setCookOverride] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [imageError, setImageError] = useState('');
   const imageInputRef = useRef(null);
@@ -79,9 +85,30 @@ export default function RecipeDetail() {
 
   const isOwner = recipe.ownerId === userId;
   const isHearted = recipe.heartedBy && recipe.heartedBy.includes(userId);
+  const published = isPublished(recipe);
 
   const handleToggleHeart = () => {
     toggleHeart(recipe, userId);
+  };
+
+  const handleTogglePublish = async (next) => {
+    const ok = await togglePublish(recipe, next);
+    if (!ok) {
+      alert(next ? 'Could not publish this recipe.' : 'Could not hide this recipe.');
+      return;
+    }
+    // The page reads from the shared list, which the hook already updated
+    // optimistically; keep any local edit shadow in sync too.
+    setLocalEdits((prev) => (prev ? { ...prev, published: next } : prev));
+  };
+
+  // Saving an adjusted copy creates a brand-new recipe; refetch so the
+  // detail page can resolve it, and drop any stale local edit shadow.
+  const handleAdjustedSaved = async (saved) => {
+    setShowServingsAdjuster(false);
+    setLocalEdits(null);
+    await refresh();
+    if (saved?.recipeId) navigate(`/recipe/${saved.recipeId}`);
   };
 
   const handleDelete = async () => {
@@ -118,6 +145,7 @@ export default function RecipeDetail() {
       // Preserve ownership; manual edit never re-owns a recipe.
       ownerId: recipe.ownerId,
       tags: normalizeTags(sanitized.tags),
+      servings: normalizeServings(sanitized.servings),
     };
     delete finalItem.emoji;
 
@@ -155,8 +183,10 @@ export default function RecipeDetail() {
     setShowCookMode(false);
     fireConfetti();
     // Offer the photo prompt to owners whose recipe has no photo yet;
-    // feedback is always offered.
-    setOfferPhoto(isOwner && !recipe.recipeImage);
+    // feedback is always offered. A photo of an unsaved serving adjustment
+    // would land on the original recipe, so skip the offer in that case.
+    setOfferPhoto(isOwner && !recipe.recipeImage && !cookOverride);
+    setCookOverride(null);
     setShowFinishPopup(true);
   };
 
@@ -185,9 +215,24 @@ export default function RecipeDetail() {
     navigate('/chat', { state: { recipeToImprove: { ...recipe }, saveMode: 'UPDATE' } });
   };
 
+  // Changing the serving size is open to everyone: the adjustment is
+  // temporary and never touches the original recipe.
+  const adjustServingsItem = {
+    label: 'Change Serving Size',
+    icon: Users,
+    onClick: () => {
+      if (!userId) {
+        requireLogin();
+        return;
+      }
+      setShowServingsAdjuster(true);
+    },
+  };
+
   const menuItems = isOwner
     ? [
         { label: 'Consult Inventory', icon: Package, onClick: () => setShowConsultInventory(true) },
+        adjustServingsItem,
         {
           label: 'Manual Edit',
           icon: Pencil,
@@ -197,10 +242,14 @@ export default function RecipeDetail() {
           },
         },
         { label: 'Improve with AI', icon: Sparkles, onClick: handleImproveWithAI },
+        ...(published
+          ? [{ label: 'Hide from Explore', icon: EyeOff, onClick: () => handleTogglePublish(false) }]
+          : []),
         { label: 'Delete', icon: Trash2, danger: true, onClick: handleDelete },
       ]
     : [
         { label: 'Consult Inventory', icon: Package, onClick: () => setShowConsultInventory(true) },
+        adjustServingsItem,
         { label: 'Copy & Edit', icon: Copy, onClick: handleCopyAndEdit },
         { label: 'Copy & Improve with AI', icon: Sparkles, onClick: handleCopyAndEdit },
       ];
@@ -212,6 +261,19 @@ export default function RecipeDetail() {
           recipe={recipe}
           userId={userId}
           onClose={() => setShowConsultInventory(false)}
+        />
+      )}
+
+      {showServingsAdjuster && (
+        <ServingsAdjuster
+          recipe={recipe}
+          onClose={() => setShowServingsAdjuster(false)}
+          onSaved={handleAdjustedSaved}
+          onCook={(adjusted) => {
+            setShowServingsAdjuster(false);
+            setCookOverride(adjusted);
+            setShowCookMode(true);
+          }}
         />
       )}
 
@@ -274,9 +336,27 @@ export default function RecipeDetail() {
             <div className="recipe-detail-header">
               <div>
                 <h1>{recipe.title}</h1>
+                {!isEditing && formatServings(recipe.servings) && (
+                  <p className="detail-servings">{formatServings(recipe.servings)}</p>
+                )}
                 {!isEditing && <TagOvals tags={recipe.tags} className="detail-tags" />}
+                {!isEditing && isOwner && !published && (
+                  <p className="detail-unpublished">
+                    <EyeOff size={13} strokeWidth={2} /> Only you can see this recipe — publish it to
+                    share it on Explore.
+                  </p>
+                )}
               </div>
               <div className="recipe-detail-actions">
+                {!isEditing && isOwner && !published && (
+                  <button
+                    className="btn btn-success publish-btn"
+                    onClick={() => handleTogglePublish(true)}
+                    title="Show this recipe on Explore for everyone"
+                  >
+                    <Globe size={16} strokeWidth={2.2} /> Publish
+                  </button>
+                )}
                 {!isEditing && (
                   <button
                     className="btn btn-primary start-cooking-btn"
@@ -319,6 +399,22 @@ export default function RecipeDetail() {
                   <AutoGrowTextarea
                     value={editData.instructions || ''}
                     onChange={(e) => setEditData({ ...editData, instructions: sanitizeInput(e.target.value) })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Serving Size (approx.)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    className="detail-servings-input"
+                    value={editData.servings ?? ''}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        servings: e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
                   />
                 </div>
                 <div className="form-group">
@@ -382,8 +478,11 @@ export default function RecipeDetail() {
 
       {showCookMode && (
         <CookMode
-          recipe={recipe}
-          onExit={() => setShowCookMode(false)}
+          recipe={cookOverride ?? recipe}
+          onExit={() => {
+            setShowCookMode(false);
+            setCookOverride(null);
+          }}
           onFinish={handleFinishCooking}
         />
       )}

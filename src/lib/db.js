@@ -1,6 +1,6 @@
 // API client for backend DynamoDB operations
 // All operations now go through the backend API instead of direct DynamoDB access
-import { fetchAllRecipes as apiFetchAllRecipes, saveRecipe as apiSaveRecipe, deleteRecipe as apiDeleteRecipe, setHeart as apiSetHeart } from './apiClient';
+import { fetchAllRecipes as apiFetchAllRecipes, saveRecipe as apiSaveRecipe, deleteRecipe as apiDeleteRecipe, setHeart as apiSetHeart, setPublished as apiSetPublished } from './apiClient';
 
 export const RECIPES_TABLE = import.meta.env.VITE_RECIPES_TABLE || "CulinaryCraftBackendStack-RecipesTable058A1F33-1GRXYSW38KE1I";
 
@@ -29,4 +29,9 @@ export async function deleteRecipe(recipeId, _userId) {
 export async function setHeart(recipeId, userId, on) {
     // userId is passed for backwards compatibility but handled server-side
     return apiSetHeart(recipeId, on);
+}
+
+/** Show or hide a recipe on Explore (owner only, enforced server-side) */
+export async function setPublished(recipeId, published) {
+    return apiSetPublished(recipeId, published);
 }

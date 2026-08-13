@@ -1,0 +1,259 @@
+/* "Change Serving Size" flow. Shares the canonical .modal-overlay /
+   .modal-content chrome from index.css; everything here is scoped to
+   .servings-modal so it can't leak into the recipe or inventory modals. */
+.servings-modal {
+  max-width: 620px;
+  padding: 34px 34px 26px;
+  gap: 0;
+}
+
+/* The shared .close-btn is styled for the recipe modal's dark image header;
+   this modal has a cream surface, so the button needs ink-on-cream. */
+.servings-modal .close-btn.servings-close {
+  top: 16px;
+  right: 16px;
+  width: 38px;
+  height: 38px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.servings-modal .close-btn.servings-close:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.servings-modal h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 500;
+  line-height: 1.25;
+  margin: 0;
+  padding-right: 44px; /* clear the close button */
+}
+
+.servings-sub {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin: 8px 0 0;
+}
+
+.servings-hint {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  margin: 0;
+  text-align: center;
+  max-width: 44ch;
+  align-self: center;
+}
+
+.servings-error {
+  color: var(--danger);
+  font-size: 0.88rem;
+  margin: 14px 0 0;
+}
+
+/* ---------- Step 1: pick a serving count ---------- */
+.servings-pick {
+  display: flex;
+  flex-direction: column;
+}
+
+.servings-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 30px 0 20px;
+}
+
+.servings-step-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.servings-step-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-2px);
+}
+.servings-step-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.servings-input {
+  width: 120px;
+  padding: 14px 10px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+  font-weight: 500;
+  text-align: center;
+  box-sizing: border-box;
+  /* The +/- buttons are the affordance; native spinners just add clutter. */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.servings-input::-webkit-outer-spin-button,
+.servings-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ---------- Step 2: waiting on the agent ---------- */
+.servings-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 0 34px;
+}
+.servings-loading h2 {
+  padding-right: 0;
+  margin-top: 26px;
+}
+
+.servings-spinner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.servings-spinner span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.35;
+  animation: servingsPulse 1.25s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+.servings-spinner span:nth-child(2) { animation-delay: 0.16s; }
+.servings-spinner span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes servingsPulse {
+  0%, 100% { opacity: 0.28; transform: translateY(0) scale(0.9); }
+  40% { opacity: 1; transform: translateY(-6px) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .servings-spinner span { animation-duration: 2.4s; }
+}
+
+/* ---------- Step 3: the adjusted recipe ---------- */
+.servings-result-head {
+  padding-right: 44px;
+}
+
+.servings-result-body {
+  overflow-y: auto;
+  margin: 20px 0 4px;
+  padding-right: 6px;
+  /* Leaves room for the header above and the action row below. */
+  max-height: min(46vh, 460px);
+}
+
+.servings-result-body h3 {
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 500;
+  margin: 20px 0 8px;
+}
+.servings-result-body h3:first-child {
+  margin-top: 0;
+}
+
+.servings-text {
+  white-space: pre-wrap;
+  line-height: 1.72;
+  margin: 0;
+  color: var(--text);
+}
+
+.servings-notes {
+  margin-top: 22px;
+  padding: 16px 18px;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+}
+.servings-notes h4 {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 500;
+  margin: 0 0 6px;
+  color: var(--accent-hover);
+}
+.servings-notes p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.servings-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 18px 0 6px;
+}
+.servings-result-body .servings-label:first-child {
+  margin-top: 0;
+}
+
+.servings-instructions {
+  min-height: 220px;
+}
+
+.servings-feedback {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.servings-feedback-input {
+  min-height: 96px;
+}
+
+/* ---------- Action rows ---------- */
+.servings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.servings-actions--end {
+  justify-content: flex-end;
+}
+
+/* The five review actions wrap onto as many rows as they need; the primary
+   save action always sits last, bottom-right. */
+.servings-result-actions {
+  justify-content: flex-end;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .servings-modal {
+    padding: 26px 20px 20px;
+  }
+  .servings-result-actions .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

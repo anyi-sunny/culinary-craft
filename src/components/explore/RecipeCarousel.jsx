@@ -35,6 +35,7 @@ export default function RecipeCarousel({
     viewMorePath,
     userId,
     onToggleHeart,
+    onTogglePublish,
 }) {
     const navigate = useNavigate();
     const items = useMemo(() => recipes.slice(0, MAX_ITEMS), [recipes]);
@@ -245,6 +246,7 @@ export default function RecipeCarousel({
                                               navigate(`/recipe/${recipe.recipeId}`)
                                           }
                                           onToggleHeart={onToggleHeart}
+                                          onTogglePublish={onTogglePublish}
                                       />
                                   </div>
                               </div>

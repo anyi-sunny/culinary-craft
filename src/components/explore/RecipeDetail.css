@@ -372,3 +372,39 @@
 .detail-tags {
   margin-top: 10px;
 }
+
+/* Faint approximate serving size under the recipe title */
+.detail-servings {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+/* The serving estimate is a small number; don't stretch the input. */
+.recipe-detail-edit .form-group > .detail-servings-input {
+  width: 120px;
+}
+
+/* Owner-only note on a recipe that hasn't been published to Explore yet. */
+.detail-unpublished {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.detail-unpublished svg {
+  flex-shrink: 0;
+}
+
+/* Green "Publish" call to action, shown to the owner of a private recipe. */
+.recipe-detail-actions .publish-btn {
+  white-space: nowrap;
+}

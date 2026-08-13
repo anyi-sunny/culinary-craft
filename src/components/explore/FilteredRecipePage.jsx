@@ -23,7 +23,7 @@ export default function FilteredRecipePage({
   const { authStatus, user } = useAuthenticator((ctx) => [ctx.authStatus, ctx.user]);
   const userId = user?.userId || null;
   const { requireLogin } = useAuthModal();
-  const { recipes, loading, refresh, toggleHeart, removeRecipe } = useRecipes();
+  const { recipes, loading, refresh, toggleHeart, togglePublish, removeRecipe } = useRecipes();
 
   const filtered = recipes.filter((r) => filterFn(r, userId));
 
@@ -52,6 +52,7 @@ export default function FilteredRecipePage({
               userId={userId}
               onRequireLogin={requireLogin}
               onToggleHeart={(r) => toggleHeart(r, userId)}
+              onTogglePublish={togglePublish}
               onDelete={(r, uid) => removeRecipe(r, uid)}
               onRefresh={refresh}
               emptyText={emptyText}

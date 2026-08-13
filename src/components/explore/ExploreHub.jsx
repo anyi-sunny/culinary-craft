@@ -5,7 +5,7 @@ import TopNav from "../nav/TopNav";
 import RecipeCarousel from "./RecipeCarousel";
 import { useRecipes } from "../../lib/useRecipes";
 import { useAuthModal } from "../auth/authModalContext";
-import { isOwner, isHearted, heartedByList } from "../../lib/recipeUtils";
+import { isOwner, isHearted, heartedByList, isPublished } from "../../lib/recipeUtils";
 import "./Explore.css";
 
 /**
@@ -17,14 +17,18 @@ function ExploreHub() {
     const { user } = useAuthenticator((ctx) => [ctx.user]);
     const userId = user?.userId || null;
     const { requireLogin } = useAuthModal();
-    const { recipes, loading, toggleHeart } = useRecipes();
+    const { recipes, loading, toggleHeart, togglePublish } = useRecipes();
+
+    // Featured and All Recipes are public rows: they show published recipes
+    // only, even though the fetch includes the viewer's own private ones.
+    const publicRecipes = useMemo(() => recipes.filter(isPublished), [recipes]);
 
     const featured = useMemo(
         () =>
-            [...recipes].sort(
+            [...publicRecipes].sort(
                 (a, b) => heartedByList(b).length - heartedByList(a).length
             ),
-        [recipes]
+        [publicRecipes]
     );
     const saved = useMemo(
         () => recipes.filter((r) => isHearted(r, userId)),
@@ -64,7 +68,7 @@ function ExploreHub() {
                 />
                 <RecipeCarousel
                     title="All Recipes"
-                    recipes={recipes}
+                    recipes={publicRecipes}
                     loading={loading}
                     viewMorePath="/explore/all"
                     userId={userId}
@@ -85,6 +89,7 @@ function ExploreHub() {
                             viewMorePath="/my-recipes"
                             userId={userId}
                             onToggleHeart={handleHeart}
+                            onTogglePublish={togglePublish}
                         />
                     </>
                 )}

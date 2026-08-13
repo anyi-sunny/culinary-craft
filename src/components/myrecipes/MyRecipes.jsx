@@ -10,7 +10,7 @@ export default function MyRecipes() {
             gateTitle="Your recipe book"
             gateDescription="Log in to see and edit the recipes you've created."
             pageTitle="My Creations"
-            pageSubtitle="Recipes you've created. Only you can edit or delete these."
+            pageSubtitle="Recipes you've created. Only you can edit or delete these — publish one to share it on Explore."
             emptyText="You haven't created any recipes yet. Start crafting!"
         />
     );

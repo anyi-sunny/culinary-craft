@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { fetchAllRecipes, setHeart, deleteRecipe } from "./db";
+import { fetchAllRecipes, setHeart, deleteRecipe, setPublished } from "./db";
 import { isHearted, heartedByList } from "./recipeUtils";
 
 // Recompute a recipe's heartedBy array after toggling a user in/out.
@@ -55,6 +55,25 @@ export function useRecipes() {
         }
     }, []);
 
+    // Publish/hide a recipe on Explore. Optimistic like hearts, since the
+    // owner sees the badge flip on the card they just clicked.
+    const togglePublish = useCallback(async (recipe, published) => {
+        const id = recipe.recipeId;
+        setRecipes((prev) =>
+            prev.map((r) => (r.recipeId === id ? { ...r, published } : r))
+        );
+        try {
+            await setPublished(id, published);
+            return true;
+        } catch (err) {
+            console.error("Publish toggle failed:", err);
+            setRecipes((prev) =>
+                prev.map((r) => (r.recipeId === id ? { ...r, published: !published } : r))
+            );
+            return false;
+        }
+    }, []);
+
     const removeRecipe = useCallback(async (recipe, userId) => {
         if (!userId) throw new Error("Must be logged in to delete recipes");
         try {
@@ -67,5 +86,5 @@ export function useRecipes() {
         }
     }, []);
 
-    return { recipes, loading, refresh, toggleHeart, removeRecipe };
+    return { recipes, loading, refresh, toggleHeart, togglePublish, removeRecipe };
 }

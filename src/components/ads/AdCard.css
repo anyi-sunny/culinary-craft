@@ -1,0 +1,58 @@
+/* Ad card: borrows the recipe-card shell but is inert as a card — no
+   pointer cursor, no hover lift/zoom — so the ad itself is the only thing
+   that reads as clickable. */
+.ad-card {
+  cursor: default;
+}
+.ad-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border);
+}
+
+/* Warm editorial backdrop so an unfilled unit (localhost, slow fill) still
+   looks intentional instead of leaving a white hole in the grid. */
+.ad-card-media {
+  background: linear-gradient(135deg, #ede5d8, #dfd2c0);
+}
+
+.ad-card-media .adsbygoogle {
+  position: absolute;
+  inset: 0;
+}
+
+/* Required distinguishability label — AdSense only permits "Advertisement"
+   or "Sponsored Links" as ad labels; keep this text as-is. */
+.ad-card-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(34, 26, 19, 0.55);
+  color: #fffdf9;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.ad-card-title {
+  color: var(--text);
+}
+
+.ad-card-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.ad-card-signoff {
+  display: block;
+  margin-top: 6px;
+  font-style: italic;
+}

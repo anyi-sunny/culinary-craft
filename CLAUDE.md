@@ -129,6 +129,10 @@ CDK needs AWS credentials in your environment. Either:
 
 **Key Patterns:**
 - **Category Tags:** Canonical tag list lives in `src/lib/categories.js` (kept in sync with the agent prompt in the backend CDK stack and `ALLOWED_CATEGORY_TAGS` in `lambda/recipes_api/index.py`). The agent appends `@@TAGS: tag1, tag2@@` to any response containing a full recipe; Chat.jsx strips the marker before display and caches the tags for the review modal, where they appear as a pre-checked checkbox list. Recipes store `tags` as an array of canonical strings; cards/modal/detail render them as faint oval chips (`src/components/tags/CategoryTags.jsx`), owners can edit them in manual-edit mode, and RecipeGrid's category filter matches against them.
+- **Serving Size:** The agent appends `@@SERVINGS: N@@` (whole number; piece count for discrete items like cupcakes, standard servings for soup/pasta) after the `@@TAGS@@` line on any full-recipe response, and also mentions the yield naturally in chat prose. `src/lib/servings.js` strips/normalizes the marker; Chat.jsx caches it for the review modal (editable number input). Recipes store `servings` as a number; modal and detail page render it as a faint "Serves N" line under the title, and owners can edit it in manual-edit mode (manual edit is the source of truth for what a recipe yields). Backend sanitizes it in `sanitize_servings` (lambda); `_json_default` in the lambda's `response()` converts DynamoDB `Decimal` (and sets) for every endpoint, so numeric attributes can't break serialization.
+- **Serving-Size Conversion (temporary, any user):** "Change Serving Size" in the kebab on the full recipe page opens `src/components/servings/ServingsAdjuster.jsx` — a stepper (min 1) → `POST /agent/scale` → a result modal. The result is ephemeral and never touches the original record, so non-owners can use it too. The result modal offers Manual Edit, Try Again (feedback box, same agent session), Change Serving Size, Cook With These (Cook Mode on the unsaved version), and Save to My Creations (a new private recipe owned by the current user); closing warns that the adjustment is unsaved. A second Bedrock agent, `PortionArchitect` (CDK stack, no action groups), does the work: it rescales quantities, adjusts cooking times/pan sizes/batch counts, and converts awkward amounts into household measures (1/8 cup → 2 tbsp). It replies in a strict `TITLE / SERVES / INGREDIENTS / INSTRUCTIONS / NOTES` block parsed by `parseRecipeBlock` in `src/lib/recipeText.js` (shared with Chat's review-modal parsing).
+- **Publishing:** Recipes carry a `published` boolean. New recipes are saved private (`published: false`, set server-side); recipes predating the flag are treated as published, and all existing records were backfilled to `true`. `GET /recipes` returns published recipes plus all of the caller's own, so My Creations stays complete while Explore/Featured filter with `isPublished()` (`src/lib/recipeUtils.js`). Only `PUT /recipes/{id}/publish` (owner-gated) changes the flag — `POST /recipes` ignores any `published` in the body. Owners get a green Publish button (card, modal, detail page), a "Private" badge, and "Hide from Explore" in the kebab; `useRecipes().togglePublish` updates optimistically.
+- **Server-Owned Recipe Fields:** `POST /recipes` on an existing recipe does a full `put_item`, so `ownerId`, `creatorEmail`, `createdAt`, `heartedBy` and `published` are always re-read from the stored item and never taken from the request body. Without this, an edit dropped `ownerId` (breaking later publish/delete) and rewrote the `heartedBy` string set as a list, which was the cause of the heart-toggle 500s.
 - **Authorization:** Bearer token in Authorization header contains userId (Cognito ID or anonymous temp ID)
 - **Markdown Stripping:** Chat responses cleaned before saving to DynamoDB (plain text only)
 - **Creator Attribution:** All new recipes store `creatorEmail` (extracted from Cognito). Recipe cards display this in grey text.
@@ -152,10 +156,12 @@ The unified API handler for all frontend operations. Extracts userId from Author
 
 *Routes:*
 - `POST /recipes` — Save recipe (creates new with UUID or updates existing)
-- `GET /recipes` — Fetch all recipes (converts heartedBy set to list for JSON)
+- `GET /recipes` — Published recipes plus all of the caller's own (converts heartedBy set to list for JSON)
 - `DELETE /recipes/{id}` — Delete recipe (owner-gated)
 - `PUT /recipes/{id}/heart` — Toggle heart/favorite status
+- `PUT /recipes/{id}/publish` — Show/hide a recipe on Explore (owner-gated; the only way `published` changes)
 - `POST /agent/invoke` — Invoke Bedrock Agent, stream response
+- `POST /agent/scale` — Rescale a recipe to a new serving count via the PortionArchitect agent (ephemeral; saves nothing)
 - `POST /generate-upload-url` — Generate S3 presigned POST URL for image upload
 - `/inventory/*` — Inventory CRUD operations
 
@@ -164,6 +170,12 @@ The unified API handler for all frontend operations. Extracts userId from Author
 - Heart toggle: ADD for favoriting, DELETE with condition expression for unfavoriting
 - Image upload: Generates presigned URLs, stores permanent public S3 URLs in DynamoDB
 - Anonymous users: Backend accepts any userId from Authorization header (frontend generates/stores in localStorage)
+
+**Bedrock Agent (`PortionArchitect`):**
+- Single-purpose agent for the serving-size flow; no action groups, no tools, never saves
+- Rescales quantities, adjusts cook times / pan sizes / batch counts, converts awkward amounts to household measures
+- Replies with a strict `TITLE / SERVES / INGREDIENTS / INSTRUCTIONS / NOTES` plain-text block
+- Reached only via `POST /agent/scale`; `SCALER_AGENT_ID` / `SCALER_AGENT_ALIAS_ID` env vars on the API Lambda
 
 **Bedrock Agent (`RecipeArchitect`):**
 - Receives user prompts and conversation history from frontend
@@ -226,11 +238,13 @@ cdk diff           # Compare current code to deployed stack
 - ✅ UI reorganization: Edit/delete buttons moved to modal, recipe cards simplified
 - ✅ Heart button styling: Borderless stars, grey default, yellow on hover/when hearted
 - ✅ Tutorial modal: Now only shows for unauthenticated users (fixed refresh bug)
+- ✅ Serving-size conversion: `PortionArchitect` agent + `ServingsAdjuster` modal flow (temporary, open to non-owners)
+- ✅ Publishing: recipes save private by default; owner-gated publish/hide, existing recipes backfilled to published
+- ✅ Heart toggle 500 fixed: a recipe edit was overwriting the `heartedBy` string set with a JSON list (and dropping `ownerId`). `POST /recipes` now re-reads server-owned fields from the stored item.
+- ✅ Decimal serialization fixed: `json.dumps` now uses `_json_default`, so numeric attributes like `servings` can't 500 a response
 
 ### Current Issues
-- 🔴 Heart toggle returns 500 error: DynamoDB DELETE operation failing when `heartedBy` attribute doesn't exist. Backend logging added (`❤️` prefix in CloudWatch).
-  - **Workaround:** Check CloudWatch logs for actual error: `cdk deploy --quiet && npm run dev`, then test and view Lambda logs in AWS Console
-  - **Fix in progress:** Handling missing `heartedBy` attribute gracefully
+- None open.
 
 ### Not Yet Implemented
 - Admin access control (planned but not started)
