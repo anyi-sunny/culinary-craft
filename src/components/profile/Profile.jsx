@@ -6,6 +6,7 @@ import { Lock, Check } from "lucide-react";
 
 import SplashTransition from "../SplashTransition";
 import TopNav from "../nav/TopNav";
+import PublicProfileView from "./PublicProfileView";
 import { useProfile } from "./profileContext";
 import { useAuthModal } from "../auth/authModalContext";
 import { useRecipes } from "../../lib/useRecipes";
@@ -55,6 +56,10 @@ export default function Profile() {
 
     // Account deletion
     const [deleting, setDeleting] = useState(false);
+
+    // Which face of the profile is showing: the settings panels, or a
+    // preview of exactly what other users see on /chef/:username.
+    const [view, setView] = useState("edit");
 
     const stats = useMemo(() => {
         if (!userId) return null;
@@ -192,6 +197,30 @@ export default function Profile() {
                     <h1>Your Profile</h1>
                 </div>
 
+                {/* Edit / preview toggle, styled like the recipe
+                    feedback-questions tabs */}
+                <div className="profile-tabs" role="tablist">
+                    <button
+                        role="tab"
+                        aria-selected={view === "edit"}
+                        className={`profile-tab${view === "edit" ? " active" : ""}`}
+                        onClick={() => setView("edit")}
+                    >
+                        Edit Profile
+                    </button>
+                    <button
+                        role="tab"
+                        aria-selected={view === "preview"}
+                        className={`profile-tab${view === "preview" ? " active" : ""}`}
+                        onClick={() => setView("preview")}
+                    >
+                        Public Preview
+                    </button>
+                </div>
+
+                {view === "preview" ? (
+                    <PublicProfileView profile={{ ...profile, userId }} />
+                ) : (
                 <div className="profile-layout">
                     {/* Profile card */}
                     <section className="profile-card">
@@ -386,6 +415,7 @@ export default function Profile() {
                         </section>
                     </div>
                 </div>
+                )}
             </div>
         </SplashTransition>
     );

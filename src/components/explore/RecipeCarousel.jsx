@@ -34,6 +34,7 @@ export default function RecipeCarousel({
     loading = false,
     viewMorePath,
     userId,
+    onCardClick,
     onToggleHeart,
     onTogglePublish,
 }) {
@@ -243,7 +244,9 @@ export default function RecipeCarousel({
                                           recipe={recipe}
                                           userId={userId}
                                           onClick={() =>
-                                              navigate(`/recipe/${recipe.recipeId}`)
+                                              onCardClick
+                                                  ? onCardClick(recipe)
+                                                  : navigate(`/recipe/${recipe.recipeId}`)
                                           }
                                           onToggleHeart={onToggleHeart}
                                           onTogglePublish={onTogglePublish}

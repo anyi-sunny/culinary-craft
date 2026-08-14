@@ -51,44 +51,44 @@ function About() {
                         </div>
 
                         <p className="about-eyebrow">The origin story</p>
-                        <h2>A couple brown bananas that started it all...</h2>
+                        <h2>The brown bananas that started it all...</h2>
                                 <p>
-                                    That's me! I just graduated and am now starting my big person career in
-                                    the big apple!
+                                    That's me! I just graduated college and am now starting my big person career in
+                                    NYC!
                                 </p>
                                 <p>
                                     My senior year of college, I snagged one of the best housing options our campus
-                                    provides, and with it, came an awesome kitchen with amazing appliances. I couldn't 
-                                    wait to start cooking and baking for my roommates and also practice the skills I would 
-                                    need when we no longer had our amazing meal plan-shoutout Bowdoin dining!
+                                    provides. With it, came an awesome kitchen with amazing appliances. I couldn't 
+                                    wait to start whipping things up for my roommates and also practice the skills I would 
+                                    need when we no longer had our amazing meal plan&mdash;shoutout Bowdoin dining!
                                 </p>
                                 <p>
-                                    Around then, is when I decided to use AI to help me figure out how to use all 5 of 
-                                    the browning bananas we had on our kitchen counter when most banana bread recipes don't use more
-                                    than 2. (Turns out, banana bread is way better the more bananas you use because it provides
-                                    more moisture and flavor!) Because our dining hall kept an endless supply of bananas and fresh fruits
-                                    just sitting near the entrance begging to be devoured, I realized I had an infinite banana bread 
-                                    glitch. Provided, I get a bag of flour, sugar, and butter from the grocery store, I could use my
-                                    polar points allowance to get more eggs and make endless amounts of banana bread. I wanted each
-                                    batch to be better than the one before it, so I used Google Gemini to express that the last batch was too dry, 
-                                    or the outsides was getting overcooked while the inside was still raw. I learned to cover the loaf with foil, 
-                                    add more butter, reduce the flour, change the oven temperature. 
+                                    Around late fall, is when I asked AI to help me figure out what to do with 5 the browning bananas 
+                                    we had on our kitchen counter. From what I found, banana bread recipes don't ever really use more
+                                    than 2. (With the help of some adjustments, I learned that banana bread is way better with more bananas because it provides
+                                    more moisture and flavor!) Our dining hall kept an endless supply of bananas and fresh fruits
+                                    begging to be devoured. I then realized I had an infinite banana bread 
+                                    glitch. Provided I get a bag of flour, sugar, and butter from the grocery store, I could use my
+                                    polar points allowance (basically free money from our school!) to get more eggs and make endless amounts of banana bread. I wanted each
+                                    batch to be better than the last, so I used Google Gemini to iterate on better and better versions. The chat
+                                    grew longer as I asked for more improvements and learned how aluminum foil over the pan allows the baking of the 
+                                    bread to come out more evenly or that brown sugar improves a deeper flavor than just white sugar alone. 
                                 </p>
                                 <p>
-                                    It had taken me at least three batches of banana bread to realize that I could make a website. It was
-                                    getting tiring, trying to find the right recipe as my chats with gemini accumulated. I was trying to 
-                                    find a banana bread recipe within chats about career advice and how best to communicate with this intimidating manager, 
+                                    It had taken me at least three batches of banana bread to realize that I should make a website from this idea. It was
+                                    getting tiring trying to find the right recipe as my chats with gemini accumulated. I was searching within chats about career 
+                                    advice and how best to communicate with this intimidating manager, 
                                     studying for my cybersecurity exams, and all sorts of things you might imagine a college student would 
                                     need help with. Coming off of my internship with Audible, I had learned all about AI-driven development 
-                                    so I knew making this would be a breeze. So over the one week of winter break I had at home before I had 
-                                    to go back on campus for my ice hockey team, I put together the first prototype of Culinary Craft. 
+                                    so I knew putting this together wouldn't be too difficult. Over the one week of winter break I had at home (because 
+                                    I had my commitments as a member of the women's ice hockey team), I put together the first prototype of Culinary Craft. 
                                 </p>
                                 <p>
                                     The release of Fable 5 brought me an insane opportunity to really improve this app at the speed of light
                                     and accomplish everything I had always dreamed of putting together. My goal now, is that this website 
                                     makes cooking and baking easy for college students and young adults who are more constrained by their pantry
                                     and willing to work with what they've got! If this ends up helping more people than just me, then I can 
-                                    be happy that in a world of AI slop, hopefully this app can be a beacon of light for those who want to make the most of their ingredients and have fun doing it!
+                                    be happy that this AI solution can be a beacon of light for those who want to make the most of their ingredients and have fun doing it!
                                 </p>
                     </section>
 
@@ -100,7 +100,15 @@ function About() {
                                 When AI started to really become a big thing, I was honestly pretty annoyed
                                 at how reliant people were becoming on it. However, especially as a college student
                                 majoring in Compsci, I realized that if I didn't board the train, I'd soon be left 
-                                behind. 
+                                behind. However, if I wanted to use AI, I wanted to use it with integrity. That 
+                                meant that it was merely a learning tool not a cheating tool. I also understood the 
+                                environmental impact that AI infrastructure has so if I was going to make an AI solution
+                                in order to keep up with the times, I wanted to make sure it was something worth it. It 
+                                has to contribute to the world in a positive way and with this solution, it reduces 
+                                food waste and make cooking and baking more accessible for people who are constrained 
+                                by their pantry. Not everyone needs to be a master chef with all the time and knowledge 
+                                in the world to study and perfect a meal worth eating. Everyone deserves to enjoy the food
+                                they make and this tool make that possible. 
                             </p>
                     </section>
                 </div>

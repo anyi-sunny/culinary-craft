@@ -12,6 +12,7 @@ import Favorites from './components/favorites/Favorites';
 import Inventory from './components/inventory/Inventory';
 import ShoppingList from './components/shopping/ShoppingList';
 import Profile from './components/profile/Profile';
+import PublicProfile from './components/profile/PublicProfile';
 import { ProfileProvider } from './components/profile/ProfileProvider';
 import Footer from './components/Footer';
 import SmoothScroll from './components/SmoothScroll';
@@ -39,6 +40,7 @@ function AnimatedRoutes() {
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/shopping-list" element={<ShoppingList />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/chef/:username" element={<PublicProfile />} />
       </Routes>
     </AnimatePresence>
   );

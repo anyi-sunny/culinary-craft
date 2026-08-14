@@ -384,6 +384,82 @@
   cursor: not-allowed;
 }
 
+/* =========================================================
+   Own-profile view toggle (Edit Profile | Public Preview) —
+   same treatment as the feedback/questions tabs on recipes:
+   active tab gets the accent color + underline.
+   ========================================================= */
+.profile-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 4px auto 0;
+  padding: 0 24px;
+  box-sizing: border-box;
+  border-bottom: none;
+}
+.profile-tab {
+  background: none;
+  border: none;
+  padding: 6px 2px 10px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.profile-tab:hover {
+  color: var(--text);
+}
+.profile-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* =========================================================
+   Public profile (the /chef/:username page and the owner's
+   Public Preview tab)
+   ========================================================= */
+.public-profile {
+  width: 100%;
+  max-width: 1000px;
+  margin: 26px auto 0;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+/* Same card chrome as the own-profile card, but centered and not sticky */
+.profile-card--public {
+  position: static;
+  max-width: 400px;
+  margin: 0 auto;
+}
+.profile-card--public .profile-stats {
+  grid-template-columns: 1fr 1fr;
+}
+
+.public-profile-member {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.public-profile-heading {
+  text-align: center;
+  font-size: 1.5rem;
+  margin: 44px 0 0;
+}
+
+/* The shared .recipe-grid supplies columns; trim its page-level padding
+   since the profile column already provides the gutters. */
+.public-profile-grid {
+  padding: 26px 0 0;
+}
+
 @media (max-width: 860px) {
   .profile-layout {
     grid-template-columns: 1fr;

@@ -47,3 +47,23 @@ export async function upsertProfile(updates) {
 export async function deleteProfile() {
     await apiCall('DELETE', '/profile');
 }
+
+/**
+ * Fetch a chef's public profile by username — no auth, guests included.
+ * Returns { userId, username, icon, iconBg, createdAt }; the backend never
+ * exposes email or real name on this endpoint. Throws err.status 404 when
+ * no such username exists.
+ */
+export async function getPublicProfile(username) {
+    const response = await fetch(
+        `${API_ENDPOINT}/profiles/${encodeURIComponent(username)}`
+    );
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        const err = new Error(error.error || `API error: ${response.status}`);
+        err.status = response.status;
+        throw err;
+    }
+    const result = await response.json();
+    return result.profile;
+}

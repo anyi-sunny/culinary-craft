@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Bookmark, ArrowRight, EyeOff, Globe } from "lucide-react";
 import { recipeTitle, isHearted, heartedByList, isOwner, isPublished, creatorName } from "../../../lib/recipeUtils";
@@ -7,6 +8,7 @@ import { TagOvals } from "../../tags/CategoryTags";
 import "./RecipeCard.css";
 
 const RecipeCard = ({ recipe, onClick, onToggleHeart, onTogglePublish, userId }) => {
+    const navigate = useNavigate();
     const name = recipeTitle(recipe);
     const hearted = isHearted(recipe, userId);
     const heartCount = heartedByList(recipe).length;
@@ -74,7 +76,25 @@ const RecipeCard = ({ recipe, onClick, onToggleHeart, onTogglePublish, userId })
 
             <div className="card-body">
                 <h3 className="card-title">{name}</h3>
-                {creator && <p className="card-creator">by {creator}</p>}
+                {creator && (
+                    <p className="card-creator">
+                        by{" "}
+                        {recipe.creatorUsername ? (
+                            <button
+                                className="creator-link"
+                                title={`View ${creator}'s public profile`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/chef/${recipe.creatorUsername}`);
+                                }}
+                            >
+                                {creator}
+                            </button>
+                        ) : (
+                            creator
+                        )}
+                    </p>
+                )}
                 <TagOvals tags={recipe.tags} className="card-tags" />
                 <div className="card-footer">
                     <span className="view-btn">

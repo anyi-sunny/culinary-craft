@@ -83,9 +83,9 @@ function Welcome() {
             <h2>Why I Built Culinary Craft</h2>
             <p className="welcome-story-text">
               Would you believe me if I told you that my journey to making the 
-              perfect batch of banana bread led me to create this? Believe it or not, 
-              I now deem myself a banana bread master and all 7 of my roommates can 
-              vouch for it!
+              perfect batch of banana bread led me to create this? I may be biased, 
+              but I think this story is worth reading and my banana bread recipe 
+              is totally worth trying. I hope you enjoy both!
             </p>
             <button
               className="welcome-story-link"

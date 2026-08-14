@@ -258,10 +258,85 @@ const RecipeModal = ({
                     ) : (
                         <h2 className="modal-title">{recipeTitle(recipe)}</h2>
                     )}
+
+                    {/* Actions share the title row (right-aligned) on wide
+                        screens and wrap to directly below the title on
+                        narrow ones. View Full Recipe stays standalone;
+                        everything else lives in the three-dot menu. Editing
+                        swaps in Save/Cancel. */}
+                    <div className="modal-actions">
+                        {isEditing ? (
+                            <>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleManualSave}
+                                    disabled={isSaving}
+                                >
+                                    {isSaving ? "Saving…" : "Save Changes"}
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        setIsEditing(false);
+                                        setEditedRecipe({ ...recipe });
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                {isRecipeOwner && !published && onTogglePublish && (
+                                    <button
+                                        className="btn btn-success"
+                                        onClick={() => onTogglePublish(recipe, true)}
+                                        title="Show this recipe on Explore for everyone"
+                                    >
+                                        <Globe size={16} strokeWidth={2.2} /> Publish
+                                    </button>
+                                )}
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        onClose?.();
+                                        navigate(`/recipe/${recipe.recipeId}`);
+                                    }}
+                                >
+                                    View Full Recipe
+                                </button>
+                                <button
+                                    className={`modal-actions-heart${hearted ? " hearted" : ""}`}
+                                    title={hearted ? "Remove from saved" : "Save recipe"}
+                                    aria-label={hearted ? "Remove from saved" : "Save recipe"}
+                                    onClick={handleHeart}
+                                >
+                                    <Bookmark
+                                        size={18}
+                                        strokeWidth={2}
+                                        fill={hearted ? "currentColor" : "none"}
+                                    />
+                                </button>
+                                <RecipeActionsMenu items={menuItems} />
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {!isEditing && creatorName(recipe) && (
-                    <p className="modal-creator">by {creatorName(recipe)}</p>
+                    <p className="modal-creator">
+                        by{" "}
+                        {recipe.creatorUsername ? (
+                            <button
+                                className="creator-link"
+                                title={`View ${creatorName(recipe)}'s public profile`}
+                                onClick={() => navigate(`/chef/${recipe.creatorUsername}`)}
+                            >
+                                {creatorName(recipe)}
+                            </button>
+                        ) : (
+                            creatorName(recipe)
+                        )}
+                    </p>
                 )}
                 {!isEditing && formatServings(recipe.servings) && (
                     <p className="modal-servings">{formatServings(recipe.servings)}</p>
@@ -272,65 +347,6 @@ const RecipeModal = ({
                     </p>
                 )}
                 {!isEditing && <TagOvals tags={recipe.tags} className="modal-tags" />}
-
-                {/* Actions: View Full Recipe stays standalone; everything else
-                    lives in the three-dot menu. Editing swaps in Save/Cancel. */}
-                <div className="modal-actions">
-                    {isEditing ? (
-                        <>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleManualSave}
-                                disabled={isSaving}
-                            >
-                                {isSaving ? "Saving…" : "Save Changes"}
-                            </button>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    setIsEditing(false);
-                                    setEditedRecipe({ ...recipe });
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            {isRecipeOwner && !published && onTogglePublish && (
-                                <button
-                                    className="btn btn-success"
-                                    onClick={() => onTogglePublish(recipe, true)}
-                                    title="Show this recipe on Explore for everyone"
-                                >
-                                    <Globe size={16} strokeWidth={2.2} /> Publish
-                                </button>
-                            )}
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    onClose?.();
-                                    navigate(`/recipe/${recipe.recipeId}`);
-                                }}
-                            >
-                                View Full Recipe
-                            </button>
-                            <button
-                                className={`modal-actions-heart${hearted ? " hearted" : ""}`}
-                                title={hearted ? "Remove from saved" : "Save recipe"}
-                                aria-label={hearted ? "Remove from saved" : "Save recipe"}
-                                onClick={handleHeart}
-                            >
-                                <Bookmark
-                                    size={18}
-                                    strokeWidth={2}
-                                    fill={hearted ? "currentColor" : "none"}
-                                />
-                            </button>
-                            <RecipeActionsMenu items={menuItems} />
-                        </>
-                    )}
-                </div>
 
                 {/* Body */}
                 <div className="modal-body">

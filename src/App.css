@@ -68,6 +68,21 @@ body {
   margin-top: 16px;
 }
 
+/* Inline "by <username>" byline link to a chef's public profile page.
+   Inherits the byline's muted look; accent + underline only on hover. */
+.creator-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.creator-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .page.constrained-width {
   background:
     radial-gradient(ellipse 80% 50% at 50% -10%, rgba(185, 102, 63, 0.07), transparent),

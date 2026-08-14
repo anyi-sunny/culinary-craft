@@ -136,6 +136,52 @@
 }
 
 /* Category multi-select dropdown */
+/* Sort dropdown next to the filter button (button reuses .filter-btn) */
+.sort-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+.sort-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  min-width: 172px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.sort-option:hover {
+  background: var(--surface-2);
+}
+.sort-option.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
 .cat-dropdown {
   position: relative;
   display: inline-block;

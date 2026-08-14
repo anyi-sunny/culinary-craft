@@ -189,17 +189,27 @@
   color: var(--accent);
 }
 
-/* Actions: always a single row. The text button (View Full Recipe, or
-   Save/Cancel while editing) is the flexible one — it shrinks and ellipsizes
-   before the circular save/kebab chips ever deform. */
+/* Actions: right-aligned in the title row (the title's flex: 1 pushes them
+   over); on narrow screens they wrap to a full-width row directly under the
+   title — see the media query below. Always a single row themselves: the
+   text button (View Full Recipe, or Save/Cancel while editing) is the
+   flexible one — it shrinks and ellipsizes before the circular save/kebab
+   chips ever deform. */
 .recipe-modal .modal-actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 0px;
+  margin-left: auto;
   flex-wrap: nowrap;
-  padding: 0 30px;
   position: relative;
+}
+
+/* While editing, the title input shares the row with Save/Cancel, so it
+   must flex instead of claiming its full 100% width. */
+.modal-header .edit-input-title {
+  flex: 1;
+  min-width: 0;
+  width: auto;
 }
 .recipe-modal .modal-actions .btn {
   flex: 0 1 auto;
@@ -329,6 +339,16 @@
 /* modalFade / modalSlide keyframes and the mobile .modal-content tweak
    live with the shared modal chrome in index.css. */
 @media (max-width: 600px) {
+  /* Actions drop out of the title row to a full-width row directly under
+     the title (still above the byline and category tags). */
+  .modal-header {
+    flex-wrap: wrap;
+  }
+  .recipe-modal .modal-actions {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
   /* Tighter text button so the row fits; circular chips keep their size. */
   .recipe-modal .modal-actions .btn {
     padding: 10px 14px;

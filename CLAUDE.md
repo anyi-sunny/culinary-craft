@@ -110,7 +110,7 @@ CDK needs AWS credentials in your environment. Either:
 - **`src/components/chat/Chat.jsx`** — Main chat interface. Calls agentApiClient for agent invocation. Supports ingredient selector (authenticated only).
 - **`src/components/chat/IngredientSelector.jsx`** — Modal for selecting ingredients before recipe generation
 - **`src/components/explore/Explore.jsx`** — Browse all recipes
-- **`src/components/explore/RecipeGrid.jsx`** — Shared grid + search + modal used by Explore/MyRecipes/Favorites
+- **`src/components/explore/RecipeGrid.jsx`** — Shared grid + search + modal used by Explore/MyRecipes/Favorites. Search row has a Filter panel (categories + ingredients) and a Sort dropdown (Most Saved / Most Recent / Oldest / A to Z / Z to A; defaults to Most Recent, all client-side). Recency uses `recipeStamp()`: server-stamped `createdAt` (new records), else the ms timestamp in legacy `recipe-<ms>` ids, else `updatedAt`.
 - **`src/components/explore/RecipeCard.jsx`** — Card shows recipe with grey heart (no border). Displays creator email. No edit/delete buttons (moved to modal).
 - **`src/components/explore/modal/RecipeModal.jsx`** — Modal opened from card. Shows recipe details and action buttons.
   - **`OwnerActions.jsx`** — Edit/Delete buttons for recipe owners
@@ -121,6 +121,7 @@ CDK needs AWS credentials in your environment. Either:
 - **`src/components/favorites/Favorites.jsx`** — User's hearted recipes
 - **`src/components/about/About.jsx`** — `/about`: the story behind the app. Portrait (`public/about/portrait.jpg`, editorial placeholder frame until uploaded) floats top-right *inside* the origin-story card with the text wrapping around it (drops to a centered block above the text on mobile); engineering-story card below. Cards are plain block flow so they grow with their text. Teased on the Welcome page by the `.welcome-story` section ("Read more" links here).
 - **`src/components/myrecipes/MyRecipes.jsx`** — Recipes created by current user
+- **Public chef profiles:** `/chef/:username` (`src/components/profile/PublicProfile.jsx`, open to guests) renders `PublicProfileView.jsx` — avatar/username/stats card (never email or real name) plus the chef's five most-saved published recipes (zero-save recipes are omitted entirely; an `AdCard` always rides in the grid). The own-profile page (`Profile.jsx`) has `.profile-tabs` (Edit Profile | Public Preview, styled like the recipe feedback/questions tabs) where Preview renders the same `PublicProfileView`. Creator bylines on card/modal/detail are `.creator-link` buttons (App.css) navigating to `/chef/:username` when `creatorUsername` exists.
 
 **Utilities:**
 - **`src/lib/recipeUtils.js`** — `isOwner()`, `canEdit()`, `isHearted()`, `heartedByList()`
@@ -162,6 +163,7 @@ The unified API handler for all frontend operations. Extracts userId from Author
 - `DELETE /recipes/{id}` — Delete recipe (owner-gated)
 - `PUT /recipes/{id}/heart` — Toggle heart/favorite status
 - `PUT /recipes/{id}/publish` — Show/hide a recipe on Explore (owner-gated; the only way `published` changes)
+- `GET /profiles/{username}` — Public chef profile (unauthenticated; case-insensitive via the `username-index` GSI, which is KEYS_ONLY so the handler re-reads the base table). Returns only `userId`, `username`, `icon`, `iconBg`, `createdAt` — never email or real name.
 - `POST /agent/invoke` — Invoke Bedrock Agent, stream response
 - `POST /agent/scale` — Rescale a recipe to a new serving count via the PortionArchitect agent (ephemeral; saves nothing)
 - `POST /generate-upload-url` — Generate S3 presigned POST URL for image upload

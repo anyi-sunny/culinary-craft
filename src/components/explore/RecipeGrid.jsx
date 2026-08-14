@@ -1,16 +1,55 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, ChevronDown, X } from "lucide-react";
+import { SlidersHorizontal, ChevronDown, ArrowUpDown, Check, X } from "lucide-react";
 import RecipeCard from "./card/RecipeCard";
 import SkeletonRecipeCard from "./card/SkeletonRecipeCard";
 import RecipeModal from "./modal/RecipeModal";
 import AdCard from "../ads/AdCard";
-import { recipeTitle } from "../../lib/recipeUtils";
+import { recipeTitle, heartedByList } from "../../lib/recipeUtils";
 import { CATEGORY_OPTIONS } from "../../lib/categories";
 import { AD_CARD_INTERVAL } from "../../lib/ads";
 import "./Explore.css";
 
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+
+/**
+ * Best-effort creation time for sorting. Newer recipes carry a server-stamped
+ * createdAt; older records don't, so fall back to the timestamp embedded in
+ * legacy ids ("recipe-<ms>"), then updatedAt (edits bump it, but it's the
+ * only signal left), then epoch.
+ */
+const recipeStamp = (recipe) => {
+    if (recipe?.createdAt) {
+        const t = Date.parse(recipe.createdAt);
+        if (!Number.isNaN(t)) return t;
+    }
+    const legacy = /^recipe-(\d+)$/.exec(recipe?.recipeId || "");
+    if (legacy) return Number(legacy[1]);
+    if (recipe?.updatedAt) {
+        const t = Date.parse(recipe.updatedAt);
+        if (!Number.isNaN(t)) return t;
+    }
+    return 0;
+};
+
+const SORT_OPTIONS = [
+    { key: "mostSaved", label: "Most Saved" },
+    { key: "recent", label: "Most Recent" },
+    { key: "oldest", label: "Oldest" },
+    { key: "az", label: "A to Z" },
+    { key: "za", label: "Z to A" },
+];
+
+const SORT_COMPARATORS = {
+    // Save-count ties break toward the newer recipe.
+    mostSaved: (a, b) =>
+        heartedByList(b).length - heartedByList(a).length ||
+        recipeStamp(b) - recipeStamp(a),
+    recent: (a, b) => recipeStamp(b) - recipeStamp(a),
+    oldest: (a, b) => recipeStamp(a) - recipeStamp(b),
+    az: (a, b) => recipeTitle(a).localeCompare(recipeTitle(b)),
+    za: (a, b) => recipeTitle(b).localeCompare(recipeTitle(a)),
+};
 
 /**
  * Shared search + filters + grid + modal used by Explore, My Recipes and Favorites.
@@ -43,6 +82,21 @@ export default function RecipeGrid({
     const [selectedId, setSelectedId] = useState(null);
     const selected = recipes.find((r) => r.recipeId === selectedId) ?? null;
     const [query, setQuery] = useState("");
+
+    // Sort dropdown: closes on outside click; newest-first by default.
+    const [sortKey, setSortKey] = useState("recent");
+    const [sortOpen, setSortOpen] = useState(false);
+    const sortRef = useRef(null);
+    useEffect(() => {
+        if (!sortOpen) return;
+        const onClick = (e) => {
+            if (sortRef.current && !sortRef.current.contains(e.target)) {
+                setSortOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onClick);
+        return () => document.removeEventListener("mousedown", onClick);
+    }, [sortOpen]);
 
     // Filter UI state: draft edits live in the panel until "Apply Filters".
     const [filterOpen, setFilterOpen] = useState(false);
@@ -125,6 +179,9 @@ export default function RecipeGrid({
         return true;
     });
 
+    const shown = [...filtered].sort(SORT_COMPARATORS[sortKey]);
+    const sortLabel = SORT_OPTIONS.find((o) => o.key === sortKey)?.label;
+
     const handleHeart = (recipe) => {
         if (!userId) {
             onRequireLogin?.();
@@ -185,6 +242,44 @@ export default function RecipeGrid({
                         <span className="filter-count">{appliedCount}</span>
                     )}
                 </button>
+
+                <div className="sort-dropdown" ref={sortRef}>
+                    <button
+                        className={`filter-btn${sortOpen ? " active" : ""}`}
+                        onClick={() => setSortOpen((v) => !v)}
+                        aria-expanded={sortOpen}
+                        aria-haspopup="listbox"
+                    >
+                        <ArrowUpDown size={15} strokeWidth={2.2} />
+                        <span className="filter-btn-label">{sortLabel}</span>
+                        <ChevronDown
+                            size={14}
+                            strokeWidth={2.2}
+                            className={`cat-dropdown-chevron${sortOpen ? " open" : ""}`}
+                        />
+                    </button>
+                    {sortOpen && (
+                        <div className="sort-menu" role="listbox">
+                            {SORT_OPTIONS.map((option) => (
+                                <button
+                                    key={option.key}
+                                    role="option"
+                                    aria-selected={option.key === sortKey}
+                                    className={`sort-option${option.key === sortKey ? " active" : ""}`}
+                                    onClick={() => {
+                                        setSortKey(option.key);
+                                        setSortOpen(false);
+                                    }}
+                                >
+                                    {option.label}
+                                    {option.key === sortKey && (
+                                        <Check size={14} strokeWidth={2.4} />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <AnimatePresence>
@@ -297,7 +392,7 @@ export default function RecipeGrid({
                     Array.from({ length: 6 }).map((_, index) => (
                         <SkeletonRecipeCard key={`skeleton-${index}`} />
                     ))
-                ) : filtered.length === 0 ? (
+                ) : shown.length === 0 ? (
                     <div className="empty-state">
                         <p>
                             {query || appliedCount > 0
@@ -306,7 +401,7 @@ export default function RecipeGrid({
                         </p>
                     </div>
                 ) : (
-                    filtered.flatMap((recipe, index) => {
+                    shown.flatMap((recipe, index) => {
                         const nodes = [
                             <RecipeCard
                                 key={recipe.recipeId || index}

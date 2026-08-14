@@ -339,7 +339,20 @@ export default function RecipeDetail() {
               <div>
                 <h1>{recipe.title}</h1>
                 {!isEditing && creatorName(recipe) && (
-                  <p className="detail-creator">by {creatorName(recipe)}</p>
+                  <p className="detail-creator">
+                    by{' '}
+                    {recipe.creatorUsername ? (
+                      <button
+                        className="creator-link"
+                        title={`View ${creatorName(recipe)}'s public profile`}
+                        onClick={() => navigate(`/chef/${recipe.creatorUsername}`)}
+                      >
+                        {creatorName(recipe)}
+                      </button>
+                    ) : (
+                      creatorName(recipe)
+                    )}
+                  </p>
                 )}
                 {!isEditing && formatServings(recipe.servings) && (
                   <p className="detail-servings">{formatServings(recipe.servings)}</p>

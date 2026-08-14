@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import SplashTransition from "../SplashTransition";
 import TopNav from "../nav/TopNav";
 import RecipeCarousel from "./RecipeCarousel";
+import RecipeModal from "./modal/RecipeModal";
 import { useRecipes } from "../../lib/useRecipes";
 import { useAuthModal } from "../auth/authModalContext";
 import { isOwner, isHearted, heartedByList, isPublished } from "../../lib/recipeUtils";
@@ -17,7 +18,16 @@ function ExploreHub() {
     const { user } = useAuthenticator((ctx) => [ctx.user]);
     const userId = user?.userId || null;
     const { requireLogin } = useAuthModal();
-    const { recipes, loading, toggleHeart, togglePublish } = useRecipes();
+    const { recipes, loading, refresh, toggleHeart, togglePublish, removeRecipe } =
+        useRecipes();
+
+    // Card clicks open the recipe modal (like the Explore grid) instead of
+    // jumping straight to the full page. Kept as an id so the modal always
+    // renders the live copy of the recipe (hearts update in place).
+    const [selectedId, setSelectedId] = useState(null);
+    const selected = selectedId
+        ? recipes.find((r) => r.recipeId === selectedId)
+        : null;
 
     // Featured and All Recipes are public rows: they show published recipes
     // only, even though the fetch includes the viewer's own private ones.
@@ -64,6 +74,7 @@ function ExploreHub() {
                     loading={loading}
                     viewMorePath="/explore/all"
                     userId={userId}
+                    onCardClick={(r) => setSelectedId(r.recipeId)}
                     onToggleHeart={handleHeart}
                 />
                 <RecipeCarousel
@@ -72,6 +83,7 @@ function ExploreHub() {
                     loading={loading}
                     viewMorePath="/explore/all"
                     userId={userId}
+                    onCardClick={(r) => setSelectedId(r.recipeId)}
                     onToggleHeart={handleHeart}
                 />
                 {userId && (
@@ -81,6 +93,7 @@ function ExploreHub() {
                             recipes={saved}
                             viewMorePath="/favorites"
                             userId={userId}
+                            onCardClick={(r) => setSelectedId(r.recipeId)}
                             onToggleHeart={handleHeart}
                         />
                         <RecipeCarousel
@@ -88,10 +101,27 @@ function ExploreHub() {
                             recipes={mine}
                             viewMorePath="/my-recipes"
                             userId={userId}
+                            onCardClick={(r) => setSelectedId(r.recipeId)}
                             onToggleHeart={handleHeart}
                             onTogglePublish={togglePublish}
                         />
                     </>
+                )}
+
+                {selected && (
+                    <RecipeModal
+                        recipe={selected}
+                        userId={userId}
+                        onRequireLogin={requireLogin}
+                        onToggleHeart={handleHeart}
+                        onTogglePublish={togglePublish}
+                        onDelete={(r, uid) => removeRecipe(r, uid)}
+                        onClose={() => setSelectedId(null)}
+                        onRefresh={() => {
+                            refresh();
+                            setSelectedId(null);
+                        }}
+                    />
                 )}
             </div>
         </SplashTransition>
