@@ -1,0 +1,121 @@
+/* About page: portrait + story card side by side, engineering card below.
+   Cards are plain block flow — no fixed heights — so they stretch to fit
+   however much text ends up inside them. */
+
+.about-content {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 24px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Portrait frame, floated inside the origin-story card so the text wraps
+   around it and the card keeps the full content width. On mobile the float
+   drops and it becomes a centered block above the text. */
+.about-portrait {
+  position: relative;
+  float: right;
+  width: min(280px, 42%);
+  aspect-ratio: 4 / 5;
+  margin: 6px 0 20px 28px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface-2));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.about-portrait-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--transition-slow);
+}
+.about-portrait-img.loaded {
+  opacity: 1;
+}
+
+.about-portrait-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Story cards */
+.about-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 34px 38px;
+  text-align: left;
+  /* Contain the floated portrait so it can't spill past the card edge */
+  display: flow-root;
+}
+
+.about-eyebrow {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.about-card h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.5vw, 1.9rem);
+  margin: 0 0 16px;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.about-card p {
+  margin: 0 0 14px;
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: var(--text);
+}
+.about-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* Marks the yet-to-be-written sections; delete the class (or the rule)
+   once real text is in. */
+.about-placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .about-content {
+    padding: 16px 16px 32px;
+    gap: 20px;
+  }
+
+  /* Photo above the story text on mobile */
+  .about-portrait {
+    float: none;
+    width: min(320px, 100%);
+    margin: 0 auto 22px;
+  }
+
+  .about-card {
+    padding: 26px 22px;
+  }
+}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
+import { registerLenis } from '../lib/lenis';
 
 /**
  * Wraps the app with Lenis inertial smooth scrolling.
@@ -16,6 +17,8 @@ export default function SmoothScroll({ children }) {
             wheelMultiplier: 1,
             smoothWheel: true,
         });
+        // Let lib/lenis.js's scrollToTop bypass the inertia on route changes.
+        registerLenis(lenis);
 
         let rafId;
         const raf = (time) => {
@@ -27,6 +30,7 @@ export default function SmoothScroll({ children }) {
         return () => {
             cancelAnimationFrame(rafId);
             lenis.destroy();
+            registerLenis(null);
         };
     }, []);
 

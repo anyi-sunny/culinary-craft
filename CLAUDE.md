@@ -119,6 +119,7 @@ CDK needs AWS credentials in your environment. Either:
 - **`src/components/inventory/Inventory.jsx`** — Inventory management page
 - **`src/components/auth/`** — Cognito integration (Amplify Authenticator, auth context)
 - **`src/components/favorites/Favorites.jsx`** — User's hearted recipes
+- **`src/components/about/About.jsx`** — `/about`: the story behind the app. Portrait (`public/about/portrait.jpg`, editorial placeholder frame until uploaded) floats top-right *inside* the origin-story card with the text wrapping around it (drops to a centered block above the text on mobile); engineering-story card below. Cards are plain block flow so they grow with their text. Teased on the Welcome page by the `.welcome-story` section ("Read more" links here).
 - **`src/components/myrecipes/MyRecipes.jsx`** — Recipes created by current user
 
 **Utilities:**
@@ -126,6 +127,7 @@ CDK needs AWS credentials in your environment. Either:
 - **`src/lib/imageUtils.js`** — S3 image upload, placeholder colors, image validation
 - **`src/lib/inventoryDb.js`** — Inventory data layer (delegates to inventoryApiClient)
 - **`src/lib/recipeValidator.js`** — Recipe field validation
+- **`src/lib/lenis.js`** — Registry for the app's Lenis instance (registered by SmoothScroll). `scrollToTop()` jumps past the smooth-scroll inertia; AnimatedRoutes calls it in `onExitComplete` so every route change opens at the top of the page, with the jump landing between the exit and entrance fades.
 
 **Key Patterns:**
 - **Category Tags:** Canonical tag list lives in `src/lib/categories.js` (kept in sync with the agent prompt in the backend CDK stack and `ALLOWED_CATEGORY_TAGS` in `lambda/recipes_api/index.py`). The agent appends `@@TAGS: tag1, tag2@@` to any response containing a full recipe; Chat.jsx strips the marker before display and caches the tags for the review modal, where they appear as a pre-checked checkbox list. Recipes store `tags` as an array of canonical strings; cards/modal/detail render them as faint oval chips (`src/components/tags/CategoryTags.jsx`), owners can edit them in manual-edit mode, and RecipeGrid's category filter matches against them.

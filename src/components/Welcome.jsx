@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ArrowRight } from 'lucide-react';
 import TopNav from './nav/TopNav';
 import FeatureShowcase from './FeatureShowcase';
 import './../App.css';
@@ -68,6 +68,33 @@ function Welcome() {
             <h2>Your AI Powered Culinary Assistant</h2>
           </div>
           <FeatureShowcase />
+        </section>
+
+        {/* Origin story teaser -> full story on /about */}
+        <section className="welcome-story">
+          <motion.div
+            className="welcome-story-content"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <p className="welcome-story-eyebrow">The story behind the app</p>
+            <h2>Why I Built Culinary Craft</h2>
+            <p className="welcome-story-text">
+              Would you believe me if I told you that my journey to making the 
+              perfect batch of banana bread led me to create this? Believe it or not, 
+              I now deem myself a banana bread master and all 7 of my roommates can 
+              vouch for it!
+            </p>
+            <button
+              className="welcome-story-link"
+              onClick={() => navigate('/about')}
+            >
+              Read more
+              <ArrowRight size={16} strokeWidth={2.2} />
+            </button>
+          </motion.div>
         </section>
 
         {/* CTA Section */}
