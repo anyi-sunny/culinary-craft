@@ -20,7 +20,7 @@ const NAV_ITEMS = [
         ],
     },
     { label: "Inventory", path: "/inventory", auth: true },
-    { label: "Shopping List", path: "/shopping-list" },
+    { label: "Shopping List", path: "/shopping-list", auth: true },
 ];
 
 export default function TopNav({ title = "Culinary Craft", overlay = false }) {

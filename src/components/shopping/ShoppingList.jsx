@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Check, Undo2, Trash2 } from 'lucide-react';
+import { Check, Undo2, Trash2, ShoppingCart } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
+import { useAuthModal } from '../auth/authModalContext';
 import { addInventoryItem } from '../../lib/inventoryDb';
 import { createShoppingList, updateShoppingList, getShoppingList } from '../../lib/shoppingListApi';
+import '../explore/Explore.css'; // .gate
 import './ShoppingList.css';
 
 const SHOPPING_LIST_ID_KEY = 'culinary_craft_current_shopping_list_id';
@@ -13,7 +15,8 @@ const SHOPPING_LIST_ID_KEY = 'culinary_craft_current_shopping_list_id';
 const ShoppingList = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuthenticator();
+  const { authStatus, user } = useAuthenticator((ctx) => [ctx.authStatus, ctx.user]);
+  const { requireLogin } = useAuthModal();
 
   const [shoppingList, setShoppingList] = useState([]);
   const [shoppingListId, setShoppingListId] = useState(null);
@@ -184,6 +187,31 @@ const ShoppingList = () => {
 
   const checkedCount = Object.values(checkedItems).filter(Boolean).length;
   const totalCount = shoppingList.length;
+
+  // The list is tied to the signed-in account (created, loaded and saved
+  // against the caller's userId), so anonymous visitors get a login gate.
+  if (authStatus !== 'authenticated') {
+    return (
+      <SplashTransition>
+        <div className="page shopping-page">
+          <TopNav />
+          <div className="gate">
+            <div className="gate-icon">
+              <ShoppingCart size={36} strokeWidth={1.6} />
+            </div>
+            <h2>Your shopping list</h2>
+            <p>
+              Log in to build a shopping list from any recipe and check items
+              off as you shop.
+            </p>
+            <button className="btn btn-primary" onClick={requireLogin}>
+              Log in
+            </button>
+          </div>
+        </div>
+      </SplashTransition>
+    );
+  }
 
   return (
     <SplashTransition>

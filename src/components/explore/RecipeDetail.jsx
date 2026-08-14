@@ -231,7 +231,8 @@ export default function RecipeDetail() {
 
   const menuItems = isOwner
     ? [
-        { label: 'Consult Inventory', icon: Package, onClick: () => setShowConsultInventory(true) },
+        // Inventory + shopping list are account features; prompt guests to log in.
+        { label: 'Consult Inventory', icon: Package, onClick: () => (userId ? setShowConsultInventory(true) : requireLogin()) },
         adjustServingsItem,
         {
           label: 'Manual Edit',
@@ -248,7 +249,8 @@ export default function RecipeDetail() {
         { label: 'Delete', icon: Trash2, danger: true, onClick: handleDelete },
       ]
     : [
-        { label: 'Consult Inventory', icon: Package, onClick: () => setShowConsultInventory(true) },
+        // Inventory + shopping list are account features; prompt guests to log in.
+        { label: 'Consult Inventory', icon: Package, onClick: () => (userId ? setShowConsultInventory(true) : requireLogin()) },
         adjustServingsItem,
         { label: 'Copy & Edit', icon: Copy, onClick: handleCopyAndEdit },
         { label: 'Copy & Improve with AI', icon: Sparkles, onClick: handleCopyAndEdit },

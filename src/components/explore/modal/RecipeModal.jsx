@@ -159,7 +159,8 @@ const RecipeModal = ({
 
     const menuItems = isRecipeOwner
         ? [
-              { label: "Consult Inventory", icon: Package, onClick: () => setShowConsultInventory(true) },
+              // Inventory + shopping list are account features; prompt guests to log in.
+              { label: "Consult Inventory", icon: Package, onClick: () => (userId ? setShowConsultInventory(true) : onRequireLogin?.()) },
               { label: "Manual Edit", icon: Pencil, onClick: () => setIsEditing(true) },
               { label: "Improve with AI", icon: Sparkles, onClick: handleImproveWithAI },
               ...(published && onTogglePublish
@@ -168,7 +169,8 @@ const RecipeModal = ({
               ...(onDelete ? [{ label: "Delete", icon: Trash2, danger: true, onClick: handleDelete }] : []),
           ]
         : [
-              { label: "Consult Inventory", icon: Package, onClick: () => setShowConsultInventory(true) },
+              // Inventory + shopping list are account features; prompt guests to log in.
+              { label: "Consult Inventory", icon: Package, onClick: () => (userId ? setShowConsultInventory(true) : onRequireLogin?.()) },
               { label: "Copy & Edit", icon: Copy, onClick: () => handleCopyAndEdit(recipe) },
               { label: "Copy & Improve with AI", icon: Sparkles, onClick: () => handleCopyAndImprove(recipe) },
           ];
