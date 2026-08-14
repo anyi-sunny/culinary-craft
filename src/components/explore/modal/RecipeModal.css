@@ -142,7 +142,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 22px;
+  margin-bottom: 11px;
   padding: 30px 30px 0 30px;
   background: var(--surface);
   position: relative;
@@ -248,6 +248,38 @@
   background: var(--accent-soft);
 }
 
+/* View Full Recipe: filled inverse of the old secondary look — warm
+   terracotta-to-brass gradient with a sheen that sweeps across on hover */
+.btn-view-full {
+  background: linear-gradient(120deg, var(--accent), #c98f2d);
+  color: var(--on-accent);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-view-full::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 70%
+  );
+  transform: translateX(-110%);
+  transition: transform var(--transition-slow);
+  z-index: -1;
+}
+.btn-view-full:hover:not(:disabled) {
+  background: linear-gradient(120deg, var(--accent-hover), #b37e24);
+  box-shadow: var(--shadow-accent);
+  transform: translateY(-2px);
+}
+.btn-view-full:hover:not(:disabled)::after {
+  transform: translateX(110%);
+}
+
 /* Body */
 .modal-body {
   text-align: left;
@@ -258,6 +290,11 @@
 .modal-body h3 {
   margin: 18px 0 8px;
   font-size: 1.05rem;
+}
+/* The first heading's top margin collapses through .modal-body (no top
+   padding) and would override the tighter .modal-tags gap above it. */
+.modal-body h3:first-child {
+  margin-top: 0;
 }
 
 /* Dropdown for "Improve with AI" */
@@ -367,9 +404,15 @@
   padding-right: 30px;
 }
 
-/* Category tag ovals shown under the modal title */
+/* Category tag ovals ride above the title as an eyebrow line, so they take
+   over the header's 30px top gutter; the sibling rule hands it back to the
+   header when the recipe is untagged (TagOvals renders nothing). */
 .modal-tags {
-  margin: 2px 0 14px;
+  padding-top: 26px;
+  margin: 0 0 10px;
+}
+.modal-tags + .modal-header {
+  padding-top: 0;
 }
 
 /* Creator attribution under the modal title */
@@ -381,9 +424,9 @@
   letter-spacing: 0.02em;
 }
 
-/* Faint approximate serving size under the modal title */
+/* Faint approximate serving size, last block above the ingredients */
 .modal-servings {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--muted);
@@ -396,7 +439,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 0 0 10px 30px;
+  margin: 0 0 12px 30px;
   padding: 4px 11px;
   border-radius: 999px;
   background: var(--surface-2);

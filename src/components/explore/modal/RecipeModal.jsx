@@ -245,6 +245,8 @@ const RecipeModal = ({
 
                 {/* Scrollable Content Area */}
                 <div className="modal-scrollable">
+                    {/* Category tags ride above the title as an eyebrow line */}
+                    {!isEditing && <TagOvals tags={recipe.tags} className="modal-tags" />}
                     {/* Header: title + heart */}
                     <div className="modal-header">
                     {isEditing ? (
@@ -296,7 +298,7 @@ const RecipeModal = ({
                                     </button>
                                 )}
                                 <button
-                                    className="btn btn-secondary"
+                                    className="btn btn-view-full"
                                     onClick={() => {
                                         onClose?.();
                                         navigate(`/recipe/${recipe.recipeId}`);
@@ -346,7 +348,6 @@ const RecipeModal = ({
                         <EyeOff size={13} strokeWidth={2} /> Private — only you can see this
                     </p>
                 )}
-                {!isEditing && <TagOvals tags={recipe.tags} className="modal-tags" />}
 
                 {/* Body */}
                 <div className="modal-body">
