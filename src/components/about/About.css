@@ -95,6 +95,32 @@
   margin-bottom: 0;
 }
 
+/* Link to the banana bread recipe the story is about — filled copper pill,
+   same feel as the Welcome-page primary buttons. */
+.about-recipe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 22px;
+  padding: 12px 26px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  transition: transform var(--transition), box-shadow var(--transition),
+    background var(--transition), gap var(--transition-fast);
+}
+
+.about-recipe-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-accent);
+  gap: 13px;
+}
+
 /* Marks the yet-to-be-written sections; delete the class (or the rule)
    once real text is in. */
 .about-placeholder {

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ImagePlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ImagePlus, ArrowRight } from "lucide-react";
 import SplashTransition from "../SplashTransition";
 import TopNav from "../nav/TopNav";
 import "./About.css";
@@ -8,12 +9,16 @@ import "./About.css";
 // the placeholder frame automatically.
 const PORTRAIT_SRC = "/about/portrait.jpg";
 
+// The banana bread recipe the origin story is about (lives in RecipesTable).
+const BANANA_BREAD_RECIPE_ID = "recipe-1767636139393";
+
 /**
  * The story behind the app. Two cards: the origin story sits beside the
  * portrait (stacking under it on mobile), and the software-engineer story
  * runs full-width below. Both cards grow with however much text they hold.
  */
 function About() {
+    const navigate = useNavigate();
     const [portraitLoaded, setPortraitLoaded] = useState(false);
     const [portraitFailed, setPortraitFailed] = useState(false);
 
@@ -90,6 +95,13 @@ function About() {
                                     and willing to work with what they've got! If this ends up helping more people than just me, then I can 
                                     be happy that this AI solution can be a beacon of light for those who want to make the most of their ingredients and have fun doing it!
                                 </p>
+                                <button
+                                    className="about-recipe-btn"
+                                    onClick={() => navigate(`/recipe/${BANANA_BREAD_RECIPE_ID}`)}
+                                >
+                                    The Banana Bread Recipe!
+                                    <ArrowRight size={17} strokeWidth={2.2} />
+                                </button>
                     </section>
 
                     {/* Engineering story */}

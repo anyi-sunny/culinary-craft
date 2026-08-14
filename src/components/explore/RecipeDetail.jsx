@@ -39,7 +39,7 @@ export default function RecipeDetail() {
   const navigate = useNavigate();
   const { user } = useAuthenticator((ctx) => [ctx.user]);
   const userId = user?.userId || null;
-  const { recipes, refresh, toggleHeart, togglePublish, removeRecipe } = useRecipes();
+  const { recipes, loading, refresh, toggleHeart, togglePublish, removeRecipe } = useRecipes();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [showConsultInventory, setShowConsultInventory] = useState(false);
@@ -63,6 +63,29 @@ export default function RecipeDetail() {
 
   // Derive the recipe from the shared list instead of mirroring it in state.
   const recipe = localEdits ?? recipes.find((r) => r.recipeId === id) ?? null;
+
+  // While the recipe list is still being fetched we can't know yet whether
+  // this id exists — show the loading dots instead of a premature not-found.
+  // A failed fetch ends with an empty list, which falls through to not-found.
+  if (!recipe && loading) {
+    return (
+      <SplashTransition>
+        <div className="page">
+          <TopNav />
+          <div className="recipe-detail-container">
+            <div className="recipe-detail-loading" role="status">
+              <div className="loading-dots" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <p>Fetching your recipe</p>
+            </div>
+          </div>
+        </div>
+      </SplashTransition>
+    );
+  }
 
   if (!recipe) {
     return (
