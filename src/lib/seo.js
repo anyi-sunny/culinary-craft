@@ -1,11 +1,12 @@
 import { creatorName } from './recipeUtils';
 
 /* Ingredients/instructions are stored as one multiline string; split into
-   clean lines, dropping list markers ("-", "1.", "•") the agent may emit. */
+   clean lines, dropping list markers ("- ", "1. ", "2) ") the agent may
+   emit while keeping quantities like "1/2 cup". */
 const toLines = (text) =>
   (text || '')
     .split('\n')
-    .map((line) => line.replace(/^[\s\-*•\d.)]+/, '').trim())
+    .map((line) => line.replace(/^\s*(?:[-*•]+|\d+[.)])\s+/, '').trim())
     .filter(Boolean);
 
 /**
