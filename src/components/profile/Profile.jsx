@@ -9,6 +9,7 @@ import TopNav from "../nav/TopNav";
 import PublicProfileView from "./PublicProfileView";
 import { useProfile } from "./profileContext";
 import { useAuthModal } from "../auth/authModalContext";
+import { usePageMeta } from "../../lib/usePageMeta";
 import { useRecipes } from "../../lib/useRecipes";
 import { isOwner, isHearted, heartedByList } from "../../lib/recipeUtils";
 import { deleteProfile } from "../../lib/profileApiClient";
@@ -28,6 +29,10 @@ const memberSince = (iso) => {
 };
 
 export default function Profile() {
+    usePageMeta({
+        title: "Your Profile",
+        description: "Manage your Culinary Craft profile, avatar, and account settings.",
+    });
     const navigate = useNavigate();
     const { authStatus, user } = useAuthenticator((ctx) => [
         ctx.authStatus,

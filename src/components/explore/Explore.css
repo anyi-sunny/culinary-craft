@@ -390,6 +390,34 @@
   margin: 0 auto;
 }
 
+/* Load More pagination under the grid */
+.load-more-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 24px 48px;
+}
+.load-more-btn {
+  padding: 12px 30px;
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.load-more-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.load-more-count {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .loading-text {
   grid-column: 1 / -1;
   text-align: center;

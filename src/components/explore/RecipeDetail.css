@@ -291,6 +291,14 @@
   background: var(--accent-soft);
 }
 
+/* Copy-link button reuses the round heart-btn frame; .copied flashes accent */
+.recipe-detail-actions .copy-link-btn.copied {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.08);
+}
+
 /* View Mode */
 .recipe-detail-view {
   display: flex;

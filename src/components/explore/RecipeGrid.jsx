@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, ChevronDown, ArrowUpDown, Check, X } from "lucide-react";
 import RecipeCard from "./card/RecipeCard";
@@ -11,6 +12,10 @@ import { AD_CARD_INTERVAL } from "../../lib/ads";
 import "./Explore.css";
 
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+
+// Cards rendered per page; more are revealed via the Load More button so the
+// initial render (and its interleaved ads) stays small.
+const PAGE_SIZE = 24;
 
 /**
  * Best-effort creation time for sorting. Newer recipes carry a server-stamped
@@ -63,6 +68,7 @@ const SORT_COMPARATORS = {
  *  - onDelete(r)       delete a recipe (owner-gated by the card)
  *  - onRefresh()       refetch after a modal save
  *  - emptyText         message when there are no recipes
+ *  - emptyAction       { label, to } CTA button shown under emptyText
  *  - showAds           interleave an AdSense card every few recipes (Explore only)
  */
 export default function RecipeGrid({
@@ -75,8 +81,10 @@ export default function RecipeGrid({
     onDelete,
     onRefresh,
     emptyText = "No recipes found.",
+    emptyAction = null,
     showAds = false,
 }) {
+    const navigate = useNavigate();
     // Track the open recipe by id, not by value, so the modal re-renders with
     // the list (e.g. after a publish toggle) instead of showing a stale copy.
     const [selectedId, setSelectedId] = useState(null);
@@ -181,6 +189,18 @@ export default function RecipeGrid({
 
     const shown = [...filtered].sort(SORT_COMPARATORS[sortKey]);
     const sortLabel = SORT_OPTIONS.find((o) => o.key === sortKey)?.label;
+
+    // Paginate the result list; a new search/filter/sort starts back at page 1
+    // (state adjusted during render, per React's derived-state guidance).
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    const resultsKey = JSON.stringify([query, applied, sortKey]);
+    const [prevResultsKey, setPrevResultsKey] = useState(resultsKey);
+    if (resultsKey !== prevResultsKey) {
+        setPrevResultsKey(resultsKey);
+        setVisibleCount(PAGE_SIZE);
+    }
+    const visible = shown.slice(0, visibleCount);
+    const hasMore = shown.length > visibleCount;
 
     const handleHeart = (recipe) => {
         if (!userId) {
@@ -399,9 +419,17 @@ export default function RecipeGrid({
                                 ? "No matches found for your search."
                                 : emptyText}
                         </p>
+                        {emptyAction && !query && appliedCount === 0 && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => navigate(emptyAction.to)}
+                            >
+                                {emptyAction.label}
+                            </button>
+                        )}
                     </div>
                 ) : (
-                    shown.flatMap((recipe, index) => {
+                    visible.flatMap((recipe, index) => {
                         const nodes = [
                             <RecipeCard
                                 key={recipe.recipeId || index}
@@ -420,6 +448,20 @@ export default function RecipeGrid({
                     })
                 )}
             </div>
+
+            {!loading && hasMore && (
+                <div className="load-more-row">
+                    <button
+                        className="load-more-btn"
+                        onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                    >
+                        Load More Recipes
+                    </button>
+                    <span className="load-more-count">
+                        Showing {visible.length} of {shown.length}
+                    </span>
+                </div>
+            )}
 
             {selected && (
                 <RecipeModal

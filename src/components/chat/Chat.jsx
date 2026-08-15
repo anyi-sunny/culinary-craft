@@ -14,6 +14,7 @@ import { parseRecipeBlock } from '../../lib/recipeText';
 import { CategoryChecklist } from '../tags/CategoryTags';
 import awsConfig from '../../lib/awsConfig';
 import TopNav from '../nav/TopNav';
+import { usePageMeta } from '../../lib/usePageMeta';
 import { useAuthModal } from '../auth/authModalContext';
 import IngredientSelector from './IngredientSelector';
 import Paywall from '../Paywall';
@@ -76,6 +77,11 @@ const formatBedrockError = (error) => {
 };
 
 function Chat() {
+  usePageMeta({
+    title: 'Create a Recipe',
+    description:
+      'Describe a craving or the ingredients you have on hand, and refine a recipe step by step with an AI chef.',
+  });
     const location = useLocation();
     const navigate = useNavigate();
 

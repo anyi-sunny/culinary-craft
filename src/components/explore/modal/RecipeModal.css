@@ -192,9 +192,10 @@
 /* Actions: right-aligned in the title row (the title's flex: 1 pushes them
    over); on narrow screens they wrap to a full-width row directly under the
    title — see the media query below. Always a single row themselves: the
-   text button (View Full Recipe, or Save/Cancel while editing) is the
-   flexible one — it shrinks and ellipsizes before the circular save/kebab
-   chips ever deform. */
+   text button (View Full Recipe) is the flexible one — it shrinks and
+   ellipsizes before the circular save/kebab chips ever deform. While
+   editing this row is hidden; Save/Cancel sit at the bottom of the edit
+   section (.modal-edit-actions). */
 .recipe-modal .modal-actions {
   display: flex;
   align-items: center;
@@ -204,12 +205,19 @@
   position: relative;
 }
 
-/* While editing, the title input shares the row with Save/Cancel, so it
-   must flex instead of claiming its full 100% width. */
+/* While editing, the title input has the header row to itself. */
 .modal-header .edit-input-title {
   flex: 1;
   min-width: 0;
   width: auto;
+}
+
+/* Save/Cancel at the bottom of the edit section */
+.modal-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 28px;
 }
 .recipe-modal .modal-actions .btn {
   flex: 0 1 auto;

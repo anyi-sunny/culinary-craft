@@ -5,6 +5,7 @@ import TopNav from "../nav/TopNav";
 import RecipeGrid from "./RecipeGrid";
 import { useRecipes } from "../../lib/useRecipes";
 import { useAuthModal } from "../auth/authModalContext";
+import { usePageMeta } from "../../lib/usePageMeta";
 import "./Explore.css";
 
 /**
@@ -19,7 +20,9 @@ export default function FilteredRecipePage({
   pageTitle,
   pageSubtitle,
   emptyText,
+  emptyAction,
 }) {
+  usePageMeta({ title: pageTitle, description: pageSubtitle });
   const { authStatus, user } = useAuthenticator((ctx) => [ctx.authStatus, ctx.user]);
   const userId = user?.userId || null;
   const { requireLogin } = useAuthModal();
@@ -56,6 +59,7 @@ export default function FilteredRecipePage({
               onDelete={(r, uid) => removeRecipe(r, uid)}
               onRefresh={refresh}
               emptyText={emptyText}
+              emptyAction={emptyAction}
             />
           </>
         )}

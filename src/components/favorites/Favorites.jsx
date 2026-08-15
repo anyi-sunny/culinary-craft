@@ -12,6 +12,7 @@ export default function Favorites() {
             pageTitle="Saved"
             pageSubtitle="Every recipe you've saved, in one place."
             emptyText="Nothing saved yet. Tap the bookmark on any recipe to keep it here."
+            emptyAction={{ label: "Explore Recipes", to: "/explore" }}
         />
     );
 }

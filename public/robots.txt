@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+# Login-gated pages: nothing useful for search results behind these.
+Disallow: /profile
+Disallow: /my-recipes
+Disallow: /favorites
+Disallow: /inventory
+Disallow: /shopping-list
+
+Sitemap: https://culinarycraft.sp-devs.com/sitemap.xml

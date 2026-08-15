@@ -12,6 +12,7 @@ export default function MyRecipes() {
             pageTitle="My Creations"
             pageSubtitle="Recipes you've created. Only you can edit or delete these — publish one to share it on Explore."
             emptyText="You haven't created any recipes yet. Start crafting!"
+            emptyAction={{ label: "Create a Recipe", to: "/chat" }}
         />
     );
 }

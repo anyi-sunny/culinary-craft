@@ -5,6 +5,7 @@ import SplashTransition from "../SplashTransition";
 import TopNav from "../nav/TopNav";
 import PublicProfileView from "./PublicProfileView";
 import { getPublicProfile } from "../../lib/profileApiClient";
+import { usePageMeta } from "../../lib/usePageMeta";
 import "../explore/Explore.css"; // .gate
 import "./profile.css";
 
@@ -17,6 +18,15 @@ export default function PublicProfile() {
     const { username } = useParams();
     const [profile, setProfile] = useState(null);
     const [status, setStatus] = useState("loading"); // loading | ready | missing
+    usePageMeta(
+        status === "ready"
+            ? {
+                  title: `${profile.username}'s Kitchen`,
+                  description: `Recipes created and shared by ${profile.username} on Culinary Craft.`,
+                  path: `/chef/${profile.username}`,
+              }
+            : { title: status === "missing" ? "Chef Not Found" : null }
+    );
 
     useEffect(() => {
         let cancelled = false;

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { X, Plus } from 'lucide-react';
 import TopNav from '../nav/TopNav';
+import { usePageMeta } from '../../lib/usePageMeta';
 import { sanitizeInput } from '../../lib/sanitizer';
 import {
     fetchUserInventory,
@@ -18,6 +19,10 @@ import { initializeUserCategories } from '../../lib/inventoryInit';
 import './Inventory.css';
 
 const Inventory = () => {
+  usePageMeta({
+    title: 'Inventory',
+    description: 'Track the ingredients in your kitchen and cook from what you already have.',
+  });
     const { user } = useAuthenticator();
     const navigate = useNavigate();
 

@@ -1,7 +1,7 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, ChefHat, Camera, MessageSquare, Users, EyeOff, Globe } from 'lucide-react';
+import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, ChefHat, Camera, MessageSquare, Users, EyeOff, Globe, Link2, Check } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
 import RecipeActionsMenu from './RecipeActionsMenu';
@@ -18,6 +18,9 @@ import { normalizeServings, formatServings } from '../../lib/servings';
 import { TagOvals, CategoryChecklist } from '../tags/CategoryTags';
 import { getPlaceholderGradient, uploadImageToS3, validateImage } from '../../lib/imageUtils';
 import { fireConfetti } from '../../lib/confetti';
+import { usePageMeta } from '../../lib/usePageMeta';
+import { recipeMetaDescription, recipeJsonLd } from '../../lib/seo';
+import JsonLd from '../seo/JsonLd';
 import ConsultInventoryModal from './modal/ConsultInventoryModal';
 import './RecipeDetail.css';
 
@@ -52,6 +55,11 @@ export default function RecipeDetail() {
   // Local edits shadow the fetched record until the next refetch.
   const [localEdits, setLocalEdits] = useState(null);
 
+  // "Link copied" feedback on the share button.
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyResetRef = useRef(null);
+  useEffect(() => () => clearTimeout(copyResetRef.current), []);
+
   // Cook mode + finish flow
   const [showCookMode, setShowCookMode] = useState(false);
   const [showFinishPopup, setShowFinishPopup] = useState(false);
@@ -63,6 +71,16 @@ export default function RecipeDetail() {
 
   // Derive the recipe from the shared list instead of mirroring it in state.
   const recipe = localEdits ?? recipes.find((r) => r.recipeId === id) ?? null;
+  usePageMeta(
+    recipe
+      ? {
+          title: recipe.title,
+          description: recipeMetaDescription(recipe),
+          path: `/recipe/${recipe.recipeId}`,
+          image: recipe.recipeImage,
+        }
+      : { title: loading ? null : 'Recipe Not Found' }
+  );
 
   // While the recipe list is still being fetched we can't know yet whether
   // this id exists — show the loading dots instead of a premature not-found.
@@ -112,6 +130,27 @@ export default function RecipeDetail() {
 
   const handleToggleHeart = () => {
     toggleHeart(recipe, userId);
+  };
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/recipe/${recipe.recipeId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Clipboard API needs a secure context; fall back to a hidden textarea.
+      const el = document.createElement('textarea');
+      el.value = url;
+      el.setAttribute('readonly', '');
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    setLinkCopied(true);
+    clearTimeout(copyResetRef.current);
+    copyResetRef.current = setTimeout(() => setLinkCopied(false), 1600);
   };
 
   const handleTogglePublish = async (next) => {
@@ -281,6 +320,7 @@ export default function RecipeDetail() {
 
   return (
     <SplashTransition>
+      {isPublished(recipe) && <JsonLd id="recipe-jsonld" data={recipeJsonLd(recipe)} />}
       {showConsultInventory && (
         <ConsultInventoryModal
           recipe={recipe}
@@ -412,6 +452,18 @@ export default function RecipeDetail() {
                   title={isHearted ? 'Remove from saved' : 'Save recipe'}
                 >
                   <Bookmark size={19} strokeWidth={2} fill={isHearted ? 'currentColor' : 'none'} />
+                </button>
+                <button
+                  className={`heart-btn copy-link-btn${linkCopied ? ' copied' : ''}`}
+                  onClick={handleCopyLink}
+                  title={linkCopied ? 'Link copied!' : 'Copy link to this recipe'}
+                  aria-label={linkCopied ? 'Link copied' : 'Copy link to this recipe'}
+                >
+                  {linkCopied ? (
+                    <Check size={19} strokeWidth={2.2} />
+                  ) : (
+                    <Link2 size={19} strokeWidth={2} />
+                  )}
                 </button>
                 {!isEditing && <RecipeActionsMenu items={menuItems} />}
               </div>

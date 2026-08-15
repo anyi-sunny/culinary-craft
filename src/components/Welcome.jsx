@@ -7,8 +7,10 @@ import FeatureShowcase from './FeatureShowcase';
 import './../App.css';
 import './Welcome.css';
 import SplashTransition from './SplashTransition';
+import { usePageMeta } from '../lib/usePageMeta';
 
 function Welcome() {
+  usePageMeta();
   const navigate = useNavigate();
 
   return (

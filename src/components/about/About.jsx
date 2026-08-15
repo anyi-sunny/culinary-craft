@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ImagePlus, ArrowRight } from "lucide-react";
 import SplashTransition from "../SplashTransition";
 import TopNav from "../nav/TopNav";
+import { usePageMeta } from "../../lib/usePageMeta";
 import "./About.css";
 
 // Drop your photo into public/about/ with this filename and it will replace
@@ -18,6 +19,11 @@ const BANANA_BREAD_RECIPE_ID = "recipe-1767636139393";
  * runs full-width below. Both cards grow with however much text they hold.
  */
 function About() {
+    usePageMeta({
+        title: "About",
+        description:
+            "The story behind Culinary Craft — why a home cook built an AI recipe app, and the engineering underneath it.",
+    });
     const navigate = useNavigate();
     const [portraitLoaded, setPortraitLoaded] = useState(false);
     const [portraitFailed, setPortraitFailed] = useState(false);

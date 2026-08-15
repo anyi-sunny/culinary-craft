@@ -6,9 +6,15 @@ import RecipeGrid from "./RecipeGrid";
 import { useRecipes } from "../../lib/useRecipes";
 import { useAuthModal } from "../auth/authModalContext";
 import { isPublished } from "../../lib/recipeUtils";
+import { usePageMeta } from "../../lib/usePageMeta";
 import "./Explore.css";
 
 function Explore() {
+    usePageMeta({
+        title: "All Recipes",
+        description:
+            "Search and filter every published Culinary Craft recipe by name, category, or ingredient.",
+    });
     const { user } = useAuthenticator((ctx) => [ctx.user]);
     const userId = user?.userId || null;
     const { requireLogin } = useAuthModal();

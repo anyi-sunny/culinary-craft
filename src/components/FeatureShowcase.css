@@ -1,62 +1,169 @@
+/* Two feature blocks side by side on wide screens; stacked with a short
+   separator line between them on narrow ones. */
 .feature-showcase {
   width: 100%;
   max-width: 1180px;
   margin: 64px auto 0;
-}
-
-.feature-block + .feature-block {
-  margin-top: 90px;
-}
-
-.feature-images {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 44px;
+  align-items: stretch;
+}
+
+/* Copper card confining each descriptor + slideshow, echoing the recipe
+   cards' framed feel but with an on-theme pop of color. */
+.feature-block {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(150deg, #c1734c 0%, var(--accent) 48%, #a5552f 100%);
+  border: 1px solid rgba(255, 253, 249, 0.16);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 34px rgba(138, 74, 46, 0.22);
+  padding: 32px 30px 24px;
+}
+
+/* Short line between feature blocks — only meaningful when stacked. */
+.feature-separator {
+  display: none;
+  border: none;
+  width: 86px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0.45;
+  margin: 56px auto;
+}
+
+/* Descriptor sits on top of the slideshow it describes. */
+.feature-subtext {
+  margin: 0 auto 24px;
+  max-width: 560px;
+  text-align: center;
+  font-size: 1.18rem;
+  line-height: 1.7;
+  color: var(--on-accent);
+  font-weight: 500;
+}
+
+/* margin-top auto keeps side-by-side cards' slideshows bottom-aligned even
+   when one descriptor wraps to more lines than the other. */
+.feature-slideshow {
+  width: 100%;
+  max-width: 540px;
+  margin: auto auto 0;
 }
 
 /* Uniform crop: every step renders at the same 3:2 frame regardless of the
    source screenshot's dimensions. */
 .feature-image-frame {
-  border: 2px solid var(--accent);
+  border: 2px solid rgba(255, 253, 249, 0.75);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface);
-  box-shadow: 0 6px 22px rgba(138, 74, 46, 0.12);
+  box-shadow: 0 8px 24px rgba(90, 44, 22, 0.28);
   aspect-ratio: 3 / 2;
 }
 
-.feature-image-frame img {
+/* All slides stay mounted (so they preload) and crossfade via opacity. */
+.feature-slide-frame {
+  position: relative;
+}
+
+.feature-slide-frame img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  opacity: 0;
+  transition: opacity 0.9s ease-in-out;
 }
 
-.feature-subtext {
-  margin: 30px auto 0;
-  max-width: 640px;
-  text-align: center;
-  font-size: 1.18rem;
-  line-height: 1.7;
-  color: var(--text);
-  font-weight: 500;
+.feature-slide-frame img.is-active {
+  opacity: 1;
+}
+
+.feature-slide-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.feature-slide-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--on-accent);
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.feature-slide-arrow svg {
+  width: 20px;
+  height: 20px;
+}
+
+.feature-slide-arrow:hover {
+  background: rgba(255, 253, 249, 0.18);
+  color: #fff;
+}
+
+.feature-slide-dots {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.feature-slide-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 253, 249, 0.4);
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.feature-slide-dot:hover {
+  background: rgba(255, 253, 249, 0.65);
+}
+
+.feature-slide-dot.is-active {
+  background: var(--on-accent);
+  transform: scale(1.2);
 }
 
 @media (max-width: 1024px) {
-  .feature-images {
-    grid-template-columns: repeat(2, 1fr);
+  .feature-showcase {
+    grid-template-columns: 1fr;
+  }
+  .feature-separator {
+    display: block;
   }
 }
 
 @media (max-width: 560px) {
-  .feature-images {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
   .feature-showcase {
     margin-top: 44px;
   }
+  .feature-block {
+    padding: 22px 16px 18px;
+  }
+  .feature-separator {
+    margin: 44px auto;
+  }
   .feature-subtext {
     font-size: 1.02rem;
+    margin-bottom: 20px;
   }
 }

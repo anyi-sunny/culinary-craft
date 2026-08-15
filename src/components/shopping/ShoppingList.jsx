@@ -5,6 +5,7 @@ import { Check, Undo2, Trash2, ShoppingCart } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
 import { useAuthModal } from '../auth/authModalContext';
+import { usePageMeta } from '../../lib/usePageMeta';
 import { addInventoryItem } from '../../lib/inventoryDb';
 import { createShoppingList, updateShoppingList, getShoppingList } from '../../lib/shoppingListApi';
 import '../explore/Explore.css'; // .gate
@@ -13,6 +14,10 @@ import './ShoppingList.css';
 const SHOPPING_LIST_ID_KEY = 'culinary_craft_current_shopping_list_id';
 
 const ShoppingList = () => {
+  usePageMeta({
+    title: 'Shopping List',
+    description: 'Turn any recipe into an ingredient shopping list you can check off as you go.',
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const { authStatus, user } = useAuthenticator((ctx) => [ctx.authStatus, ctx.user]);

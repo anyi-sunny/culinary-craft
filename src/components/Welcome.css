@@ -31,6 +31,10 @@
 /* Hero Section */
 .welcome-hero {
   position: relative;
+  /* Own stacking context: the hero-content/scroll-arrow z-indexes (50/60)
+     must not beat the sections that overlap the hero via negative margin
+     (z-index 20), or they swallow clicks meant for those sections. */
+  z-index: 1;
   height: 180vh;
   display: flex;
   justify-content: center;

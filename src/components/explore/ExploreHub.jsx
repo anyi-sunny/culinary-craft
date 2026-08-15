@@ -7,6 +7,7 @@ import RecipeModal from "./modal/RecipeModal";
 import { useRecipes } from "../../lib/useRecipes";
 import { useAuthModal } from "../auth/authModalContext";
 import { isOwner, isHearted, heartedByList, isPublished } from "../../lib/recipeUtils";
+import { usePageMeta } from "../../lib/usePageMeta";
 import "./Explore.css";
 
 /**
@@ -15,6 +16,11 @@ import "./Explore.css";
  * All Recipes, Saved and My Recipes with links to their full pages.
  */
 function ExploreHub() {
+    usePageMeta({
+        title: "Explore Recipes",
+        description:
+            "Browse featured and most-saved recipes created by the Culinary Craft community.",
+    });
     const { user } = useAuthenticator((ctx) => [ctx.user]);
     const userId = user?.userId || null;
     const { requireLogin } = useAuthModal();
