@@ -1,45 +1,28 @@
-import { getCurrentUser } from "aws-amplify/auth";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT;
-const ANONYMOUS_USER_KEY = "culinary_craft_anonymous_id";
 
 /**
- * Get user ID - either from authenticated session or generate anonymous ID
- * Authenticated users: real userId from Cognito
- * Anonymous users: temporary ID stored in localStorage for testing
+ * The agent endpoints sit behind an API Gateway JWT authorizer (they spend
+ * real money), so the Authorization header must carry the verified Cognito
+ * ID token — a raw userId or anonymous ID is rejected at the gateway.
  */
 async function getAuthToken() {
     try {
-        console.log("🔐 Checking for authenticated user...");
-        const user = await getCurrentUser();
-        console.log("👤 Current user:", user);
-        if (user && user.userId) {
-            console.log("✅ User authenticated:", user.userId);
-            return user.userId;
-        }
+        const session = await fetchAuthSession();
+        const token = session.tokens?.idToken?.toString();
+        if (token) return token;
     } catch {
-        console.log("User not authenticated (this is OK for testing)");
+        // fall through to the login error below
     }
-
-    // Generate/retrieve anonymous ID for guest users
-    console.log("👻 Generating anonymous user ID for testing...");
-    let anonId = localStorage.getItem(ANONYMOUS_USER_KEY);
-    if (!anonId) {
-        anonId = `anonymous-${crypto.randomUUID()}`;
-        localStorage.setItem(ANONYMOUS_USER_KEY, anonId);
-        console.log("✅ Created new anonymous ID:", anonId.substring(0, 20) + "...");
-    } else {
-        console.log("✅ Using existing anonymous ID:", anonId.substring(0, 20) + "...");
-    }
-    return anonId;
+    const err = new Error("Please log in to use the recipe assistant.");
+    err.status = 401;
+    throw err;
 }
 
 async function apiCall(method, path, body = null) {
     console.log("📡 API call:", method, path);
     const token = await getAuthToken();
-
-    console.log("🔑 Using user ID:", token.substring(0, 20) + "...");
-    console.log("🌐 API endpoint:", API_ENDPOINT);
 
     const options = {
         method,

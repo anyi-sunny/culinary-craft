@@ -1,12 +1,14 @@
-import { getCurrentUser } from "aws-amplify/auth";
+import { fetchAuthSession } from "aws-amplify/auth";
 import { parseRecipeBlock } from "./recipeText";
 
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT;
 
+// /agent/scale sits behind an API Gateway JWT authorizer — the header must
+// carry the verified Cognito ID token, not a raw userId.
 async function getAuthToken() {
     try {
-        const user = await getCurrentUser();
-        if (user?.userId) return user.userId;
+        const session = await fetchAuthSession();
+        return session.tokens?.idToken?.toString() || null;
     } catch {
         // Anonymous visitors can't scale — the endpoint requires a user.
     }
