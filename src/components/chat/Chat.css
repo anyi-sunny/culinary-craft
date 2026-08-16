@@ -275,3 +275,60 @@
   .icon-button .btn-text { display: none !important; }
   .icon-button .btn-icon { display: block !important; font-size: 1.2rem; }
 }
+
+/* Advisory warnings from the recipe verify pass. Rendered under the message
+   bubble that carried the recipe, and again in the review modal. Amber-toned
+   to read as "worth a look", not as an error. */
+.verify-warning {
+  margin: 8px 4px 0;
+  padding: 10px 14px;
+  background: #fdf6ec;
+  border: 1px solid #ecd9bd;
+  border-radius: var(--radius);
+  color: #7a5325;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  max-width: 78%;
+}
+
+.verify-warning strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.verify-warning ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.verify-warning li + li {
+  margin-top: 2px;
+}
+
+.verify-warning--modal {
+  max-width: none;
+  margin: 0 0 14px;
+}
+
+.verify-warning-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.verify-warning-dismiss {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #7a5325;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+
+.verify-warning-dismiss:hover {
+  opacity: 0.7;
+}

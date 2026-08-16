@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { Minus, Plus, X, Pencil, RefreshCw, Users, BookmarkPlus, ChefHat } from "lucide-react";
 import { saveRecipe } from "../../lib/db";
 import { sanitizeInput, sanitizeObject } from "../../lib/sanitizer";
@@ -28,9 +28,6 @@ const clampServings = (n) =>
  * again, saved as a new recipe, or cooked as-is.
  */
 export default function ServingsAdjuster({ recipe, onClose, onSaved, onCook }) {
-    // One agent session per flow, so "try again" feedback keeps its context.
-    const sessionIdRef = useRef(`scale-${crypto.randomUUID()}`);
-
     const [step, setStep] = useState("pick"); // pick | loading | result
     const [target, setTarget] = useState(() => clampServings(recipe.servings ?? 4));
     const [adjusted, setAdjusted] = useState(null);
@@ -47,10 +44,13 @@ export default function ServingsAdjuster({ recipe, onClose, onSaved, onCook }) {
         setError("");
         try {
             const result = await scaleRecipe({
-                sessionId: sessionIdRef.current,
                 recipe,
                 targetServings: servings,
                 feedback: feedbackText,
+                // Retries revise the previous adjustment rather than
+                // rescaling from scratch — the backend is stateless, so the
+                // prior result travels with the request.
+                previousAdjusted: feedbackText ? adjusted : null,
             });
             setAdjusted(result);
             setIsEditing(false);
@@ -79,8 +79,14 @@ export default function ServingsAdjuster({ recipe, onClose, onSaved, onCook }) {
     };
 
     const applyEdit = () => {
+        // A hand edit to the flat text makes the structured components stale —
+        // drop them rather than save a mismatched pair.
+        const textChanged =
+            draft.ingredients !== adjusted.ingredients ||
+            draft.instructions !== adjusted.instructions;
         setAdjusted({
             ...draft,
+            components: textChanged ? [] : draft.components,
             servings: clampServings(draft.servings ?? target),
         });
         setIsEditing(false);
@@ -100,6 +106,9 @@ export default function ServingsAdjuster({ recipe, onClose, onSaved, onCook }) {
                 servings: normalizeServings(adjusted.servings) ?? target,
                 tags: normalizeTags(recipe.tags),
                 recipeImage: recipe.recipeImage ?? null,
+                // Structured components ride along; applyEdit drops them when
+                // a manual edit makes them stale.
+                ...(adjusted.components?.length ? { components: adjusted.components } : {}),
             });
             onSaved?.(saved);
         } catch (err) {

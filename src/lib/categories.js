@@ -1,6 +1,7 @@
 // Canonical category tags shared by the filter UI, the review/save flow, the
-// manual edit checklists and the tag ovals. The Bedrock agent prompt (backend
-// CDK stack) carries the same list — keep the two in sync when editing.
+// manual edit checklists and the tag ovals. The backend carries the same list
+// (ALLOWED_CATEGORY_TAGS in lambda/recipes_api/index.py and the structured
+// output schema in claude_client.py) — keep them in sync when editing.
 export const CATEGORY_OPTIONS = [
     "Breakfast",
     "Dessert",
@@ -15,11 +16,6 @@ export const CATEGORY_OPTIONS = [
     "Vegetarian",
     "Quick & Easy",
 ];
-
-// The agent appends its selected tags behind this marker so they can be
-// stripped from the chat transcript and cached instead of shown to the user.
-// Example agent output line: @@TAGS: Breakfast, Quick & Easy@@
-const TAGS_MARKER_RE = /\n?\s*@@TAGS:([^@]*)@@\s*/gi;
 
 // Loose key so "quick and easy" / "QUICK & EASY" both resolve to the
 // canonical "Quick & Easy" spelling.
@@ -47,21 +43,4 @@ export function normalizeTags(rawTags) {
         if (canonical) matched.add(canonical);
     }
     return CATEGORY_OPTIONS.filter((tag) => matched.has(tag));
-}
-
-/**
- * Pull the agent's hidden @@TAGS: ...@@ marker out of a response.
- * Returns the cleaned text (safe to display/parse) and the canonical tag list
- * (empty when the response carried no marker).
- */
-export function extractCategoryTags(text) {
-    const source = String(text ?? "");
-    const found = [];
-    const cleaned = source
-        .replace(TAGS_MARKER_RE, (_, inner) => {
-            found.push(...inner.split(","));
-            return "\n";
-        })
-        .trim();
-    return { text: cleaned, tags: normalizeTags(found) };
 }

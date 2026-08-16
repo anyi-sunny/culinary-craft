@@ -14,21 +14,23 @@ async function getAuthToken() {
 }
 
 /**
- * Ask the Portion Architect agent to rescale a recipe.
+ * Ask the Portion Architect to rescale a recipe (Claude API via backend).
  *
  * The adjustment is ephemeral: nothing is written to DynamoDB unless the user
  * later saves it as their own recipe. Any signed-in user can scale any recipe,
  * owned or not.
  *
+ * Fully stateless: a "Try Again" retry sends the previous adjustment plus the
+ * user's feedback explicitly — there is no server-side session.
+ *
  * @param {object} opts
- * @param {string} opts.sessionId    stable per adjustment conversation, so
- *                                   "try again" feedback keeps its context
- * @param {object} opts.recipe       the recipe as shown on the full page
+ * @param {object} opts.recipe             the recipe as shown on the full page
  * @param {number} opts.targetServings
- * @param {string} [opts.feedback]   follow-up notes for a retry
- * @returns {Promise<{title, ingredients, instructions, servings, notes, raw}>}
+ * @param {string} [opts.feedback]         follow-up notes for a retry
+ * @param {object} [opts.previousAdjusted] the adjustment being revised on retry
+ * @returns {Promise<{title, ingredients, instructions, servings, notes, components, raw}>}
  */
-export async function scaleRecipe({ sessionId, recipe, targetServings, feedback }) {
+export async function scaleRecipe({ recipe, targetServings, feedback, previousAdjusted }) {
     const token = await getAuthToken();
     if (!token) throw new Error("Please log in to adjust serving sizes.");
 
@@ -39,7 +41,6 @@ export async function scaleRecipe({ sessionId, recipe, targetServings, feedback 
             Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-            sessionId,
             targetServings,
             feedback: feedback || "",
             recipe: {
@@ -47,7 +48,16 @@ export async function scaleRecipe({ sessionId, recipe, targetServings, feedback 
                 ingredients: recipe.ingredients,
                 instructions: recipe.instructions,
                 servings: recipe.servings ?? null,
+                components: recipe.components ?? null,
             },
+            previousAdjusted: previousAdjusted
+                ? {
+                      title: previousAdjusted.title,
+                      servings: previousAdjusted.servings ?? null,
+                      components: previousAdjusted.components ?? [],
+                      notes: previousAdjusted.notes || "",
+                  }
+                : null,
         }),
     });
 
@@ -58,10 +68,26 @@ export async function scaleRecipe({ sessionId, recipe, targetServings, feedback 
         throw err;
     }
 
-    const { output } = await res.json();
-    const parsed = parseRecipeBlock(output);
+    const result = await res.json();
+
+    // Preferred: the structured recipe from the new backend.
+    if (result.recipe) {
+        const r = result.recipe;
+        return {
+            title: r.title,
+            ingredients: r.ingredients,
+            instructions: r.instructions,
+            servings: r.servings ?? targetServings,
+            notes: r.notes || "",
+            components: r.components || [],
+            raw: result.output,
+        };
+    }
+
+    // Fallback: parse the legacy plain-text block (old backend during rollout).
+    const parsed = parseRecipeBlock(result.output);
     if (!parsed) {
         throw new Error("The assistant's adjustment came back in an unexpected format. Try again.");
     }
-    return { ...parsed, servings: parsed.servings ?? targetServings, raw: output };
+    return { ...parsed, servings: parsed.servings ?? targetServings, components: [], raw: result.output };
 }

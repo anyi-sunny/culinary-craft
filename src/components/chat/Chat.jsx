@@ -8,11 +8,9 @@ import { saveRecipe } from '../../lib/db';
 import { fetchUserInventory } from '../../lib/inventoryDb';
 import { invokeAgent } from '../../lib/agentApiClient';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
-import { extractCategoryTags, normalizeTags } from '../../lib/categories';
-import { extractServings, normalizeServings } from '../../lib/servings';
-import { parseRecipeBlock } from '../../lib/recipeText';
+import { normalizeTags } from '../../lib/categories';
+import { normalizeServings } from '../../lib/servings';
 import { CategoryChecklist } from '../tags/CategoryTags';
-import awsConfig from '../../lib/awsConfig';
 import TopNav from '../nav/TopNav';
 import { usePageMeta } from '../../lib/usePageMeta';
 import { useAuthModal } from '../auth/authModalContext';
@@ -26,12 +24,13 @@ import './../explore/modal/RecipeModal.css';
 import './../explore/Explore.css'; // .gate styles for the login-required screen
 import SplashTransition from '../SplashTransition';
 
-const AWS_REGION = awsConfig.region;
-
-// Chat context cache — survives sleep/refresh so a conversation can be
-// restored even after the Bedrock agent's server-side session has expired.
+// Chat context cache — survives sleep/refresh. The backend is stateless (the
+// full conversation is sent with every turn), so restoring the cache restores
+// everything; there is no server-side session to lose.
 const CHAT_CACHE_KEY = 'culinary_craft_chat_cache';
 const CHAT_INPUT_MAX_HEIGHT = 140; // px (~5 lines) before the textarea scrolls
+// How many prior turns travel with each request (the backend caps at 40).
+const HISTORY_SEND_LIMIT = 30;
 
 const readChatCache = () => {
     try {
@@ -49,32 +48,20 @@ const clearChatCache = () => {
     try { localStorage.removeItem(CHAT_CACHE_KEY); } catch { /* ignore */ }
 };
 
-const formatBedrockError = (error) => {
-    const name = error?.name || 'UnknownError';
-    const normalizedMessage = (error?.message || '').toLowerCase();
+// The backend now returns clean, user-safe error strings; surface them as-is.
+const formatAgentError = (error) =>
+    error?.message || 'Failed to process your request. Please try again.';
 
-    console.error('Bedrock error:', { name, message: error?.message, metadata: error?.$metadata });
-
-    // Generic user-facing message (detailed errors go to console/logs)
-    const isMarketplaceAccessIssue =
-        normalizedMessage.includes('aws-marketplace') ||
-        normalizedMessage.includes('marketplace subscription') ||
-        normalizedMessage.includes('model access is denied');
-    const isAccessDenied =
-        name.toLowerCase().includes('accessdenied') ||
-        normalizedMessage.includes('access denied') ||
-        normalizedMessage.includes('not authorized');
-
-    let userMessage = 'Failed to process your request. Please try again.';
-
-    if (isMarketplaceAccessIssue) {
-        userMessage = 'The AI service is currently unavailable. Please contact support.';
-    } else if (isAccessDenied) {
-        userMessage = 'You do not have permission to access this service. Please contact support.';
-    }
-
-    return userMessage;
-};
+// Defensive save-time normalizer: every non-empty line in the stored flat
+// fields should be a "- " item, except the "For the <component>:" section
+// headers a multi-part recipe carries.
+const normalizeFlatLines = (text) =>
+    (text || '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => (line.startsWith('- ') || line.endsWith(':') ? line : `- ${line}`))
+        .join('\n');
 
 function Chat() {
   usePageMeta({
@@ -95,9 +82,6 @@ function Chat() {
         initialCacheRef.current = location.state?.recipeToImprove ? null : readChatCache();
     }
 
-    const [sessionId] = useState(() =>
-        initialCacheRef.current?.sessionId || `session-${crypto.randomUUID()}`
-    );
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -119,12 +103,20 @@ function Chat() {
     const recipeContextRef = useRef(null);
     // Original recipe being edited (UPDATE mode) so we can preserve ownerId / heartedBy.
     const editingOriginalRef = useRef(null);
-    // Latest category tags the agent picked for the recipe under discussion.
-    // The agent appends them behind an @@TAGS: ...@@ marker that never reaches
-    // the chat transcript; this ref caches them for the review modal.
+    // The actual API conversation (augmented user turns + assistant replies).
+    // Differs from `messages` (the display transcript): user turns here carry
+    // the injected ingredient/recipe context the agent actually received.
+    const historyRef = useRef([]);
+    // Latest structured recipe the assistant produced ({title, servings, tags,
+    // components, ingredients, instructions}) — the review modal opens from
+    // this, no reformat round-trip needed.
+    const latestRecipeRef = useRef(null);
+    // Latest category tags / serving estimate, pre-filled in the review modal.
     const agentTagsRef = useRef([]);
-    // Same idea for the agent's @@SERVINGS: N@@ estimate (null = unknown).
     const agentServingsRef = useRef(null);
+    // Issues the verify pass flagged on the latest recipe (advisory only).
+    const [verifyIssues, setVerifyIssues] = useState([]);
+    const [issuesDismissed, setIssuesDismissed] = useState(false);
 
     const [stagingRecipe, setStagingRecipe] = useState({
         title: '',
@@ -147,18 +139,30 @@ function Chat() {
 
     const callAgent = useCallback(async (textToSend) => {
         try {
-            // File handling is not yet supported through the API
-            // TODO: Add file upload support to backend API
-            const response = await invokeAgent(sessionId, textToSend, []);
-            // Strip the hidden @@TAGS: ...@@ and @@SERVINGS: ...@@ markers
-            // before anything renders or parses the response; cache the
-            // agent's picks instead. (The agent still mentions the yield in
-            // prose, so the user sees it in chat.)
-            const { text: tagless, tags } = extractCategoryTags(response);
-            if (tags.length > 0) agentTagsRef.current = tags;
-            const { text, servings } = extractServings(tagless);
-            if (servings !== null) agentServingsRef.current = servings;
-            return text;
+            // Stateless backend: the recent conversation travels with every
+            // turn. On success the exchange is appended to the history.
+            const request = [
+                ...historyRef.current.slice(-(HISTORY_SEND_LIMIT - 1)),
+                { role: 'user', content: textToSend },
+            ];
+            const result = await invokeAgent(request);
+
+            historyRef.current = [
+                ...historyRef.current,
+                { role: 'user', content: textToSend },
+                { role: 'assistant', content: result.output },
+            ];
+
+            // Structured recipe (if this turn produced one): cache it for the
+            // review modal, along with the verify pass's findings.
+            if (result.recipe) {
+                latestRecipeRef.current = result.recipe;
+                agentTagsRef.current = normalizeTags(result.recipe.tags);
+                agentServingsRef.current = normalizeServings(result.recipe.servings);
+                setVerifyIssues(result.verify?.issues || []);
+                setIssuesDismissed(false);
+            }
+            return result;
         } catch (error) {
             console.error("Error calling agent:", error);
             // Check if error is rate limit (429)
@@ -167,7 +171,7 @@ function Chat() {
             }
             throw error;
         }
-    }, [sessionId]);
+    }, []);
 
     useEffect(() => {
         const loadContext = async () => {
@@ -199,8 +203,8 @@ function Chat() {
 
                     Please display this full recipe in Markdown now so the user can review it. Then ask what changes they would like to make.`;
 
-                    const botResponse = await callAgent(introMessage);
-                    setMessages([{ role: 'assistant', content: botResponse }]);
+                    const result = await callAgent(introMessage);
+                    setMessages([{ role: 'assistant', content: result.output }]);
                 } catch (error) {
                     console.error("Error loading recipe context:", error);
                     setMessages([{ role: 'assistant', content: `I've loaded **${name}**, but had trouble displaying it. What would you like to change?` }]);
@@ -208,10 +212,10 @@ function Chat() {
                     setLoading(false);
                 }
             } else if (initialCacheRef.current) {
-                // A previous conversation is cached (e.g. the tab sat idle or the
-                // computer slept). Restore it, then check whether the agent still
-                // remembers the session; if not, replay the transcript so the
-                // agent regains context.
+                // A previous conversation is cached (e.g. the tab sat idle or
+                // the computer slept). The backend is stateless — the history
+                // travels with every request — so restoring the cache restores
+                // everything. No memory probe, no transcript replay.
                 if (restoredFromCacheRef.current) return;
                 restoredFromCacheRef.current = true;
 
@@ -221,32 +225,15 @@ function Chat() {
                 if (cached.ingredientContext) ingredientContextRef.current = cached.ingredientContext;
                 if (cached.agentTags) agentTagsRef.current = normalizeTags(cached.agentTags);
                 if (cached.agentServings) agentServingsRef.current = normalizeServings(cached.agentServings);
-
-                setLoading(true);
-                try {
-                    const probe = await callAgent(
-                        'SYSTEM MEMORY CHECK: Do you currently remember the recipe conversation we have been having in this session? ' +
-                        'Reply with only the single word YES or NO. Do not add anything else.'
-                    );
-                    const remembers = /\bYES\b/i.test(probe) && !/\bNO\b/i.test(probe);
-
-                    if (!remembers) {
-                        const transcript = cached.messages
-                            .filter((m) => m.role !== 'error')
-                            .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-                            .join('\n\n');
-
-                        const reply = await callAgent(
-                            'Our session was interrupted and you have lost context. Here is the full transcript of the conversation so far:\n\n' +
-                            `${transcript}\n\n` +
-                            'Absorb this context so we can continue where we left off. Reply with one short, friendly sentence letting the user know you are caught up and ready to continue.'
-                        );
-                        setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
-                    }
-                } catch (error) {
-                    console.error('Error verifying agent memory:', error);
-                } finally {
-                    setLoading(false);
+                if (cached.latestRecipe) latestRecipeRef.current = cached.latestRecipe;
+                if (Array.isArray(cached.history)) {
+                    historyRef.current = cached.history;
+                } else {
+                    // Cache written before the migration: rebuild the API
+                    // history from the display transcript.
+                    historyRef.current = cached.messages
+                        .filter((m) => m.role === 'user' || m.role === 'assistant')
+                        .map(({ role, content }) => ({ role, content }));
                 }
             } else {
                 // New recipe generation: only offer the ingredient selector when
@@ -271,14 +258,15 @@ function Chat() {
         loadContext();
     }, [location.state, authStatus, callAgent, user?.userId]);
 
-    // Persist the conversation so it can be restored if the agent's session
-    // expires while the page sits idle. Pure greetings are not worth caching.
+    // Persist the conversation so a refresh/sleep can restore it seamlessly.
+    // Pure greetings are not worth caching.
     useEffect(() => {
         if (!messages.some((m) => m.role === 'user')) return;
         try {
             localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify({
-                sessionId,
                 messages,
+                history: historyRef.current,
+                latestRecipe: latestRecipeRef.current,
                 activeRecipeId,
                 ingredientContext: ingredientContextRef.current,
                 agentTags: agentTagsRef.current,
@@ -286,7 +274,7 @@ function Chat() {
                 savedAt: Date.now(),
             }));
         } catch { /* storage full / unavailable */ }
-    }, [messages, sessionId, activeRecipeId]);
+    }, [messages, activeRecipeId]);
 
     // Warn before the tab closes/refreshes while an unsaved conversation exists.
     useEffect(() => {
@@ -394,58 +382,61 @@ function Chat() {
                 recipeContextRef.current = null;
             }
 
-            const botResponse = await callAgent(agentInput);
-            setMessages(prev => [...prev, { role: 'assistant', content: botResponse }]);
+            const result = await callAgent(agentInput);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: result.output,
+                // Verify findings ride on the message that carried the recipe
+                // so the warning renders right where the recipe appeared.
+                ...(result.recipe && result.verify?.issues?.length
+                    ? { issues: result.verify.issues }
+                    : {}),
+            }]);
         } catch (error) {
             console.error("Error:", error);
-            setMessages(prev => [...prev, { role: 'error', content: formatBedrockError(error) }]);
+            setMessages(prev => [...prev, { role: 'error', content: formatAgentError(error) }]);
         } finally {
             setLoading(false);
         }
     };
 
+    const openReviewModal = (recipe) => {
+        setStagingRecipe({
+            title: recipe.title,
+            ingredients: recipe.ingredients,
+            instructions: recipe.instructions,
+            // Agent-selected categories come pre-checked and the serving
+            // estimate pre-filled; the user can adjust both before saving.
+            tags: agentTagsRef.current,
+            servings: agentServingsRef.current,
+            recipeId: activeRecipeId
+        });
+        setIssuesDismissed(false);
+        setIsConfirmingSave(true);
+    };
+
     const handleSaveCommand = async () => {
+        // The structured recipe was captured (and verified) the moment it was
+        // generated — no reformat round-trip. The fallback only fires when no
+        // recipe has been produced yet this conversation.
+        if (latestRecipeRef.current) {
+            openReviewModal(latestRecipeRef.current);
+            return;
+        }
+
         setLoading(true);
         try {
-            const botResponse = await callAgent(
-                "Please prepare the final version of this recipe for the review modal. " +
-                "Output PLAIN TEXT ONLY. Do NOT use any markdown formatting: " +
-                "no asterisks (*), no bold (**), no underscores (_), no backticks, and no '#' headings. " +
-                "Put the dish name on the same line as TITLE: (do not put it on a separate line). " +
-                "Use the tags TITLE:, INGREDIENTS:, and INSTRUCTIONS: exactly, each starting a new line. " +
-                "Separate each ingredient within the section using a dash at the beginning of each and a new line in between. " +
-                "Crucially, use a vertical bar '|' to separate the recipe from your closing remarks. " +
-                "Format exactly like this:\n" +
-                "TITLE: Buffalo Chicken Dip\n" +
-                "INGREDIENTS:\n- 2 cans chicken\n- 8 oz cream cheese\n" +
-                "INSTRUCTIONS:\n- Preheat oven to 350F\n- Mix and bake\n" +
-                "| [Closing remarks]\n" +
-                "@@TAGS: [applicable category tags, comma-separated]@@\n" +
-                "@@SERVINGS: [single whole number: piece count for discrete items, standard servings otherwise]@@"
+            const result = await callAgent(
+                "Please produce the final version of the recipe we settled on."
             );
-
-            // Closing remarks live after a "|"; only the block before it parses.
-            const parsed = parseRecipeBlock(botResponse.split('|')[0]);
-
-            if (parsed) {
-                setStagingRecipe({
-                    title: parsed.title,
-                    ingredients: parsed.ingredients,
-                    instructions: parsed.instructions,
-                    // Agent-selected categories come pre-checked and the
-                    // serving estimate pre-filled; the user can adjust both
-                    // in the review modal before saving.
-                    tags: agentTagsRef.current,
-                    servings: agentServingsRef.current,
-                    recipeId: activeRecipeId
-                });
-                setIsConfirmingSave(true);
+            if (result.recipe) {
+                openReviewModal(result.recipe);
             } else {
-                console.warn("⚠️ Regex parsing failed on Part 0");
-                setMessages(prev => [...prev, { role: 'assistant', content: botResponse }]);
+                setMessages(prev => [...prev, { role: 'assistant', content: result.output }]);
             }
         } catch (error) {
-            console.error("❌ Save Error:", error);
+            console.error("Save error:", error);
+            setMessages(prev => [...prev, { role: 'error', content: formatAgentError(error) }]);
         } finally {
             setLoading(false);
         }
@@ -464,13 +455,26 @@ function Chat() {
             const finalItem = {
                 ...base,
                 title: sanitizedRecipe.title,
-                ingredients: sanitizedRecipe.ingredients,
-                instructions: sanitizedRecipe.instructions,
+                ingredients: normalizeFlatLines(sanitizedRecipe.ingredients),
+                instructions: normalizeFlatLines(sanitizedRecipe.instructions),
                 tags: normalizeTags(finalRecipe.tags),
                 servings: normalizeServings(finalRecipe.servings),
             };
             // Recipes no longer carry a decorative emoji field.
             delete finalItem.emoji;
+
+            // Structured components are saved only while they still match the
+            // flat text — a hand edit in the review modal makes them stale.
+            const structured = latestRecipeRef.current;
+            if (
+                structured?.components?.length &&
+                finalRecipe.ingredients === structured.ingredients &&
+                finalRecipe.instructions === structured.instructions
+            ) {
+                finalItem.components = structured.components;
+            } else {
+                delete finalItem.components;
+            }
 
             // Only include recipeId for updates; backend will generate ID for new recipes
             if (isUpdate) {
@@ -549,6 +553,16 @@ function Chat() {
                             <div className="message-bubble">
                                 <ReactMarkdown>{msg.content}</ReactMarkdown>
                             </div>
+                            {msg.issues?.length > 0 && (
+                                <div className="verify-warning" role="note">
+                                    <strong>A quick double-check flagged:</strong>
+                                    <ul>
+                                        {msg.issues.map((issue, i) => (
+                                            <li key={i}>{issue}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                     ))}
                     {loading && (
@@ -602,6 +616,26 @@ function Chat() {
                 <div className="modal-overlay">
                     <div className="modal-content review-modal" data-lenis-prevent>
                         <h2>Review &amp; Name Your Recipe</h2>
+                        {verifyIssues.length > 0 && !issuesDismissed && (
+                            <div className="verify-warning verify-warning--modal" role="note">
+                                <div className="verify-warning-head">
+                                    <strong>Worth a look before saving:</strong>
+                                    <button
+                                        type="button"
+                                        className="verify-warning-dismiss"
+                                        onClick={() => setIssuesDismissed(true)}
+                                        aria-label="Dismiss warnings"
+                                    >
+                                        Dismiss
+                                    </button>
+                                </div>
+                                <ul>
+                                    {verifyIssues.map((issue, i) => (
+                                        <li key={i}>{issue}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                         <label className="review-label" htmlFor="review-title">Title</label>
                         <input
                             id="review-title"

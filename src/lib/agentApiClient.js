@@ -72,16 +72,20 @@ async function apiCall(method, path, body = null) {
 }
 
 /**
- * Invoke Bedrock Agent through backend API
+ * Chat with the recipe assistant (Claude API via backend).
+ *
+ * The backend is stateless: `messages` is the full conversation so far,
+ * ending with the newest user turn — [{role: 'user'|'assistant', content}].
+ *
+ * @returns {Promise<{output: string, recipe: object|null, verify: {valid: boolean, issues: string[]}}>}
+ *   output  — the assistant's Markdown reply for the chat transcript
+ *   recipe  — structured recipe ({title, servings, tags, components,
+ *             ingredients, instructions}) when the reply contains one
+ *   verify  — QA result for the recipe (advisory; issues surface in the UI)
  */
-export async function invokeAgent(sessionId, inputText, files = []) {
+export async function invokeAgent(messages) {
     try {
-        const result = await apiCall('POST', '/agent/invoke', {
-            sessionId,
-            inputText,
-            files,
-        });
-        return result.output;
+        return await apiCall('POST', '/agent/invoke', { messages });
     } catch (err) {
         console.error("Error invoking agent:", err);
         throw err;
