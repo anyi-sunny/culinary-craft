@@ -247,6 +247,7 @@ cdk diff           # Compare current code to deployed stack
 - ✅ Publishing: recipes save private by default; owner-gated publish/hide, existing recipes backfilled to published
 - ✅ Heart toggle 500 fixed: a recipe edit was overwriting the `heartedBy` string set with a JSON list (and dropping `ownerId`). `POST /recipes` now re-reads server-owned fields from the stored item.
 - ✅ Decimal serialization fixed: `json.dumps` now uses `_json_default`, so numeric attributes like `servings` can't 500 a response
+- ✅ SEO Phases 1–2 (Aug 2026): per-page meta, Recipe JSON-LD, robots.txt, dynamic sitemap, prerendered static routes, server-side head injection for recipe/chef pages — verified end to end with Google's Rich Results Test (see the SEO key pattern above and the roadmap below)
 
 ### Current Issues
 - None open.
@@ -257,6 +258,29 @@ cdk diff           # Compare current code to deployed stack
 - Shopping assistant feature (reference in memory)
 - Recipe search/filtering (basic search exists, advanced filters TODO)
 - User profile/settings page
+
+## SEO Roadmap
+
+The mechanics live in the "SEO" key pattern above; this section tracks what's done, what's deliberately deferred, and when to revisit.
+
+### Done (Phases 1–2, Aug 2026)
+- Per-page `<head>` meta, Recipe/ProfilePage JSON-LD, robots.txt, Lambda-generated `/sitemap.xml`, build-time prerender of static routes, and server-side head injection for `/recipe/:id` + `/chef/:username` via Amplify 200-rewrites.
+- Google Search Console: Domain property `sp-devs.com`, verified via a TXT record on the root of the Route 53 zone (`Z0854508ESB4ZKPCXHMF`) — do not delete that record, Google rechecks it. Sitemap submitted.
+- Amplify rewrite order matters: `/sitemap.xml`, `/recipe/<*>`, `/chef/<*>` proxies and the four static-route rewrites must all sit **above** the `404-200` SPA catch-all in the console's rewrite list.
+- Note: bare `sp-devs.com` points at the same CloudFront distribution and serves this app too; every page's canonical tag points at `culinarycraft.sp-devs.com`, which is what keeps Google treating that host as the real one.
+
+### Phase 3 — measure and iterate (ongoing, no code)
+- Watch Search Console over the coming weeks: Pages report (sitemap URLs moving to "Indexed"), Performance report (queries/impressions), and Enhancements → Recipes (rich-result eligibility).
+- **Recipes need a real photo to be rich-result eligible** — `image` is required by Google and the JSON-LD only includes it when `recipeImage` exists. Never substitute the logo or a placeholder; the image must depict the dish. Photoless recipes still index as normal pages.
+- Iterate on meta descriptions that get impressions but no clicks.
+
+### Known follow-ups (not yet done)
+- **Crawlable internal links:** every recipe/chef navigation in the app is a `navigate()` in an `onClick` — there are no real `<a href>` links for crawlers to follow, so discovery rides entirely on the sitemap. Converting cards/bylines to react-router `<Link>`s would pass internal link equity.
+- Owner nudge on photoless published recipes ("add a photo to help this recipe get found").
+- Richer JSON-LD (`prepTime`, `cookTime`, `nutrition`, `aggregateRating`) if those fields are ever added to the recipe data model.
+
+### Option D — full SSR migration (deliberately deferred)
+Rewriting onto an SSR framework was evaluated and rejected for now: the app is ~90% login-gated (SSR helps none of it), and the five public routes are already fully covered by the prerender + head-injection setup. Revisit only when SEO becomes a growth strategy — hundreds of recipes, content pages, real Search Console impressions worth compounding. When that day comes, the cheapest path is **React Router v7 framework mode** (already on react-router, so an upgrade rather than a Next.js rewrite); everything from Phases 1–2 (JSON-LD builders, sitemap, meta copy, Search Console history) carries over unchanged. Expect the migration's main cost in browser-only code: AnimatePresence transitions, Lenis, localStorage anonymous IDs, and Amplify auth all need SSR guards.
 
 ## Staying Productive
 

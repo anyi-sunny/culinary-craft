@@ -271,8 +271,13 @@ export default function Profile() {
                         <section className="profile-panel">
                             <h3>Avatar</h3>
                             <p className="profile-panel-sub">
-                                Pick an icon and a background color. This replaces the default
-                                account icon in the navigation bar.
+                                Pick an icon and a background color. Yes, I drew these icons
+                                myself! If you have any ideas for more icons,&nbsp;
+                                <a
+                                    href="mailto:asunnysky65@gmail.com"
+                                    >
+                                    send me a message!
+                                </a>
                             </p>
                             {PROFILE_ICONS.length > 0 ? (
                                 <div className="icon-grid">
