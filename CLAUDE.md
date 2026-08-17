@@ -186,6 +186,65 @@ Three roles, each a system prompt + JSON schema on the Claude Messages API (stru
 - **Verify** (`claude-haiku-4-5`): QA pass returning `{valid, issues[]}`; advisory, fail-open.
 The SDK client uses `timeout=25.0, max_retries=1` (API Gateway caps responses at 30s) and `cache_control` on the static system prompts (prompt caching). Upstream Anthropic 429s map to **503** — HTTP 429 is reserved for the user-quota paywall.
 
+**Database Schema (all DynamoDB tables):**
+- **RecipesTable** (PK: `recipeId` string)
+  - `title` (string): recipe name
+  - `ingredients` (string): flat markdown-formatted ingredient list (or use structured `components` if multi-part)
+  - `instructions` (string): flat markdown-formatted cooking steps
+  - `servings` (number): yield, whole-number pieces or standard portions
+  - `tags` (list of strings): canonical category tags (e.g., "Dessert", "Vegetarian")
+  - `components` (nullable list): structured recipe parts `[{name, ingredients: [], steps: []}]`; populated only if the model generated a multi-part recipe and the user hasn't hand-edited after generation. Flat text derived server-side on read; older recipes without this field are valid and remain in flat-only format.
+  - `recipeImage` (string, optional): S3 URL of the recipe photo
+  - `ownerId` (string): Cognito user ID of the author; server-owned (read from stored record on update)
+  - `creatorEmail` (string, deprecated): never written; stripped from responses server-side
+  - `creatorUsername` (string, optional): display name of the author (resolved live from `UserProfilesTable` on read, fallback from this field if profile doesn't exist)
+  - `createdAt` (ISO 8601 string): server timestamp of first save (never changes, enables recency sort)
+  - `updatedAt` (ISO 8601 string): server timestamp of last edit
+  - `heartedBy` (DynamoDB string set): Cognito user IDs of users who've favorited this recipe (converted to JSON list for responses)
+  - `published` (boolean): `true` for recipes visible on Explore; `false` for private. New recipes default to `false`; existing pre-dating this flag are `true` (backfilled Aug 2026).
+
+- **UserInventoryTable** (PK: `userId` string, SK: `itemId` string)
+  - `name` (string): ingredient name (e.g., "Chicken Breast")
+  - `category` (string): category ID (e.g., "produce", or a UUID for custom categories)
+  - `quantity` (string, optional): amount (e.g., "2", "500g")
+  - `unit` (string, optional): unit of measure (e.g., "cups", "grams")
+  - `notes` (string, optional): user annotations
+  - `createdAt` (ISO 8601 string): server timestamp
+  - GSI: `userIdCategoryIndex` on `(userId, category)` for filtering items by category within a user's inventory
+
+- **UserInventoryCategoriesTable** (PK: `userId` string, SK: `categoryId` string)
+  - `name` (string): display label
+  - `description` (string): optional description
+  - `isPredefined` (boolean): `true` for system-seeded categories (Produce, Dairy, etc.), `false` for user-created ones
+  - `createdAt` (ISO 8601 string): server timestamp (omitted for predefined categories)
+
+- **ShoppingListTable** (PK: `userId` string, SK: `shoppingListId` string)
+  - `items` (list): array of `{name, quantity, unit, category, checked}` strings representing line items
+  - `status` (string): "active" or other status markers
+  - `createdAt` (ISO 8601 string): server timestamp
+  - `updatedAt` (ISO 8601 string): server timestamp
+
+- **UserProfilesTable** (PK: `userId` string)
+  - `username` (string, unique): handle (3–20 chars, alphanumeric + dots/dashes/underscores); required to create/update a profile
+  - `usernameLower` (string): lowercase version for case-insensitive uniqueness checks; indexed via `username-index` GSI
+  - `name` (string, optional): display name
+  - `email` (string, optional): never returned to clients; for backend reference only
+  - `icon` (string, optional): chosen avatar icon identifier
+  - `iconBg` (string, optional): background color or hex code for the avatar
+  - `createdAt` (ISO 8601 string): server timestamp
+  - `updatedAt` (ISO 8601 string): server timestamp
+  - GSI: `username-index` on `usernameLower` (KEYS_ONLY, requires re-read on public profile fetch)
+
+- **UsageTable** (PK: `userId` string)
+  - `agentCalls` (number): cumulative count of `/agent/invoke` and `/agent/scale` calls (incremented via ADD on every chat/scale turn)
+
+- **RecipeCommentsTable** (PK: `recipeId` string, SK: `commentId` string)
+  - `userId` (string): Cognito user ID of commenter
+  - `username` (string): display name of commenter (resolved live or snapshot)
+  - `type` (string): "feedback" or "question"
+  - `text` (string): the comment body
+  - `createdAt` (ISO 8601 string): server timestamp
+
 ## Deployment & CI/CD
 
 No CI/CD pipeline configured yet. Manual deployment:
@@ -198,7 +257,7 @@ Both frontend and backend must be deployed for the app to function. Backend depl
 ## Important Implementation Notes
 
 ### Multi-User Support
-The current implementation stores all recipes in a single DynamoDB table without a user ID partition key. Moving forward (e.g., for the upcoming inventory feature), new tables must include `userId` as part of the partition key or as a leading sort key to ensure users only see their own data.
+`RecipesTable` is keyed on `recipeId` alone (ownership lives in the `ownerId` attribute). All per-user tables added since — `UserInventoryTable` (`userId` + `itemId`), `UserInventoryCategoriesTable` (`userId` + `categoryId`), `ShoppingListTable` (`userId` + `shoppingListId`) — are partitioned by `userId`, and every handler queries/mutates with the caller's userId plus an ownership check on update/delete. New tables must follow the same pattern. Caveat: outside `/agent/*`, the userId comes from the raw Bearer header (unverified — see the split authorization model), so per-user isolation on these routes is not enforced against a forged header.
 
 ### Conversation State
 The backend is fully stateless: Chat.jsx maintains the API conversation (`historyRef` — augmented user turns + assistant replies) and sends the recent window (~30 turns, backend caps at 40) with every `/agent/invoke` call. Both the display transcript and the API history are cached to localStorage, so refresh/sleep restores the whole conversation with no server round-trip. There are no sessions, no expiry, and no memory-probe/replay logic.

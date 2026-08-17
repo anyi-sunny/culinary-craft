@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import { fetchUserInventory, addInventoryItem } from '../../../lib/inventoryDb';
+import { parseIngredient } from '../../../lib/ingredientParser';
 import './ConsultInventoryModal.css';
 
 // Simple semantic matching: ingredient and inventory item match when either
@@ -92,13 +93,20 @@ const ConsultInventoryModal = ({ recipe, userId, onClose }) => {
       }
     }
 
-    // Add to shopping list
+    // Parse ingredient to extract quantity, unit, and name
+    const parsed = parseIngredient(ingredient);
+
+    // Add to shopping list with recipe linkage
     setShoppingList(prev => [
       ...prev,
       {
         id: `${idx}-${Date.now()}`,
-        name: ingredient,
-        quantity: currentStatus.quantity || '',
+        name: parsed.name || ingredient, // Use parsed name, fallback to full ingredient
+        quantity: parsed.quantity || '',
+        unit: parsed.unit || '',
+        recipeId: recipe.recipeId, // Link to the recipe
+        recipeName: recipe.title, // Store recipe title for display
+        isLinked: true, // Mark as linked to a recipe
         checked: false
       }
     ]);

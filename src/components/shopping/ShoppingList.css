@@ -16,8 +16,6 @@
   padding: 40px 24px 60px;
 }
 
-/* Header — left aligned with the content, separated from it by a ruled
-   line like the top margin of a written shopping list. */
 .shopping-list-header {
   text-align: left;
   padding-bottom: 18px;
@@ -25,9 +23,18 @@
   border-bottom: 2px solid var(--accent);
 }
 
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
 .shopping-list-header h1 {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 32px;
+  flex: 1;
 }
 
 .progress-text {
@@ -56,24 +63,174 @@
   margin-bottom: 30px;
 }
 
+.add-item-section {
+  margin-bottom: 24px;
+  padding-top: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.add-item-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(185, 102, 63, 0.04);
+  border-radius: 4px;
+  border: 1px solid var(--border-soft);
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.form-row input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+  flex: 1;
+}
+
+.form-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.form-row input:first-child {
+  flex: 1.5;
+}
+
+.form-row input:nth-child(2),
+.form-row input:nth-child(3) {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.form-recipe-search {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.search-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.recipe-search-container {
+  position: relative;
+}
+
+.recipe-search-container input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+
+.recipe-search-container input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.recipe-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-option {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.recipe-option:last-child {
+  border-bottom: none;
+}
+
+.recipe-option:hover {
+  background: rgba(185, 102, 63, 0.1);
+}
+
+.recipe-no-results {
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.selected-recipe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(185, 102, 63, 0.1);
+  border-radius: 4px;
+  border: 1px solid var(--accent-soft);
+}
+
+.recipe-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.item-linked-badge.other {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
 .shopping-page .shopping-items {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
-/* Lined-paper rows: transparent background, ruled lines only on the
-   tops/bottoms of items, sharp corners. */
 .shopping-page .shopping-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 4px;
+  flex-direction: column;
+  padding: 0;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border);
   border-radius: 0;
-  gap: 12px;
   transition: background 0.2s ease, opacity 0.2s ease;
 }
 
@@ -90,6 +247,14 @@
   color: var(--text-tertiary);
 }
 
+.shopping-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 4px;
+  gap: 12px;
+}
+
 .item-left {
   display: flex;
   align-items: center;
@@ -97,14 +262,18 @@
   flex: 1;
 }
 
-/* Custom checkbox: the native input is invisible but still clickable and
-   focusable; .checkmark is the single visible box, so nothing can drift
-   out of alignment. */
+.item-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .shopping-page .item-checkbox {
   display: inline-flex;
   align-items: center;
   cursor: pointer;
   position: relative;
+  flex-shrink: 0;
 }
 
 .shopping-page .item-checkbox input {
@@ -158,32 +327,147 @@
   opacity: 0.5;
 }
 
-.item-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .item-name {
   font-weight: 500;
   font-size: 15px;
   color: var(--text-primary);
 }
 
-.item-quantity {
-  font-size: 13px;
+.item-linked-badge {
+  font-size: 12px;
   color: var(--text-tertiary);
+  font-weight: 400;
+  font-style: italic;
 }
 
 .shopping-page .item-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.btn-remove-item {
+.btn-icon {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+
+.btn-icon svg {
+  transition: transform 0.3s ease;
+}
+
+.btn-icon svg.rotated {
+  transform: rotate(180deg);
+}
+
+.shopping-item-details {
+  padding: 12px 32px 16px;
+  background: rgba(185, 102, 63, 0.04);
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  align-items: baseline;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 80px;
+}
+
+.detail-value {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.linked-recipes {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  flex: 1;
+}
+
+.recipe-badge {
+  display: inline-block;
+  background: var(--accent-soft);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.recipe-badge.other {
+  background: transparent;
+  color: var(--text-tertiary);
+  font-style: italic;
+  padding: 0;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-xs {
+  padding: 6px 10px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.edit-mode input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+
+.edit-mode input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .badge-success {
@@ -200,9 +484,6 @@
 }
 
 .btn-undo {
-  position: absolute;
-  bottom: -50px;
-  right: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -258,7 +539,6 @@
   margin: 0;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .shopping-list-container {
     padding: 24px 16px 48px;
@@ -268,7 +548,17 @@
     font-size: 24px;
   }
 
-  .shopping-page .shopping-item {
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-undo {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .shopping-item-main {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -278,22 +568,8 @@
     justify-content: flex-end;
   }
 
-  .shopping-page .item-actions button {
-    flex: 1;
-  }
-
-  /* On mobile the remove button collapses to a compact trash icon
-     instead of a full-width bar. */
-  .shopping-page .item-actions .btn-remove-item {
-    flex: 0 0 auto;
-    width: 40px;
-    height: 36px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .shopping-page .item-actions .btn-remove-item .remove-label {
-    display: none;
+  .shopping-item-details {
+    padding: 12px 16px 16px;
   }
 
   .shopping-list-footer {
@@ -304,13 +580,5 @@
   .footer-stats {
     width: 100%;
     text-align: left;
-  }
-
-  .btn-undo {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 50;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 }
