@@ -26,6 +26,14 @@ const ROUTES = [
       'The story behind Culinary Craft — why a home cook built an AI recipe app, and the engineering underneath it.',
   },
   {
+    // The Blog tab of the About page. Individual posts (/blog/:slug) are
+    // handled server-side by the backend's /page/blog/... Lambda route.
+    path: '/blog',
+    title: 'Blog',
+    description:
+      "Notes from the kitchen — what I'm cooking, what I'm learning, and how Culinary Craft is coming along.",
+  },
+  {
     path: '/chat',
     title: 'Create a Recipe',
     description:

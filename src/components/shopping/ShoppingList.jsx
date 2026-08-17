@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Check, Undo2, Trash2, ShoppingCart, ChevronDown, Edit2 } from 'lucide-react';
+import { Check, Undo2, Trash2, ShoppingCart, ChevronDown, Edit2, AlertCircle } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
 import { useAuthModal } from '../auth/authModalContext';
 import { usePageMeta } from '../../lib/usePageMeta';
-import { addInventoryItem } from '../../lib/inventoryDb';
+import { addInventoryItem, deleteInventoryItem } from '../../lib/inventoryDb';
 import { createShoppingList, updateShoppingList, getShoppingList } from '../../lib/shoppingListApi';
 import { deduplicateShoppingList } from '../../lib/shoppingListUtils';
 import { searchRecipes } from '../../lib/recipeSearch';
@@ -174,6 +174,8 @@ const ShoppingList = () => {
   const [recipeSearch, setRecipeSearch] = useState('');
   const [recipeSearchResults, setRecipeSearchResults] = useState([]);
   const [showRecipeDropdown, setShowRecipeDropdown] = useState(false);
+  const [bulkAddInProgress, setBulkAddInProgress] = useState(false);
+  const [bulkAddResult, setBulkAddResult] = useState(null);
 
   useEffect(() => {
     const initializeShoppingList = async () => {
@@ -281,7 +283,6 @@ const ShoppingList = () => {
   const handleCheckItem = (itemId) => {
     const newChecked = { ...checkedItems, [itemId]: !checkedItems[itemId] };
     setCheckedItems(newChecked);
-    setUndoStack(prev => [...prev, { itemId, action: 'toggle', wasChecked: checkedItems[itemId] }]);
 
     if (shoppingListId && user?.userId) {
       saveShoppingListToBackend(shoppingList, newChecked);
@@ -300,7 +301,6 @@ const ShoppingList = () => {
       item.id === itemId ? { ...item, name: newName } : item
     );
     setShoppingList(updatedList);
-    setUndoStack(prev => [...prev, { itemId, action: 'edit', oldName: shoppingList.find(i => i.id === itemId).name }]);
 
     if (shoppingListId && user?.userId) {
       saveShoppingListToBackend(updatedList, checkedItems);
@@ -315,49 +315,82 @@ const ShoppingList = () => {
 
     setShoppingList(newList);
     setCheckedItems(newChecked);
-    setUndoStack(prev => [...prev, { itemId, action: 'remove', item: removedItem }]);
+
+    // Add to undo stack
+    setUndoStack(prev => [...prev, {
+      action: 'delete',
+      item: removedItem
+    }]);
 
     if (shoppingListId && user?.userId) {
       saveShoppingListToBackend(newList, newChecked);
     }
   };
 
-  const handleUndo = () => {
+  const handleUndo = async () => {
     if (undoStack.length === 0) return;
 
     const lastAction = undoStack[undoStack.length - 1];
     const newStack = undoStack.slice(0, -1);
-    setUndoStack(newStack);
 
-    // Perform the undo action and save to backend
-    if (lastAction.action === 'toggle') {
-      const newChecked = {
-        ...checkedItems,
-        [lastAction.itemId]: lastAction.wasChecked
-      };
-      setCheckedItems(newChecked);
-      if (shoppingListId && user?.userId) {
-        saveShoppingListToBackend(shoppingList, newChecked);
+    setLoading(true);
+    try {
+      if (lastAction.action === 'add') {
+        // Undo adding items - remove them from shopping list
+        const itemIdsToRemove = new Set(lastAction.items.map(item => item.id));
+        const updatedList = shoppingList.filter(item => !itemIdsToRemove.has(item.id));
+        setShoppingList(updatedList);
+
+        const newChecked = { ...checkedItems };
+        lastAction.items.forEach(item => {
+          delete newChecked[item.id];
+        });
+        setCheckedItems(newChecked);
+
+        if (shoppingListId && user?.userId) {
+          saveShoppingListToBackend(updatedList, newChecked);
+        }
+      } else if (lastAction.action === 'delete') {
+        // Undo deleting items - restore them to shopping list
+        const restoredItem = lastAction.item;
+        const updatedList = [...shoppingList, restoredItem];
+        setShoppingList(updatedList);
+
+        const newChecked = { ...checkedItems, [restoredItem.id]: false };
+        setCheckedItems(newChecked);
+
+        if (shoppingListId && user?.userId) {
+          saveShoppingListToBackend(updatedList, newChecked);
+        }
+      } else if (lastAction.action === 'addToInventory') {
+        // Undo adding to inventory - delete from inventory and restore to shopping list
+        await Promise.all(
+          lastAction.inventoryItems.map(invItem =>
+            deleteInventoryItem(user.userId, invItem.itemId)
+          )
+        );
+
+        const restoredItems = lastAction.shoppingItems;
+        const updatedList = [...shoppingList, ...restoredItems];
+        setShoppingList(updatedList);
+
+        const newChecked = { ...checkedItems };
+        restoredItems.forEach(item => {
+          newChecked[item.id] = false;
+        });
+        setCheckedItems(newChecked);
+
+        if (shoppingListId && user?.userId) {
+          saveShoppingListToBackend(updatedList, newChecked);
+        }
       }
-    } else if (lastAction.action === 'edit') {
-      const undoList = shoppingList.map(item =>
-        item.id === lastAction.itemId ? { ...item, name: lastAction.oldName } : item
-      );
-      setShoppingList(undoList);
-      if (shoppingListId && user?.userId) {
-        saveShoppingListToBackend(undoList, checkedItems);
-      }
-    } else if (lastAction.action === 'remove' && lastAction.item) {
-      const undoList = [...shoppingList, lastAction.item];
-      setShoppingList(undoList);
-      const newChecked = {
-        ...checkedItems,
-        [lastAction.itemId]: false
-      };
-      setCheckedItems(newChecked);
-      if (shoppingListId && user?.userId) {
-        saveShoppingListToBackend(undoList, newChecked);
-      }
+
+      setUndoStack(newStack);
+    } catch (err) {
+      console.error('Error undoing action:', err);
+      alert('Failed to undo action');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -398,7 +431,7 @@ const ShoppingList = () => {
 
     setLoading(true);
     try {
-      await addInventoryItem(user.userId, {
+      const inventoryItem = await addInventoryItem(user.userId, {
         name: item.name,
         category: 'pantry',
         quantity: item.quantity || '',
@@ -406,16 +439,116 @@ const ShoppingList = () => {
         notes: 'Added from shopping list'
       });
 
-      setShoppingList(prev =>
-        prev.map(i =>
-          i.id === itemId ? { ...i, addedToInventory: true } : i
-        )
-      );
+      // Remove from shopping list visually
+      const newList = shoppingList.filter(i => i.id !== itemId);
+      setShoppingList(newList);
+
+      const newChecked = { ...checkedItems };
+      delete newChecked[itemId];
+      setCheckedItems(newChecked);
+
+      // Add to undo stack
+      setUndoStack(prev => [...prev, {
+        action: 'addToInventory',
+        inventoryItems: [{ itemId: inventoryItem.itemId || inventoryItem.id }],
+        shoppingItems: [item]
+      }]);
+
+      // Save updated shopping list
+      if (shoppingListId && user?.userId) {
+        saveShoppingListToBackend(newList, newChecked);
+      }
     } catch (err) {
       console.error('Error adding to inventory:', err);
       alert('Failed to add to inventory');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddAllToInventory = async () => {
+    const checkedItemIds = Object.keys(checkedItems).filter(id => checkedItems[id]);
+    if (checkedItemIds.length === 0) {
+      alert('Please check items to add to inventory');
+      return;
+    }
+
+    if (!user?.userId) {
+      alert('Please log in to add items to inventory');
+      return;
+    }
+
+    setBulkAddInProgress(true);
+    setBulkAddResult(null);
+
+    try {
+      // Get all checked items
+      const itemsToAdd = checkedItemIds
+        .map(id => shoppingList.find(i => i.id === id))
+        .filter(Boolean);
+
+      // Add all items concurrently using Promise.all
+      const addPromises = itemsToAdd.map(item =>
+        addInventoryItem(user.userId, {
+          name: item.name,
+          category: 'pantry',
+          quantity: item.quantity || '',
+          unit: item.unit || '',
+          notes: 'Added from shopping list'
+        }).catch(err => ({ error: err, itemName: item.name }))
+      );
+
+      const results = await Promise.all(addPromises);
+
+      // Count successes and failures
+      const failures = results.filter(r => r.error);
+      const successCount = itemsToAdd.length - failures.length;
+      const successfulItems = itemsToAdd.filter((item, idx) => !results[idx].error);
+      const successfulInvItems = results
+        .map((result, idx) => !result.error ? { itemId: result.itemId || result.id } : null)
+        .filter(Boolean);
+
+      // Remove successfully added items from shopping list
+      const newList = shoppingList.filter(
+        item => !checkedItemIds.includes(item.id) || failures.some(f => f.itemName === item.name)
+      );
+      setShoppingList(newList);
+
+      const newChecked = { ...checkedItems };
+      successfulItems.forEach(item => {
+        delete newChecked[item.id];
+      });
+      setCheckedItems(newChecked);
+
+      // Add to undo stack
+      if (successfulItems.length > 0) {
+        setUndoStack(prev => [...prev, {
+          action: 'addToInventory',
+          inventoryItems: successfulInvItems,
+          shoppingItems: successfulItems
+        }]);
+      }
+
+      // Save updated shopping list
+      if (shoppingListId && user?.userId) {
+        saveShoppingListToBackend(newList, newChecked);
+      }
+
+      // Show result summary
+      setBulkAddResult({
+        successCount,
+        totalCount: itemsToAdd.length,
+        failures: failures.map(f => f.itemName)
+      });
+    } catch (err) {
+      console.error('Error adding items to inventory:', err);
+      setBulkAddResult({
+        successCount: 0,
+        totalCount: 0,
+        error: 'Failed to add items to inventory'
+      });
+    } finally {
+      setBulkAddInProgress(false);
     }
   };
 
@@ -479,9 +612,15 @@ const ShoppingList = () => {
     });
     setCheckedItems(newCheckedItems);
 
-    setUndoStack(prev => [...prev, { itemId: newItem.id, action: 'add', item: newItem }]);
+    // Add to undo stack (track the added item for potential undo)
+    setUndoStack(prev => [...prev, {
+      action: 'add',
+      items: [newItem] // Single item added
+    }]);
+
     setAddFormData({ name: '', quantity: '', unit: '', linkedRecipe: null });
     setRecipeSearch('');
+    setRecipeSearchResults([]);
     setAddFormOpen(false);
 
     if (shoppingListId && user?.userId) {
@@ -522,14 +661,7 @@ const ShoppingList = () => {
 
         <div className="shopping-list-container">
           <div className="shopping-list-header">
-            <div className="header-top">
-              <h1>Shopping List</h1>
-              {undoStack.length > 0 && (
-                <button className="btn-undo" onClick={handleUndo} title="Undo last action">
-                  <Undo2 size={14} strokeWidth={2.2} /> Undo
-                </button>
-              )}
-            </div>
+            <h1>Shopping List</h1>
             <p className="progress-text">
               {checkedCount} of {totalCount} items purchased
             </p>
@@ -540,23 +672,17 @@ const ShoppingList = () => {
               />
             </div>
           </div>
-
-          {shoppingList.length === 0 ? (
-            <div className="empty-shopping-list">
-              <p>Your shopping list is empty</p>
-              <button className="btn btn-primary" onClick={() => navigate('/explore')}>
-                Browse Recipes
-              </button>
-            </div>
-          ) : (
             <div className="shopping-list-content">
               {/* Add Item Form */}
               <div className="add-item-section">
-                {!addFormOpen ? (
-                  <button className="btn btn-secondary btn-sm" onClick={() => setAddFormOpen(true)}>
-                    + Add Item
-                  </button>
-                ) : (
+                <div className="add-item-header">
+                  {!addFormOpen ? (
+                    <button className="btn btn-secondary btn-sm" onClick={() => setAddFormOpen(true)}>
+                      + Add Item
+                    </button>
+                  ) : null}
+                </div>
+                {addFormOpen && (
                   <div className="add-item-form">
                     <div className="form-row">
                       <input
@@ -632,16 +758,44 @@ const ShoppingList = () => {
                         setRecipeSearch('');
                         setRecipeSearchResults([]);
                       }}>
-                        Cancel
+                        Done
                       </button>
                       <button className="btn btn-xs btn-primary" onClick={handleAddItem}>
-                        Add to List
+                        Add Item
                       </button>
                     </div>
                   </div>
                 )}
+                {/* Action Buttons */}
+                {(undoStack.length > 0 || checkedCount > 0) && (
+                  <div className="add-item-actions">
+                    {undoStack.length > 0 && (
+                      <button className="btn btn-secondary btn-sm" onClick={handleUndo} title="Undo last inventory addition">
+                        <Undo2 size={14} strokeWidth={2.2} /> Undo
+                      </button>
+                    )}
+                    {checkedCount > 0 && (
+                      <button
+                        className="btn btn-success btn-sm"
+                        onClick={handleAddAllToInventory}
+                        disabled={bulkAddInProgress}
+                        title={`Add ${checkedCount} checked items to inventory`}
+                      >
+                        <Check size={14} strokeWidth={2.5} /> Add All to Inventory
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
+          {shoppingList.length === 0 ? (
+            <div className="empty-shopping-list">
+              <p>Your shopping list is empty</p>
+              <button className="btn btn-primary" onClick={() => navigate('/explore')}>
+                Browse Recipes
+              </button>
+            </div>
+          ) : (
               <div className="shopping-items">
                 {shoppingList.map(item => {
                   const isChecked = checkedItems[item.id] || false;
@@ -671,9 +825,7 @@ const ShoppingList = () => {
                   );
                 })}
               </div>
-            </div>
-          )}
-
+            )}
           {/* Footer Actions */}
           <div className="shopping-list-footer">
             <button
@@ -682,13 +834,62 @@ const ShoppingList = () => {
             >
               Back to Recipes
             </button>
-            {shoppingList.length > 0 && (
-              <div className="footer-stats">
-                <p>{checkedCount} items ready to add to inventory</p>
-              </div>
-            )}
+            <div className="footer-right">
+              {shoppingList.length > 0 && (
+                <div className="footer-stats">
+                  <p>{checkedCount} items ready to add to inventory</p>
+                </div>
+              )}
+              {shoppingList.length > 10 && checkedCount > 0 && (
+                <button
+                  className="btn btn-success"
+                  onClick={handleAddAllToInventory}
+                  disabled={bulkAddInProgress}
+                  title={`Add ${checkedCount} checked items to inventory`}
+                >
+                  <Check size={16} strokeWidth={2.5} /> Add All to Inventory
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Bulk Add Result Modal */}
+          {bulkAddResult && (
+            <div className="modal-overlay" onClick={() => setBulkAddResult(null)}>
+              <div className="modal-content bulk-add-result" onClick={e => e.stopPropagation()}>
+                {bulkAddResult.error ? (
+                  <>
+                    <AlertCircle size={32} className="result-icon error" />
+                    <h2>Error Adding Items</h2>
+                    <p className="result-message">{bulkAddResult.error}</p>
+                  </>
+                ) : (
+                  <>
+                    <Check size={32} className="result-icon success" />
+                    <h2>Items Added to Inventory</h2>
+                    <p className="result-count">
+                      {bulkAddResult.successCount} of {bulkAddResult.totalCount} items added
+                    </p>
+                    {bulkAddResult.failures.length > 0 && (
+                      <div className="result-failures">
+                        <p className="failure-label">Failed to add:</p>
+                        <ul>
+                          {bulkAddResult.failures.map((name, idx) => (
+                            <li key={idx}>{name}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                )}
+                <button className="btn btn-primary" onClick={() => setBulkAddResult(null)}>
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+      </div>
       </div>
     </SplashTransition>
   );

@@ -21,6 +21,9 @@ const NAV_ITEMS = [
     },
     { label: "Inventory", path: "/inventory", auth: true },
     { label: "Shopping List", path: "/shopping-list", auth: true },
+    // The blog is the About page's second tab, so /blog and every post under
+    // it should keep this link lit.
+    { label: "About", path: "/about", activePrefixes: ["/blog"] },
 ];
 
 export default function TopNav({ title = "Culinary Craft", overlay = false }) {
@@ -48,6 +51,13 @@ export default function TopNav({ title = "Culinary Craft", overlay = false }) {
     const isGroupActive = (group) =>
         location.pathname === group.path ||
         group.children.some((child) => location.pathname === child.path);
+    // A link is lit on its own path, plus any sub-section it owns (e.g.
+    // About stays lit across /blog and /blog/:slug).
+    const isItemActive = (item) =>
+        location.pathname === item.path ||
+        (item.activePrefixes || []).some((prefix) =>
+            location.pathname.startsWith(prefix)
+        );
 
     // Desktop dropdown opens on hover; a short close delay bridges the
     // pointer gap between the trigger and the panel.
@@ -180,7 +190,7 @@ export default function TopNav({ title = "Culinary Craft", overlay = false }) {
                             return (
                                 <button
                                     key={item.path}
-                                    className={`topnav-link${location.pathname === item.path ? " active" : ""}`}
+                                    className={`topnav-link${isItemActive(item) ? " active" : ""}`}
                                     onClick={() => go(item)}
                                 >
                                     {item.label}
@@ -278,7 +288,7 @@ export default function TopNav({ title = "Culinary Craft", overlay = false }) {
                                     return (
                                         <button
                                             key={item.path}
-                                            className={`drawer-link${location.pathname === item.path ? " active" : ""}`}
+                                            className={`drawer-link${isItemActive(item) ? " active" : ""}`}
                                             onClick={() => go(item)}
                                         >
                                             <span>{item.label}</span>

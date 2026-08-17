@@ -46,3 +46,40 @@ export function recipeJsonLd(recipe) {
   if (recipe.createdAt) data.datePublished = recipe.createdAt;
   return data;
 }
+
+/**
+ * The summary for a blog post: the author's own subtitle when they wrote one,
+ * otherwise the opening of the body with markdown syntax stripped. Mirrors
+ * blog_excerpt() in the backend lambda, which builds the same text for
+ * crawlers that never run JS.
+ */
+export function blogMetaDescription(post) {
+  let text = (post.subtitle || '').trim();
+  if (!text) {
+    text = (post.body || '')
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // links/images -> their text
+      .replace(/[#*_`>|-]+/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+      .join(' ');
+  }
+  if (text.length > 160) text = `${text.slice(0, 157)}...`;
+  return text || 'A post from the Culinary Craft blog.';
+}
+
+/** schema.org/BlogPosting structured data for a blog post page. */
+export function blogPostJsonLd(post, canonical) {
+  const data = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: blogMetaDescription(post),
+    author: { '@type': 'Person', name: post.authorUsername || 'Anyi Sun' },
+    mainEntityOfPage: canonical,
+  };
+  if (post.coverImage) data.image = [post.coverImage];
+  const publishedAt = post.publishedAt || post.createdAt;
+  if (publishedAt) data.datePublished = publishedAt;
+  if (post.updatedAt) data.dateModified = post.updatedAt;
+  return data;
+}

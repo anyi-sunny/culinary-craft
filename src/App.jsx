@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AnimatePresence } from 'framer-motion';
 import Welcome from './components/Welcome';
 import About from './components/about/About';
+import BlogPost from './components/blog/BlogPost';
 import Chat from './components/chat/Chat';
 import Explore from './components/explore/Explore';
 import ExploreHub from './components/explore/ExploreHub';
@@ -23,14 +24,22 @@ import './App.css';
 function AnimatedRoutes() {
   const location = useLocation();
 
+  // /about and /blog are two tabs of the same page, so they share one
+  // animation key: switching tabs re-renders in place instead of replaying
+  // the full page crossfade (and, with no exit, without resetting scroll).
+  const transitionKey =
+    location.pathname === '/blog' ? '/about' : location.pathname;
+
   return (
     // mode="wait" tells it to finish the "exit" animation before starting the new "enter" one.
     // Resetting scroll in onExitComplete lands exactly between the fades, so
     // the jump to the top happens while no page is visible.
     <AnimatePresence mode="wait" onExitComplete={scrollToTop}>
-      <Routes location={location} key={location.pathname}>
+      <Routes location={location} key={transitionKey}>
         <Route path="/" element={<Welcome />} />
         <Route path="/about" element={<About />} />
+        <Route path="/blog" element={<About />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/explore" element={<ExploreHub />} />
         <Route path="/explore/all" element={<Explore />} />
