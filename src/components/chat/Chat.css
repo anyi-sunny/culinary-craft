@@ -181,24 +181,29 @@
   filter: brightness(0) invert(12%) sepia(100%) saturate(200%) hue-rotate(-20deg) brightness(75%);
   animation: thinkingPulse 2.6s ease-in-out infinite;
 }
-.thinking-dots {
+.thinking-verb {
   display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  align-items: baseline;
+  min-width: 9ch; /* longest verb, so the bubble doesn't jitter while typing */
+  min-height: 1.4em;
+  font-size: 0.92rem;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: var(--muted);
 }
-.thinking-dots span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+.thinking-caret {
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  border-radius: 1px;
   background: var(--accent);
-  animation: dotBounce 1.3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  align-self: center;
+  animation: caretBlink 1.1s steps(2, jump-none) infinite;
 }
-.thinking-dots span:nth-child(2) { animation-delay: 0.16s; }
-.thinking-dots span:nth-child(3) { animation-delay: 0.32s; }
 
-@keyframes dotBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
-  30% { transform: translateY(-5px); opacity: 1; }
+@keyframes caretBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 @keyframes thinkingPulse {
   0%, 100% { opacity: 0.7; }

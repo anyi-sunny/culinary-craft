@@ -63,6 +63,71 @@ const normalizeFlatLines = (text) =>
         .map((line) => (line.startsWith('- ') || line.endsWith(':') ? line : `- ${line}`))
         .join('\n');
 
+// Kitchen verbs typed out one letter at a time while the assistant thinks.
+const THINKING_VERBS = [
+    'Tasting', 'Mixing', 'Kneading', 'Whisking', 'Baking',
+    'Simmering', 'Steaming', 'Mincing', 'Chopping', 'Dicing',
+    'Searing', 'Stirring', 'Tossing', 'Shaking', 'Combining',
+];
+
+const TYPE_MS = 65;        // per typed letter
+const ERASE_MS = 28;       // per erased letter
+const HOLD_MS = 1600;      // fully-typed word lingers
+const BETWEEN_WORDS_MS = 220;
+
+function ThinkingVerb() {
+    const [text, setText] = useState('');
+
+    useEffect(() => {
+        // Fresh shuffle per thinking spell, so the order feels random but
+        // never repeats a verb until the whole deck has been dealt.
+        const deck = [...THINKING_VERBS];
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+
+        let wordIdx = 0;
+        let charIdx = 0;
+        let erasing = false;
+        let timer;
+
+        const tick = () => {
+            const word = deck[wordIdx % deck.length];
+            if (!erasing) {
+                charIdx += 1;
+                setText(word.slice(0, charIdx));
+                if (charIdx < word.length) {
+                    timer = setTimeout(tick, TYPE_MS);
+                } else {
+                    erasing = true;
+                    timer = setTimeout(tick, HOLD_MS);
+                }
+            } else {
+                charIdx -= 1;
+                setText(word.slice(0, charIdx));
+                if (charIdx > 0) {
+                    timer = setTimeout(tick, ERASE_MS);
+                } else {
+                    erasing = false;
+                    wordIdx += 1;
+                    timer = setTimeout(tick, BETWEEN_WORDS_MS);
+                }
+            }
+        };
+
+        timer = setTimeout(tick, BETWEEN_WORDS_MS);
+        return () => clearTimeout(timer);
+    }, []);
+
+    return (
+        <span className="thinking-verb">
+            {text}
+            <span className="thinking-caret" aria-hidden="true" />
+        </span>
+    );
+}
+
 function Chat() {
   usePageMeta({
     title: 'Create a Recipe',
@@ -569,11 +634,7 @@ function Chat() {
                         <div className="message assistant">
                             <div className="thinking-indicator" aria-label="Assistant is thinking">
                                 <img src="/logo.png" alt="" className="thinking-logo" />
-                                <span className="thinking-dots">
-                                    <span />
-                                    <span />
-                                    <span />
-                                </span>
+                                <ThinkingVerb />
                             </div>
                         </div>
                     )}
