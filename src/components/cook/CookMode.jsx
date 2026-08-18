@@ -256,7 +256,33 @@ export default function CookMode({ recipe, onExit, onFinish }) {
         return initial;
     });
 
-    const audioCtxRef = useRef(null);
+    const alarmRef = useRef(null);
+
+    // Browsers only allow audio that traces back to a user gesture — so
+    // the alarm element is created and primed (a muted play/pause) from
+    // the timer's own click handlers, which unlocks it for when a timer
+    // rings later.
+    const ensureAudio = useCallback(() => {
+        if (alarmRef.current) return;
+        try {
+            const alarm = new Audio("/timer-alarm.mp3");
+            alarm.loop = true;
+            alarmRef.current = alarm;
+            alarm.muted = true;
+            alarm
+                .play()
+                .then(() => {
+                    alarm.pause();
+                    alarm.currentTime = 0;
+                    alarm.muted = false;
+                })
+                .catch(() => {
+                    alarm.muted = false;
+                });
+        } catch {
+            // Audio unavailable — the ringing state still shows visually.
+        }
+    }, []);
 
     // The page behind cook mode: jump to the very top (so the navbar sits
     // exactly in the 64px strip we leave for it) and freeze its scrolling
@@ -340,38 +366,29 @@ export default function CookMode({ recipe, onExit, onFinish }) {
         return () => clearInterval(t);
     }, []);
 
-    // Alarm: beep once a second while any timer is ringing, until dismissed.
+    // Alarm: loop the alarm sound while any timer is ringing, until
+    // dismissed (the cleanup also silences it if cook mode unmounts).
     const anyRinging = Object.values(timers).some((t) => t.ringing);
     useEffect(() => {
-        if (!anyRinging) return;
-        const beep = () => {
-            try {
-                if (!audioCtxRef.current) {
-                    audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                const ctx = audioCtxRef.current;
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = "sine";
-                osc.frequency.value = 880;
-                gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
-                osc.connect(gain).connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.5);
-            } catch {
-                // Audio unavailable — timer still shows the ringing state.
-            }
+        const alarm = alarmRef.current;
+        if (!anyRinging || !alarm) return;
+        alarm.currentTime = 0;
+        alarm.play().catch(() => {
+            // Audio blocked/unavailable — timer still shows the ringing state.
+        });
+        return () => {
+            alarm.pause();
+            alarm.currentTime = 0;
         };
-        beep();
-        const loop = setInterval(beep, 1000);
-        return () => clearInterval(loop);
     }, [anyRinging]);
 
-    const setTimer = (key, patch) => setTimers((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+    const setTimer = (key, patch) => {
+        ensureAudio();
+        setTimers((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+    };
 
-    const addMinutes = (key, mins) =>
+    const addMinutes = (key, mins) => {
+        ensureAudio();
         setTimers((prev) => {
             const tm = prev[key];
             return {
@@ -386,8 +403,10 @@ export default function CookMode({ recipe, onExit, onFinish }) {
                 },
             };
         });
+    };
 
-    const subtractMinutes = (key, mins) =>
+    const subtractMinutes = (key, mins) => {
+        ensureAudio();
         setTimers((prev) => {
             const tm = prev[key];
             const remaining = Math.max(0, tm.remaining - mins * 60);
@@ -401,6 +420,7 @@ export default function CookMode({ recipe, onExit, onFinish }) {
                 },
             };
         });
+    };
 
     // A ringing timer on a track that isn't on screen pulses its tab.
     const trackRinging = (ti) =>
