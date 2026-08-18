@@ -55,6 +55,84 @@ function validComponents(components) {
 }
 
 /**
+ * The recipe's phases in an editable shape: ingredient and step groups
+ * merged by name (position order preserved), items joined one-per-line so
+ * each phase can back a pair of textareas. Always returns at least one
+ * phase (blank for an empty recipe) so the phase editor has something to
+ * render; a lone phase keeps its (possibly empty) name.
+ * @returns {Array<{name: string, ingredients: string, steps: string}>}
+ */
+export function editablePhases(recipe) {
+  const { ingredients, steps } = recipeParts(recipe);
+  const order = [];
+  const byName = new Map();
+  const phaseFor = (name) => {
+    const key = name || '';
+    if (!byName.has(key)) {
+      byName.set(key, { name: name || '', ingredients: [], steps: [] });
+      order.push(key);
+    }
+    return byName.get(key);
+  };
+  ingredients.forEach((g) => phaseFor(g.name).ingredients.push(...g.items));
+  steps.forEach((g) => phaseFor(g.name).steps.push(...g.items));
+  const phases = order.map((key) => {
+    const phase = byName.get(key);
+    return {
+      name: phase.name,
+      ingredients: phase.ingredients.join('\n'),
+      steps: phase.steps.join('\n'),
+    };
+  });
+  return phases.length ? phases : [{ name: '', ingredients: '', steps: '' }];
+}
+
+function linesToItems(text) {
+  return String(text || '')
+    .split('\n')
+    .map(cleanItem)
+    .filter(Boolean);
+}
+
+/**
+ * Serialize edited phases back into recipe fields. The flat strings mirror
+ * the backend's render_flat ("For the <name>:" headers + "- " bullets when
+ * multi-part) so they round-trip through parseFlatSection. `components` is
+ * rebuilt from the same lines when multi-part — the phase editor's output
+ * is the structure, so it's never stale — and null otherwise (single-part
+ * flat text carries no structure worth storing). Phases emptied of both
+ * ingredients and steps are dropped; the backend requires component names,
+ * so a blanked title falls back to "Phase N".
+ * @returns {{ingredients: string, instructions: string, components: Array|null}}
+ */
+export function phasesToRecipeFields(phases) {
+  const cleaned = (phases || [])
+    .map((p, i) => ({
+      name: String(p.name || '').trim() || `Phase ${i + 1}`,
+      ingredients: linesToItems(p.ingredients),
+      steps: linesToItems(p.steps),
+    }))
+    .filter((p) => p.ingredients.length || p.steps.length);
+  const multi = cleaned.length > 1;
+  const ingLines = [];
+  const stepLines = [];
+  for (const c of cleaned) {
+    if (multi) {
+      const header = `For the ${c.name}:`;
+      ingLines.push(header);
+      stepLines.push(header);
+    }
+    c.ingredients.forEach((item) => ingLines.push(`- ${item}`));
+    c.steps.forEach((step) => stepLines.push(`- ${step}`));
+  }
+  return {
+    ingredients: ingLines.join('\n'),
+    instructions: stepLines.join('\n'),
+    components: multi ? cleaned : null,
+  };
+}
+
+/**
  * Grouped ingredients and steps for a recipe record.
  * Single-part recipes get a null group name (no sub-header to draw).
  * @returns {{ingredients: Array<{name, items}>, steps: Array<{name, items}>}}

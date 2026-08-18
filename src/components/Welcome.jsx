@@ -22,8 +22,11 @@ function Welcome() {
 
         {/* Hero Section with Video */}
         <section className="welcome-hero">
-          <video className="welcome-video" autoPlay muted loop playsInline>
-            <source src="/vecteezy_colorful-vegetables-stir-frying-in-a-modern-kitchen_73857683.mp4" type="video/mp4" />
+          {/* H.264 Main/4:2:0 only — 4:2:2 encodes silently fail on Safari and
+              most mobile hardware decoders. Poster covers blocked autoplay
+              (iOS Low Power Mode, data saver). */}
+          <video className="welcome-video" autoPlay muted loop playsInline poster="/landing-poster.png">
+            <source src="/landing-stir-fry.mp4" type="video/mp4" />
           </video>
           <div className="welcome-hero-overlay" />
 

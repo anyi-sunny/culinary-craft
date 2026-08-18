@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, ChefHat, Camera, MessageSquare, Users, EyeOff, Globe, Link2, Check } from 'lucide-react';
@@ -19,25 +19,13 @@ import { TagOvals, CategoryChecklist } from '../tags/CategoryTags';
 import { getPlaceholderGradient, uploadImageToS3, validateImage } from '../../lib/imageUtils';
 import { fireConfetti } from '../../lib/confetti';
 import { usePageMeta } from '../../lib/usePageMeta';
-import { recipeParts } from '../../lib/recipeParts';
+import { recipeParts, editablePhases, phasesToRecipeFields } from '../../lib/recipeParts';
 import RecipeParts from '../recipes/RecipeParts';
+import PhaseEditor from '../recipes/PhaseEditor';
 import { recipeMetaDescription, recipeJsonLd } from '../../lib/seo';
 import JsonLd from '../seo/JsonLd';
 import ConsultInventoryModal from './modal/ConsultInventoryModal';
 import './RecipeDetail.css';
-
-/* Grows to fit its content instead of scrolling internally. */
-function AutoGrowTextarea({ value, ...props }) {
-  const ref = useRef(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    // scrollHeight excludes borders; add them back for border-box sizing.
-    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
-  }, [value]);
-  return <textarea ref={ref} value={value} {...props} />;
-}
 
 export default function RecipeDetail() {
   const { id } = useParams();
@@ -47,6 +35,9 @@ export default function RecipeDetail() {
   const { recipes, loading, refresh, toggleHeart, togglePublish, removeRecipe } = useRecipes();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
+  // Ingredients/directions are edited per phase (PhaseEditor), not as the
+  // flat strings; (re)parsed from the record each time editing starts.
+  const [editPhases, setEditPhases] = useState(null);
   const [showConsultInventory, setShowConsultInventory] = useState(false);
   const [showServingsAdjuster, setShowServingsAdjuster] = useState(false);
   // A serving-size adjustment the user chose to cook without saving.
@@ -213,15 +204,20 @@ export default function RecipeDetail() {
       servings: normalizeServings(sanitized.servings),
     };
     delete finalItem.emoji;
-    // A hand-edit of the flat text makes the structured components stale
-    // (they're what the grouped view renders from), so drop them then.
-    // stepIngredients too: the server recomputes it on save, but this
-    // object also becomes the local shadow Cook Mode reads until refetch.
+    // The phase editor is the edit UI, so the flat strings are serialized
+    // from it — and `components` is rebuilt from the same lines, so unlike
+    // the old free-text edit it never goes stale. stepIngredients still
+    // drops on change: the server recomputes it on save, but this object
+    // also becomes the local shadow Cook Mode reads until refetch.
+    const fields = phasesToRecipeFields(editPhases ?? editablePhases(recipe));
+    finalItem.ingredients = fields.ingredients;
+    finalItem.instructions = fields.instructions;
     if (
       finalItem.ingredients !== recipe.ingredients ||
       finalItem.instructions !== recipe.instructions
     ) {
-      delete finalItem.components;
+      if (fields.components) finalItem.components = fields.components;
+      else delete finalItem.components;
       delete finalItem.stepIngredients;
     }
 
@@ -315,6 +311,7 @@ export default function RecipeDetail() {
           icon: Pencil,
           onClick: () => {
             setEditData(recipe);
+            setEditPhases(editablePhases(recipe));
             setIsEditing(true);
           },
         },
@@ -494,20 +491,9 @@ export default function RecipeDetail() {
                     onChange={(e) => setEditData({ ...editData, title: sanitizeInput(e.target.value) })}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Ingredients</label>
-                  <AutoGrowTextarea
-                    value={editData.ingredients || ''}
-                    onChange={(e) => setEditData({ ...editData, ingredients: sanitizeInput(e.target.value) })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Instructions</label>
-                  <AutoGrowTextarea
-                    value={editData.instructions || ''}
-                    onChange={(e) => setEditData({ ...editData, instructions: sanitizeInput(e.target.value) })}
-                  />
-                </div>
+                {editPhases && (
+                  <PhaseEditor phases={editPhases} onChange={setEditPhases} />
+                )}
                 <div className="form-group">
                   <label>Serving Size (approx.)</label>
                   <input

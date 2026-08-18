@@ -1,0 +1,187 @@
+/* Manual-edit phase accordion, shared by RecipeModal and RecipeDetail.
+   Multi-phase recipes get one collapsible card per phase (cookbook-style
+   serif italic titles, matching .recipe-part-name); a single-phase recipe
+   renders its fields bare so it looks like the plain edit form it
+   replaced. Self-contained styling — neither host's input rules reach
+   inside this component. */
+
+.phase-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.phase-editor-item {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+
+.phase-editor-item.open {
+  border-color: var(--accent);
+}
+
+/* Single-phase mode: no accordion chrome, fields sit flat on the host. */
+.phase-editor-item.single {
+  border: none;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+
+.phase-editor-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.phase-editor-toggle-name {
+  font-family: var(--font-display);
+  font-size: 1.06rem;
+  font-weight: 550;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--accent-hover);
+}
+
+.phase-editor-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform var(--transition), color var(--transition);
+}
+
+.phase-editor-toggle:hover .phase-editor-chevron {
+  color: var(--accent);
+}
+
+.phase-editor-item.open .phase-editor-chevron {
+  transform: rotate(180deg);
+}
+
+/* Collapse/expand: the 0fr -> 1fr grid trick animates to content height. */
+.phase-editor-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-slow);
+}
+
+.phase-editor-item.open .phase-editor-reveal {
+  grid-template-rows: 1fr;
+}
+
+/* The clipping wrapper carries no padding of its own — padding on the
+   clipped element itself isn't hidden by overflow, which showed a sliver
+   of the fields under collapsed headers. min-height: 0 lets the grid row
+   actually reach zero. */
+.phase-editor-reveal-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.phase-editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 2px 16px 16px;
+}
+
+.phase-editor-item.single .phase-editor-reveal-inner {
+  overflow: visible;
+}
+
+.phase-editor-item.single .phase-editor-fields {
+  padding: 0;
+}
+
+.phase-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.phase-editor-field input,
+.phase-editor-field textarea {
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.phase-editor-field input:focus,
+.phase-editor-field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.phase-editor-field input::placeholder,
+.phase-editor-field textarea::placeholder {
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+/* AutoGrowTextarea sets the height to fit the content. */
+.phase-editor-field textarea {
+  min-height: 96px;
+  resize: none;
+  overflow: hidden;
+}
+
+.phase-editor-remove {
+  align-self: flex-end;
+  padding: 4px 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color var(--transition);
+}
+
+.phase-editor-remove:hover {
+  color: #c82333;
+}
+
+.phase-editor-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px 16px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color var(--transition), border-color var(--transition),
+    background var(--transition);
+}
+
+.phase-editor-add:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}

@@ -8,6 +8,7 @@ import { saveRecipe } from '../../lib/db';
 import { fetchUserInventory } from '../../lib/inventoryDb';
 import { invokeAgent } from '../../lib/agentApiClient';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
+import { MAX_PDF_BYTES, attachmentContent } from '../../lib/attachments';
 import { normalizeTags } from '../../lib/categories';
 import { normalizeServings } from '../../lib/servings';
 import { CategoryChecklist } from '../tags/CategoryTags';
@@ -202,19 +203,31 @@ function Chat() {
         if (authStatus === 'unauthenticated') requireLogin();
     }, [authStatus, requireLogin]);
 
-    const callAgent = useCallback(async (textToSend) => {
+    const callAgent = useCallback(async (textToSend, attachment = null) => {
         try {
             // Stateless backend: the recent conversation travels with every
             // turn. On success the exchange is appended to the history.
+            const userContent = attachment
+                ? attachmentContent(textToSend, attachment)
+                : textToSend;
             const request = [
                 ...historyRef.current.slice(-(HISTORY_SEND_LIMIT - 1)),
-                { role: 'user', content: textToSend },
+                { role: 'user', content: userContent },
             ];
             const result = await invokeAgent(request);
 
+            // History stays text-only: re-sending base64 attachments with
+            // every turn would balloon payloads and overflow the localStorage
+            // cache. The assistant's reply (e.g. the transcribed recipe)
+            // carries the attachment's content forward in the conversation.
             historyRef.current = [
                 ...historyRef.current,
-                { role: 'user', content: textToSend },
+                {
+                    role: 'user',
+                    content: attachment
+                        ? `[The user attached ${attachment.kind === 'document' ? 'a PDF' : 'an image'}] ${textToSend}`
+                        : textToSend,
+                },
                 { role: 'assistant', content: result.output },
             ];
 
@@ -313,7 +326,7 @@ function Chat() {
                 setInventoryEmpty(empty);
 
                 if (empty) {
-                    setMessages([{ role: 'assistant', content: 'Hello! I am your Culinary Architect. Tell me about a recipe you want to create or refine!' }]);
+                    setMessages([{ role: 'assistant', content: "Hello! I am your Culinary Architect. Tell me about a recipe you want to create — or attach a photo or PDF of one with the paperclip and we'll refine it together!" }]);
                 } else {
                     setShowIngredientSelector(true);
                 }
@@ -374,7 +387,75 @@ function Chat() {
     }, [input]);
 
     const handleFileSelect = (e) => {
-        if (e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]);
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (file.type === 'application/pdf' && file.size > MAX_PDF_BYTES) {
+            setMessages(prev => [...prev, {
+                role: 'error',
+                content: 'That PDF is too large to send (max 3.5MB). Try a version with fewer pages, or a photo of the recipe instead.',
+            }]);
+            e.target.value = '';
+            return;
+        }
+        setSelectedFile(file);
+    };
+
+    const fileToBase64 = async (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = reader.result;
+                const base64 = result.split(',')[1]; // Remove data:image/type;base64, prefix
+                resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const getMimeType = (file) => {
+        const type = file.type.toLowerCase();
+        if (type === 'image/jpeg') return 'image/jpeg';
+        if (type === 'image/png') return 'image/png';
+        if (type === 'image/webp') return 'image/webp';
+        if (type === 'image/gif') return 'image/gif';
+        return 'image/jpeg';
+    };
+
+    // Claude reads images best at ≤1568px on the long side, and phone photos
+    // base64-encoded can blow past the backend's request size cap — so
+    // downscale/re-encode on the client before sending.
+    const MAX_IMAGE_DIM = 1568;
+    const encodeImageForChat = async (file) => {
+        try {
+            const bitmap = await createImageBitmap(file);
+            const scale = Math.min(1, MAX_IMAGE_DIM / Math.max(bitmap.width, bitmap.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+            canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff'; // flatten any transparency to white
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            bitmap.close();
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            return { base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' };
+        } catch {
+            // Decode/canvas failed — fall back to sending the original file.
+            const base64 = await fileToBase64(file);
+            return { base64, mimeType: getMimeType(file) };
+        }
+    };
+
+    // PDFs ride as Claude "document" blocks (read natively, scanned pages
+    // included — no parser needed); images as "image" blocks.
+    const encodeAttachment = async (file) => {
+        if (file.type === 'application/pdf') {
+            const base64 = await fileToBase64(file);
+            return { kind: 'document', base64, mimeType: 'application/pdf' };
+        }
+        const image = await encodeImageForChat(file);
+        return { kind: 'image', ...image };
     };
 
     const handleIngredientConfirm = (mode, selectedItems) => {
@@ -394,7 +475,7 @@ function Chat() {
         setMessages([
             {
                 role: 'assistant',
-                content: `Hello! I am your Culinary Architect.\n\n${ingredientMessage}\n\nTell me about a recipe you want to create or refine!`,
+                content: `Hello! I am your Culinary Architect.\n\n${ingredientMessage}\n\nTell me about a recipe you want to create — or attach a photo or PDF of one with the paperclip and we'll refine it together!`,
             },
         ]);
     };
@@ -418,7 +499,15 @@ function Chat() {
         setLoading(true);
 
         try {
-            let agentInput = displayInput || "Please analyze the attached file.";
+            const isPdf = displayFile?.type === 'application/pdf';
+            let agentInput = displayInput ||
+                (displayFile ? `Please read the recipe in this ${isPdf ? 'PDF' : 'image'} and display it in full.` : "");
+
+            // Encode the attachment so Claude can actually read it.
+            let attachment = null;
+            if (displayFile) {
+                attachment = await encodeAttachment(displayFile);
+            }
 
             // Add ingredient context if available
             if (ingredientContextRef.current) {
@@ -447,7 +536,7 @@ function Chat() {
                 recipeContextRef.current = null;
             }
 
-            const result = await callAgent(agentInput);
+            const result = await callAgent(agentInput, attachment);
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: result.output,
@@ -603,7 +692,7 @@ function Chat() {
                     setMessages([
                         {
                             role: 'assistant',
-                            content: 'Hello! I am your Culinary Architect. Tell me about a recipe you want to create or refine!',
+                            content: "Hello! I am your Culinary Architect. Tell me about a recipe you want to create — or attach a photo or PDF of one with the paperclip and we'll refine it together!",
                         },
                     ]);
                 }}
@@ -642,7 +731,7 @@ function Chat() {
 
                 <div className="input-bar">
                     <div className="input-area">
-                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/jpeg,image/png,image/webp" />
+                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/jpeg,image/png,image/webp,application/pdf" />
                         <button className={`icon-button ${selectedFile ? 'active' : ''}`} onClick={() => fileInputRef.current.click()}>
                             <span className='btn-text'>Upload Recipe</span>
                             <span className="btn-icon"><Paperclip size={15} /></span>

@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 # Login-gated pages: nothing useful for search results behind these.
 Disallow: /profile
+Disallow: /upload-recipe
 Disallow: /my-recipes
 Disallow: /favorites
 Disallow: /inventory

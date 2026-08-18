@@ -5,6 +5,7 @@ import Welcome from './components/Welcome';
 import About from './components/about/About';
 import BlogPost from './components/blog/BlogPost';
 import Chat from './components/chat/Chat';
+import UploadRecipe from './components/upload/UploadRecipe';
 import Explore from './components/explore/Explore';
 import ExploreHub from './components/explore/ExploreHub';
 import RecipeDetail from './components/explore/RecipeDetail';
@@ -41,6 +42,7 @@ function AnimatedRoutes() {
         <Route path="/blog" element={<About />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/chat" element={<Chat />} />
+        <Route path="/upload-recipe" element={<UploadRecipe />} />
         <Route path="/explore" element={<ExploreHub />} />
         <Route path="/explore/all" element={<Explore />} />
         <Route path="/recipe/:id" element={<RecipeDetail />} />

@@ -4,12 +4,13 @@ import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, Globe, EyeOff } from
 import { saveRecipe } from "../../../lib/db";
 import { recipeTitle, isOwner, isHearted, isPublished, creatorName } from "../../../lib/recipeUtils";
 import { uploadImageToS3, getPlaceholderGradient, validateImage } from "../../../lib/imageUtils";
-import { sanitizeInput, sanitizeObject } from "../../../lib/sanitizer";
+import { sanitizeObject } from "../../../lib/sanitizer";
 import { normalizeTags } from "../../../lib/categories";
 import { normalizeServings, formatServings } from "../../../lib/servings";
 import { TagOvals, CategoryChecklist } from "../../tags/CategoryTags";
-import { recipeParts } from "../../../lib/recipeParts";
+import { recipeParts, editablePhases, phasesToRecipeFields } from "../../../lib/recipeParts";
 import RecipeParts from "../../recipes/RecipeParts";
+import PhaseEditor from "../../recipes/PhaseEditor";
 import RecipeActionsMenu from "../RecipeActionsMenu";
 import ConsultInventoryModal from "./ConsultInventoryModal";
 import "./RecipeModal.css";
@@ -29,6 +30,11 @@ const RecipeModal = ({
 
     const [editedRecipe, setEditedRecipe] = useState({ ...recipe });
     const [isEditing, setIsEditing] = useState(initialIsEditing);
+    // Ingredients/directions are edited per phase (PhaseEditor), not as the
+    // flat strings; (re)parsed from the record each time editing starts.
+    const [editedPhases, setEditedPhases] = useState(() =>
+        initialIsEditing ? editablePhases(recipe) : null
+    );
     const [isSaving, setIsSaving] = useState(false);
     const [imageError, setImageError] = useState("");
     const [showConsultInventory, setShowConsultInventory] = useState(false);
@@ -133,15 +139,20 @@ const RecipeModal = ({
             };
             // Recipes no longer carry a decorative emoji field.
             delete finalItem.emoji;
-            // A hand-edit of the flat text makes the structured components
-            // stale (they're what the grouped view renders from), so drop
-            // them then — stepIngredients likewise (the server recomputes
-            // both on save; this just keeps the optimistic copy honest).
+            // The phase editor is the edit UI, so the flat strings are
+            // serialized from it — and `components` is rebuilt from the
+            // same lines, so unlike the old free-text edit it never goes
+            // stale. stepIngredients still drops on change (the server
+            // recomputes it on save; this keeps the optimistic copy honest).
+            const fields = phasesToRecipeFields(editedPhases ?? editablePhases(recipe));
+            finalItem.ingredients = fields.ingredients;
+            finalItem.instructions = fields.instructions;
             if (
                 finalItem.ingredients !== recipe.ingredients ||
                 finalItem.instructions !== recipe.instructions
             ) {
-                delete finalItem.components;
+                if (fields.components) finalItem.components = fields.components;
+                else delete finalItem.components;
                 delete finalItem.stepIngredients;
             }
             await saveRecipe(finalItem);
@@ -174,7 +185,14 @@ const RecipeModal = ({
         ? [
               // Inventory + shopping list are account features; prompt guests to log in.
               { label: "Consult Inventory", icon: Package, onClick: () => (userId ? setShowConsultInventory(true) : onRequireLogin?.()) },
-              { label: "Manual Edit", icon: Pencil, onClick: () => setIsEditing(true) },
+              {
+                  label: "Manual Edit",
+                  icon: Pencil,
+                  onClick: () => {
+                      setEditedPhases(editablePhases(recipe));
+                      setIsEditing(true);
+                  },
+              },
               { label: "Improve with AI", icon: Sparkles, onClick: handleImproveWithAI },
               ...(published && onTogglePublish
                   ? [{ label: "Hide from Explore", icon: EyeOff, onClick: () => onTogglePublish(recipe, false) }]
@@ -344,37 +362,25 @@ const RecipeModal = ({
 
                 {/* Body */}
                 <div className="modal-body">
-                    <h3>Ingredients</h3>
                     {isEditing ? (
-                        <textarea
-                            className="edit-textarea"
-                            value={editedRecipe.ingredients || ""}
-                            onChange={(e) =>
-                                setEditedRecipe({ ...editedRecipe, ingredients: sanitizeInput(e.target.value) })
-                            }
-                        />
+                        editedPhases && (
+                            <PhaseEditor phases={editedPhases} onChange={setEditedPhases} />
+                        )
                     ) : (
-                        <RecipeParts
-                            groups={parts.ingredients}
-                            emptyText="No ingredients listed"
-                        />
-                    )}
+                        <>
+                            <h3>Ingredients</h3>
+                            <RecipeParts
+                                groups={parts.ingredients}
+                                emptyText="No ingredients listed"
+                            />
 
-                    <h3>Instructions</h3>
-                    {isEditing ? (
-                        <textarea
-                            className="edit-textarea"
-                            value={editedRecipe.instructions || ""}
-                            onChange={(e) =>
-                                setEditedRecipe({ ...editedRecipe, instructions: sanitizeInput(e.target.value) })
-                            }
-                        />
-                    ) : (
-                        <RecipeParts
-                            groups={parts.steps}
-                            ordered
-                            emptyText="No instructions listed"
-                        />
+                            <h3>Instructions</h3>
+                            <RecipeParts
+                                groups={parts.steps}
+                                ordered
+                                emptyText="No instructions listed"
+                            />
+                        </>
                     )}
 
                     {isEditing && isRecipeOwner && (
@@ -422,6 +428,7 @@ const RecipeModal = ({
                                 onClick={() => {
                                     setIsEditing(false);
                                     setEditedRecipe({ ...recipe });
+                                    setEditedPhases(null);
                                 }}
                                 disabled={isSaving}
                             >
