@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import ReactMarkdown from "react-markdown";
 import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, Globe, EyeOff } from "lucide-react";
 import { saveRecipe } from "../../../lib/db";
 import { recipeTitle, isOwner, isHearted, isPublished, creatorName } from "../../../lib/recipeUtils";
@@ -9,6 +8,8 @@ import { sanitizeInput, sanitizeObject } from "../../../lib/sanitizer";
 import { normalizeTags } from "../../../lib/categories";
 import { normalizeServings, formatServings } from "../../../lib/servings";
 import { TagOvals, CategoryChecklist } from "../../tags/CategoryTags";
+import { recipeParts } from "../../../lib/recipeParts";
+import RecipeParts from "../../recipes/RecipeParts";
 import RecipeActionsMenu from "../RecipeActionsMenu";
 import ConsultInventoryModal from "./ConsultInventoryModal";
 import "./RecipeModal.css";
@@ -132,6 +133,17 @@ const RecipeModal = ({
             };
             // Recipes no longer carry a decorative emoji field.
             delete finalItem.emoji;
+            // A hand-edit of the flat text makes the structured components
+            // stale (they're what the grouped view renders from), so drop
+            // them then — stepIngredients likewise (the server recomputes
+            // both on save; this just keeps the optimistic copy honest).
+            if (
+                finalItem.ingredients !== recipe.ingredients ||
+                finalItem.instructions !== recipe.instructions
+            ) {
+                delete finalItem.components;
+                delete finalItem.stepIngredients;
+            }
             await saveRecipe(finalItem);
             setIsEditing(false);
             if (onRefresh) await onRefresh();
@@ -156,6 +168,7 @@ const RecipeModal = ({
     };
 
     const published = isPublished(recipe);
+    const parts = recipeParts(recipe);
 
     const menuItems = isRecipeOwner
         ? [
@@ -341,9 +354,10 @@ const RecipeModal = ({
                             }
                         />
                     ) : (
-                        <ReactMarkdown>
-                            {recipe.ingredients || "_No ingredients listed_"}
-                        </ReactMarkdown>
+                        <RecipeParts
+                            groups={parts.ingredients}
+                            emptyText="No ingredients listed"
+                        />
                     )}
 
                     <h3>Instructions</h3>
@@ -356,9 +370,11 @@ const RecipeModal = ({
                             }
                         />
                     ) : (
-                        <ReactMarkdown>
-                            {recipe.instructions || "_No instructions listed_"}
-                        </ReactMarkdown>
+                        <RecipeParts
+                            groups={parts.steps}
+                            ordered
+                            emptyText="No instructions listed"
+                        />
                     )}
 
                     {isEditing && isRecipeOwner && (

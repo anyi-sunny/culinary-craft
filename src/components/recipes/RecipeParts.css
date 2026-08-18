@@ -1,0 +1,92 @@
+/* Grouped recipe sections, shared by RecipeModal and RecipeDetail.
+   Font size and line-height inherit from each host's body styles; this
+   file only draws the structure: part sub-headers, ingredient dots and
+   per-part step numerals. */
+
+.recipe-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Part name — cookbook-style: display serif italic with a hairline rule
+   running out to the right edge. */
+.recipe-part-name {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 1.06em;
+  font-weight: 550;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--accent-hover);
+}
+
+.recipe-part-name::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.recipe-part-ingredients,
+.recipe-part-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-part-ingredients {
+  gap: 7px;
+}
+
+.recipe-part-ingredients li {
+  position: relative;
+  padding-left: 20px;
+}
+
+.recipe-part-ingredients li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0.7em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+/* Steps restart their numbering with each part. */
+.recipe-part-steps {
+  gap: 12px;
+  counter-reset: recipe-step;
+}
+
+.recipe-part-steps li {
+  position: relative;
+  padding-left: 36px;
+  counter-increment: recipe-step;
+}
+
+.recipe-part-steps li::before {
+  content: counter(recipe-step) '.';
+  position: absolute;
+  left: 2px;
+  top: 0;
+  min-width: 24px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1em;
+  color: var(--accent);
+}
+
+.recipe-parts-empty {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}

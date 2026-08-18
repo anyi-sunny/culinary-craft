@@ -1,20 +1,9 @@
 /**
- * Helpers for Cook Mode: turn a recipe's plain-text fields into slides and
+ * Helpers for Cook Mode: turn a recipe into per-phase slide decks and
  * detect timed steps ("bake 25-30 minutes" -> 25-minute timer).
  */
 
-/** Split a plain-text block into clean list items (strips bullets/numbers). */
-export function splitList(text = "") {
-    return String(text)
-        .split("\n")
-        .map((line) =>
-            line
-                .replace(/^\s*[-*•]\s*/, "")
-                .replace(/^\s*\d+[.)]\s*/, "")
-                .trim()
-        )
-        .filter(Boolean);
-}
+import { recipeParts } from "./recipeParts";
 
 /**
  * Find a duration in a step. Returns seconds, or null when the step has no
@@ -33,19 +22,66 @@ export function parseTimerSeconds(text = "") {
     return amount;
 }
 
-/** Build the cook-mode slide deck: ingredients overview first, then steps. */
-export function buildSlides(recipe) {
-    const ingredients = splitList(recipe?.ingredients);
-    const steps = splitList(recipe?.instructions);
-    const slides = [
-        { type: "ingredients", items: ingredients },
-        ...steps.map((text) => ({
-            type: "step",
-            text,
-            timerSeconds: parseTimerSeconds(text),
-        })),
-    ];
-    return slides;
+/**
+ * Build the cook-mode decks: one track per recipe phase (component), each
+ * with its own ingredients overview slide followed by its steps. Single-part
+ * recipes produce exactly one track (the old single-deck behavior).
+ *
+ * Phases come from recipeParts(), which prefers structured `components` and
+ * falls back to parsing the flat text — the ingredient and step groups of a
+ * phase are matched up by name.
+ *
+ * Step slides carry `ingredientRefs`: the step's mentioned ingredients
+ * (full lines, with quantities) from the record's server-derived
+ * `stepIngredients` field (computed on save by the backend's
+ * step_ingredients.py; absent on records that predate it until the
+ * backfill runs). Aligned to phases by name, by position as a fallback.
+ *
+ * @returns {Array<{name: string|null, slides: [], stepCount: number}>}
+ */
+export function buildTracks(recipe) {
+    const { ingredients, steps } = recipeParts(recipe);
+    const order = [];
+    const byName = new Map();
+    const phaseFor = (name) => {
+        const key = name || "";
+        if (!byName.has(key)) {
+            byName.set(key, { name: name || null, ingredients: [], steps: [] });
+            order.push(key);
+        }
+        return byName.get(key);
+    };
+    ingredients.forEach((g) => phaseFor(g.name).ingredients.push(...g.items));
+    steps.forEach((g) => phaseFor(g.name).steps.push(...g.items));
+
+    const refPhases = Array.isArray(recipe?.stepIngredients) ? recipe.stepIngredients : [];
+    const refsFor = (phase, pi) =>
+        refPhases.find(
+            (p) => String(p?.name || "").toLowerCase() === String(phase.name || "").toLowerCase()
+        ) ?? (refPhases.length === order.length ? refPhases[pi] : null);
+
+    return order
+        .map((key, pi) => {
+            const phase = byName.get(key);
+            const refPhase = refsFor(phase, pi);
+            const slides = [];
+            if (phase.ingredients.length) {
+                slides.push({ type: "ingredients", items: phase.ingredients });
+            }
+            phase.steps.forEach((text, i) =>
+                slides.push({
+                    type: "step",
+                    text,
+                    stepNumber: i + 1,
+                    timerSeconds: parseTimerSeconds(text),
+                    ingredientRefs: (Array.isArray(refPhase?.steps?.[i]) ? refPhase.steps[i] : []).filter(
+                        (s) => typeof s === "string" && s
+                    ),
+                })
+            );
+            return { name: phase.name, slides, stepCount: phase.steps.length };
+        })
+        .filter((t) => t.slides.length);
 }
 
 export function formatClock(totalSeconds) {

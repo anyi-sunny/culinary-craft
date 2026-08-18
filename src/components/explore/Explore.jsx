@@ -29,7 +29,7 @@ function Explore() {
             <div className="page">
                 <TopNav />
                 <div className="page-head">
-                    <h1>All Recipes</h1>
+                    <h1>Published Recipes</h1>
                     <p className="page-sub">
                         Browse creations from all users — save the ones you love or remix any recipe with AI.
                     </p>

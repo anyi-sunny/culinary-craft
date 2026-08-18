@@ -1,4 +1,7 @@
-/* Full-screen cooking slideshow, sitting below the sticky navbar. */
+/* Full-screen cooking slideshow, sitting below the sticky navbar.
+   Slides sit flat on the background like pages of an open book — no card
+   chrome; on wide screens two phases share the spread with a single spine
+   line between them. */
 .cook-mode {
   position: fixed;
   top: 64px;
@@ -11,7 +14,6 @@
   background:
     radial-gradient(ellipse 80% 50% at 50% -10%, rgba(185, 102, 63, 0.08), transparent),
     var(--bg);
-  cursor: pointer;
   user-select: none;
 }
 
@@ -19,6 +21,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding: 16px 22px;
 }
 
@@ -28,33 +31,234 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cook-exit {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 16px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
+  padding: 9px 0;
+  border: none;
+  background: none;
   color: var(--text);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
 }
 .cook-exit:hover {
-  border-color: var(--accent);
   color: var(--accent);
 }
 
+/* Phase tabs, styled like the About/Blog, Feedback/Questions and profile
+   tabs: display-serif labels, active one in accent with an underline. They
+   stay on screen in both the wide spread and the single-page view — the
+   pages themselves carry no titles. */
+.cook-tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+  padding: 5px 22px 0;
+}
+
+.cook-tab {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 4px 2px 9px;
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.cook-tab:hover {
+  color: var(--text);
+}
+.cook-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Wide spread: two equal columns mirroring the pages below, so each page's
+   tab sits left-aligned over the phase it names (aligned with the page
+   body's 26px gutter) instead of both floating centered over everything. */
+.cook-tabs--split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-content: initial;
+  gap: 0;
+  padding: 0;
+}
+
+.cook-tabs-col {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  padding: 5px 26px 0;
+  transition: background var(--transition), opacity var(--transition);
+}
+
+/* The spine continues up between the two tab columns. */
+.cook-tabs--split .cook-tabs-col + .cook-tabs-col {
+  border-left: 1px solid var(--border);
+}
+
+/* The unfocused phase's header shares its page's shade — tab and page
+   read as one sheet. */
+.cook-tabs--split .cook-tabs-col.dim {
+  background: rgba(28, 25, 23, 0.035);
+  opacity: 0.93;
+}
+
+/* Hidden phases (3+ parts) queue at the far end, behind a thin separator. */
+.cook-tabs-rest {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-left: auto;
+  padding-left: 18px;
+  border-left: 1px solid var(--border);
+}
+
+/* A hidden phase with a ringing timer pulses a dot on its tab. */
+.cook-tab-ring {
+  position: absolute;
+  top: 2px;
+  right: -9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: cookPulse 1s ease-in-out infinite;
+}
+
+/* Stage: holds one page, or two side by side on the wide spread. No
+   horizontal padding of its own so the spine line can run full height. */
 .cook-stage {
   flex: 1;
   display: flex;
+  align-items: stretch;
   justify-content: center;
-  padding: 24px;
+  min-height: 0;
+  padding-top: 10px;
+  overflow: hidden;
+}
+
+/* One book page: flat on the background, its own nav row up top and a
+   scrollable body below. */
+.cook-page {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: opacity var(--transition), background var(--transition);
+}
+
+/* The spine: a single vertical line between the two pages of the spread. */
+.cook-stage--split .cook-page + .cook-page {
+  border-left: 1px solid var(--border);
+}
+
+/* On the spread the stage's breathing room moves inside each page, so the
+   dim wash runs unbroken from the tab column into the page below it. */
+.cook-stage--split {
+  padding-top: 0;
+}
+.cook-stage--split .cook-page {
+  padding-top: 10px;
+}
+
+/* The unfocused page of the spread sits a hint darker — a faint shade
+   across the whole page, like the page in shadow. */
+.cook-stage--split .cook-page:not(.active) {
+  background: rgba(28, 25, 23, 0.035);
+  opacity: 0.93;
+}
+
+/* Page nav: the step label sits centered above the progress dots, with
+   little chevrons hugging the dots on either side. */
+.cook-pagenav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 20px 10px;
+  flex-shrink: 0;
+}
+
+.cook-pagenav-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.cook-pagenav-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Ghost chevrons — no chrome, just the glyph. */
+.cook-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+.cook-arrow:hover:not(:disabled) {
+  color: var(--accent);
+  transform: scale(1.15);
+}
+.cook-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.cook-dots {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.cook-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.cook-dot.active {
+  background: var(--accent);
+  transform: scale(1.3);
+}
+
+.cook-page-body {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 14px 26px 24px;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .cook-card {
@@ -72,6 +276,28 @@
   margin: 0;
 }
 
+/* Half-width pages of the spread need gentler type than a full-bleed page. */
+.cook-stage--split .cook-card h1 {
+  font-size: clamp(1.15rem, 1.9vw, 1.7rem);
+}
+.cook-stage--split .cook-ingredients {
+  margin-top: 20px;
+}
+.cook-stage--split .cook-ingredients li {
+  font-size: 0.95rem;
+  padding: 10px 15px;
+}
+.cook-stage--split .cook-timer {
+  margin-top: 26px;
+}
+.cook-stage--split .cook-timer-clock {
+  font-size: 2rem;
+  min-width: 110px;
+}
+.cook-stage--split .cook-finish-btn {
+  margin-top: 28px;
+}
+
 .cook-step-label {
   font-size: 0.82rem;
   font-weight: 700;
@@ -79,6 +305,44 @@
   text-transform: uppercase;
   color: var(--accent);
   margin: 0 0 14px;
+}
+
+/* Ingredients mentioned in this step — quantity reminders as small pills
+   under the step text. */
+.cook-step-ings {
+  margin-top: 26px;
+}
+.cook-step-ings-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+.cook-step-ings ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.cook-step-ings li {
+  padding: 7px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.cook-stage--split .cook-step-ings {
+  margin-top: 20px;
+}
+.cook-stage--split .cook-step-ings li {
+  font-size: 0.83rem;
+  padding: 6px 12px;
 }
 
 .cook-ingredients {
@@ -101,14 +365,110 @@
   font-size: 1.02rem;
 }
 
-/* Timer */
+/* Timer: the adjust split-buttons flank the clock; Start/Pause (or
+   Dismiss) sits centered beneath. */
 .cook-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 34px;
+}
+
+.cook-timer-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 34px;
+  gap: 16px;
+}
+
+/* Split button: one oval — the main segment applies ("− 5 min"), a
+   hairline divides it from the chevron segment on the right end, which
+   picks the amount. */
+.cook-timer-adjust {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: border-color var(--transition-fast), opacity var(--transition-fast);
+}
+.cook-timer-adjust:not(:has(button:disabled)):hover {
+  border-color: var(--accent);
+}
+.cook-timer-adjust:has(button:disabled) {
+  opacity: 0.5;
+}
+
+.cook-timer-adjust-main,
+.cook-timer-adjust-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.cook-timer-adjust-main:hover:not(:disabled),
+.cook-timer-adjust-toggle:hover:not(:disabled) {
+  color: var(--accent);
+}
+.cook-timer-adjust-main:disabled,
+.cook-timer-adjust-toggle:disabled {
+  cursor: not-allowed;
+}
+
+.cook-timer-adjust-main {
+  padding: 10px 12px 10px 16px;
+  border-radius: 999px 0 0 999px;
+}
+
+.cook-timer-adjust-toggle {
+  padding: 10px 10px 10px 8px;
+  border-radius: 0 999px 999px 0;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.cook-timer-adjust-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.cook-timer-adjust-menu button {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.cook-timer-adjust-menu button:hover {
+  background: var(--surface-2);
+  color: var(--accent);
+}
+.cook-timer-adjust-menu button.selected {
+  color: var(--accent);
 }
 
 .cook-timer-clock {
@@ -191,62 +551,18 @@
   transform: translateY(-2px);
 }
 
-/* Bottom bar */
+/* Bottom bar: just the keyboard hint now — navigation lives on each page. */
 .cook-bottombar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 22px 22px;
-}
-
-.cook-back {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-}
-.cook-back:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.cook-back:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+  padding: 12px 22px 18px;
 }
 
 .cook-hint {
-  flex: 1;
   text-align: center;
   color: var(--muted);
   font-size: 0.85rem;
-}
-
-.cook-dots {
-  display: flex;
-  gap: 5px;
-  flex-shrink: 0;
-  max-width: 30vw;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.cook-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--border);
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
-.cook-dot.active {
-  background: var(--accent);
-  transform: scale(1.3);
 }
 
 /* Finish popup (shown over the recipe page after confetti) */
@@ -287,10 +603,14 @@
 }
 
 @media (max-width: 600px) {
-  .cook-hint {
-    display: none;
+  .cook-timer-row {
+    gap: 10px;
   }
   .cook-timer-clock {
-    width: 100%;
+    font-size: 2rem;
+    min-width: 0;
+  }
+  .cook-pagenav {
+    padding: 2px 12px 8px;
   }
 }

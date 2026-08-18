@@ -82,6 +82,9 @@ export async function scaleRecipe({ recipe, targetServings, feedback, previousAd
             servings: r.servings ?? targetServings,
             notes: r.notes || "",
             components: r.components || [],
+            // Per-step ingredient mentions (server-derived) so Cook With
+            // These shows quantity reminders on the unsaved adjustment.
+            stepIngredients: r.stepIngredients || null,
             raw: result.output,
         };
     }

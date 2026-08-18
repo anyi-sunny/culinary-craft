@@ -14,7 +14,7 @@ const NAV_ITEMS = [
         label: "Explore Recipes",
         path: "/explore", // clicking the group itself opens the explore hub
         children: [
-            { label: "All", path: "/explore/all" },
+            { label: "Published", path: "/explore/all" },
             { label: "Saved", path: "/favorites", auth: true },
             { label: "My Creations", path: "/my-recipes", auth: true },
         ],

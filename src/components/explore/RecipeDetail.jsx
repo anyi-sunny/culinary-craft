@@ -19,6 +19,8 @@ import { TagOvals, CategoryChecklist } from '../tags/CategoryTags';
 import { getPlaceholderGradient, uploadImageToS3, validateImage } from '../../lib/imageUtils';
 import { fireConfetti } from '../../lib/confetti';
 import { usePageMeta } from '../../lib/usePageMeta';
+import { recipeParts } from '../../lib/recipeParts';
+import RecipeParts from '../recipes/RecipeParts';
 import { recipeMetaDescription, recipeJsonLd } from '../../lib/seo';
 import JsonLd from '../seo/JsonLd';
 import ConsultInventoryModal from './modal/ConsultInventoryModal';
@@ -127,6 +129,7 @@ export default function RecipeDetail() {
   const isOwner = recipe.ownerId === userId;
   const isHearted = recipe.heartedBy && recipe.heartedBy.includes(userId);
   const published = isPublished(recipe);
+  const parts = recipeParts(recipe);
 
   const handleToggleHeart = () => {
     toggleHeart(recipe, userId);
@@ -210,6 +213,17 @@ export default function RecipeDetail() {
       servings: normalizeServings(sanitized.servings),
     };
     delete finalItem.emoji;
+    // A hand-edit of the flat text makes the structured components stale
+    // (they're what the grouped view renders from), so drop them then.
+    // stepIngredients too: the server recomputes it on save, but this
+    // object also becomes the local shadow Cook Mode reads until refetch.
+    if (
+      finalItem.ingredients !== recipe.ingredients ||
+      finalItem.instructions !== recipe.instructions
+    ) {
+      delete finalItem.components;
+      delete finalItem.stepIngredients;
+    }
 
     setIsSaving(true);
     try {
@@ -541,12 +555,12 @@ export default function RecipeDetail() {
               <div className="recipe-detail-view">
                 <div className="recipe-detail-section">
                   <h2>Ingredients</h2>
-                  <p className="recipe-detail-text">{recipe.ingredients}</p>
+                  <RecipeParts groups={parts.ingredients} emptyText="No ingredients listed" />
                 </div>
 
                 <div className="recipe-detail-section">
                   <h2>Instructions</h2>
-                  <p className="recipe-detail-text">{recipe.instructions}</p>
+                  <RecipeParts groups={parts.steps} ordered emptyText="No instructions listed" />
                 </div>
 
                 {recipe.notes && (

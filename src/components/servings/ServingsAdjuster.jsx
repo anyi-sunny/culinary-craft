@@ -79,14 +79,16 @@ export default function ServingsAdjuster({ recipe, onClose, onSaved, onCook }) {
     };
 
     const applyEdit = () => {
-        // A hand edit to the flat text makes the structured components stale —
-        // drop them rather than save a mismatched pair.
+        // A hand edit to the flat text makes the structured components and
+        // the per-step ingredient mentions stale — drop them rather than
+        // keep a mismatched pair (Cook With These reads stepIngredients).
         const textChanged =
             draft.ingredients !== adjusted.ingredients ||
             draft.instructions !== adjusted.instructions;
         setAdjusted({
             ...draft,
             components: textChanged ? [] : draft.components,
+            stepIngredients: textChanged ? null : draft.stepIngredients,
             servings: clampServings(draft.servings ?? target),
         });
         setIsEditing(false);
