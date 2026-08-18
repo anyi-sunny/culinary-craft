@@ -72,6 +72,53 @@ function Welcome() {
           <FeatureShowcase />
         </section>
 
+        {/* Online recipe book: explore/published/saved/creations screenshots */}
+        <section className="welcome-book">
+          <div className="welcome-book-content">
+            <motion.div
+              initial={{ opacity: 0, y: 26 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <h2>Your Online Recipe Book</h2>
+              <p className="welcome-book-text">
+                Explore all our recipes published by users like you, view your
+                favorites, and see all your creations
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="welcome-book-row"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.35 }}
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.12 } },
+              }}
+            >
+              {['explore', 'published', 'saved', 'creations'].map((name) => (
+                <motion.img
+                  key={name}
+                  className="welcome-book-image"
+                  src={`/explore/${name}.png`}
+                  alt={`${name.charAt(0).toUpperCase() + name.slice(1)} view of the recipe book`}
+                  loading="lazy"
+                  variants={{
+                    hidden: { opacity: 0, y: 18 },
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+                    },
+                  }}
+                />
+              ))}
+            </motion.div>
+          </div>
+        </section>
+
         {/* Origin story teaser -> full story on /about */}
         <section className="welcome-story">
           <motion.div
