@@ -365,8 +365,8 @@
   font-size: 1.02rem;
 }
 
-/* Timer: the adjust split-buttons flank the clock; Start/Pause (or
-   Dismiss) sits centered beneath. */
+/* Timer: the ±1 min buttons flank the clock; Start/Pause (or Dismiss)
+   and Reset sit centered beneath. */
 .cook-timer {
   display: flex;
   flex-direction: column;
@@ -382,93 +382,29 @@
   gap: 16px;
 }
 
-/* Split button: one oval — the main segment applies ("− 5 min"), a
-   hairline divides it from the chevron segment on the right end, which
-   picks the amount. */
+/* ±1 min pills flanking the clock. */
 .cook-timer-adjust {
-  position: relative;
-  display: inline-flex;
-  align-items: stretch;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  transition: border-color var(--transition-fast), opacity var(--transition-fast);
-}
-.cook-timer-adjust:not(:has(button:disabled)):hover {
-  border-color: var(--accent);
-}
-.cook-timer-adjust:has(button:disabled) {
-  opacity: 0.5;
-}
-
-.cook-timer-adjust-main,
-.cook-timer-adjust-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: none;
-  background: none;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
   color: var(--text);
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  transition: color var(--transition-fast);
+  transition: border-color var(--transition-fast), color var(--transition-fast),
+    opacity var(--transition-fast);
 }
-.cook-timer-adjust-main:hover:not(:disabled),
-.cook-timer-adjust-toggle:hover:not(:disabled) {
+.cook-timer-adjust:hover:not(:disabled) {
+  border-color: var(--accent);
   color: var(--accent);
 }
-.cook-timer-adjust-main:disabled,
-.cook-timer-adjust-toggle:disabled {
+.cook-timer-adjust:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-}
-
-.cook-timer-adjust-main {
-  padding: 10px 12px 10px 16px;
-  border-radius: 999px 0 0 999px;
-}
-
-.cook-timer-adjust-toggle {
-  padding: 10px 10px 10px 8px;
-  border-radius: 0 999px 999px 0;
-  border-left: 1px solid var(--border);
-  color: var(--muted);
-}
-
-.cook-timer-adjust-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 5;
-}
-
-.cook-timer-adjust-menu button {
-  padding: 10px 20px;
-  border: none;
-  background: none;
-  color: var(--text);
-  font-size: 0.88rem;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-.cook-timer-adjust-menu button:hover {
-  background: var(--surface-2);
-  color: var(--accent);
-}
-.cook-timer-adjust-menu button.selected {
-  color: var(--accent);
 }
 
 .cook-timer-clock {
@@ -482,6 +418,39 @@
 .cook-timer-clock.ringing {
   color: var(--danger);
   animation: cookPulse 1s ease-in-out infinite;
+}
+
+/* The clock doubles as the editor: rendered as a button it keeps the
+   plain clock look with a dotted underline hinting it's clickable; while
+   editing it's an input with the same type, underlined in accent. */
+.cook-timer-clock-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: text;
+  border-bottom: 2px dotted transparent;
+  transition: border-color var(--transition-fast);
+}
+.cook-timer-clock-btn:hover {
+  border-bottom-color: var(--border);
+}
+
+.cook-timer-clock-input {
+  width: 6ch;
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--accent);
+  border-radius: 0;
+  padding: 0;
+  text-align: center;
+  outline: none;
+}
+
+/* Start/Pause (or Dismiss) and Reset side by side under the clock. */
+.cook-timer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 @keyframes cookPulse {
   0%, 100% { opacity: 1; }

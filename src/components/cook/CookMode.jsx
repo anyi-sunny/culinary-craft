@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, useSyncExternalStore } from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, X, Play, Pause, BellOff, Plus, Minus, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Play, Pause, BellOff, Plus, Minus, Check, RotateCcw } from "lucide-react";
 import { buildTracks, formatClock } from "../../lib/cookModeUtils";
 import "./CookMode.css";
 
@@ -15,11 +15,12 @@ import "./CookMode.css";
  * dims a hint. Each page carries its own top nav row: back/forward arrows
  * flanking the "Step x of y" label and progress dots.
  *
- * Forward: click the (focused) page, ArrowRight, or Enter.
- * Back: ArrowLeft or the on-page back arrow.
- * Timed steps get a timer (start/pause, +1/+5/+10) that rings until
- * dismissed, counting up how long it has been ringing. Timers keep running
- * on tracks you're not looking at; a ringing hidden track pulses its tab.
+ * Forward: click the right half of the (focused) page, ArrowRight, or Enter.
+ * Back: click the left half, ArrowLeft, or the on-page back arrow.
+ * Timed steps get a timer (start/pause/reset, ±1 min, click the clock to
+ * type a new time) that rings until dismissed, counting up how long it has
+ * been ringing. Timers keep running on tracks you're not looking at; a
+ * ringing hidden track pulses its tab.
  */
 
 function useMediaQuery(query) {
@@ -35,62 +36,76 @@ function useMediaQuery(query) {
 }
 
 /**
- * Split button flanking the timer clock: the main segment applies the
- * current amount ("− 5 min"), the separate chevron segment opens a small
- * menu to change how much each press adds or subtracts.
+ * Turn what the user typed into the clock into seconds, or null if it
+ * doesn't parse. A bare number means minutes; "m:ss" and "h:mm:ss" work
+ * like the clock displays them.
  */
-function TimerAdjust({ sign, onApply, disabled }) {
-    const [amount, setAmount] = useState(5);
-    const [open, setOpen] = useState(false);
-    const ref = useRef(null);
-    const Icon = sign === "-" ? Minus : Plus;
+function parseClockInput(raw) {
+    const parts = raw.trim().split(":");
+    if (parts.length > 3 || parts.some((p) => !/^\d+$/.test(p))) return null;
+    const nums = parts.map(Number);
+    const secs =
+        parts.length === 1
+            ? nums[0] * 60
+            : parts.length === 2
+              ? nums[0] * 60 + nums[1]
+              : nums[0] * 3600 + nums[1] * 60 + nums[2];
+    return Math.min(secs, 99 * 3600);
+}
 
-    useEffect(() => {
-        if (!open) return;
-        const close = (e) => {
-            if (!ref.current?.contains(e.target)) setOpen(false);
+/**
+ * The timer clock — click it to type a new time (which pauses the timer),
+ * Enter or clicking away commits, Escape cancels.
+ */
+function TimerClock({ timer, onEditStart, onCommit }) {
+    const [editing, setEditing] = useState(false);
+    const [value, setValue] = useState("");
+
+    if (timer.ringing) {
+        return <div className="cook-timer-clock ringing">+{formatClock(timer.over)}</div>;
+    }
+
+    if (editing) {
+        const commit = () => {
+            const secs = parseClockInput(value);
+            if (secs != null) onCommit(secs);
+            setEditing(false);
         };
-        document.addEventListener("mousedown", close);
-        return () => document.removeEventListener("mousedown", close);
-    }, [open]);
+        return (
+            <input
+                className="cook-timer-clock cook-timer-clock-input"
+                value={value}
+                autoFocus
+                inputMode="numeric"
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setValue(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter") e.currentTarget.blur();
+                    if (e.key === "Escape") {
+                        setValue("");
+                        e.currentTarget.blur();
+                    }
+                }}
+                aria-label="Edit timer — minutes, or minutes:seconds"
+            />
+        );
+    }
 
     return (
-        <div className="cook-timer-adjust" ref={ref}>
-            <button
-                className="cook-timer-adjust-main"
-                onClick={() => onApply(amount)}
-                disabled={disabled}
-                aria-label={`${sign === "-" ? "Subtract" : "Add"} ${amount} minutes`}
-            >
-                <Icon size={13} strokeWidth={2.4} />
-                {amount} min
-            </button>
-            <button
-                className="cook-timer-adjust-toggle"
-                onClick={() => setOpen((o) => !o)}
-                disabled={disabled}
-                aria-label={`Choose how many minutes to ${sign === "-" ? "subtract" : "add"}`}
-                aria-expanded={open}
-            >
-                <ChevronDown size={13} strokeWidth={2.4} />
-            </button>
-            {open && (
-                <div className="cook-timer-adjust-menu">
-                    {[1, 5, 10].map((m) => (
-                        <button
-                            key={m}
-                            className={m === amount ? "selected" : ""}
-                            onClick={() => {
-                                setAmount(m);
-                                setOpen(false);
-                            }}
-                        >
-                            {sign === "-" ? "−" : "+"}{m} min
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
+        <button
+            className="cook-timer-clock cook-timer-clock-btn"
+            onClick={() => {
+                onEditStart();
+                setValue(formatClock(timer.remaining));
+                setEditing(true);
+            }}
+            title="Click to edit"
+            aria-label={`Timer at ${formatClock(timer.remaining)} — click to edit`}
+        >
+            {formatClock(timer.remaining)}
+        </button>
     );
 }
 
@@ -132,40 +147,74 @@ function SlideCard({ slide, timer, showFinish, onFinish, onSetTimer, onAddMinute
             {slide.timerSeconds && timer && (
                 <div className="cook-timer">
                     <div className="cook-timer-row">
-                        <TimerAdjust
-                            sign="-"
-                            onApply={onSubtractMinutes}
-                            disabled={timer.remaining === 0}
+                        <button
+                            className="cook-timer-adjust"
+                            onClick={() => onSubtractMinutes(1)}
+                            disabled={timer.ringing || timer.remaining === 0}
+                            aria-label="Subtract one minute"
+                        >
+                            <Minus size={13} strokeWidth={2.4} />
+                            1 min
+                        </button>
+                        <TimerClock
+                            timer={timer}
+                            onEditStart={() => onSetTimer({ running: false })}
+                            onCommit={(secs) => onSetTimer({ remaining: secs, ringing: false, over: 0 })}
                         />
-                        <div className={`cook-timer-clock${timer.ringing ? " ringing" : ""}`}>
-                            {timer.ringing ? `+${formatClock(timer.over)}` : formatClock(timer.remaining)}
-                        </div>
-                        <TimerAdjust sign="+" onApply={onAddMinutes} />
+                        <button
+                            className="cook-timer-adjust"
+                            onClick={() => onAddMinutes(1)}
+                            aria-label="Add one minute"
+                        >
+                            <Plus size={13} strokeWidth={2.4} />
+                            1 min
+                        </button>
                     </div>
-                    {timer.ringing ? (
+                    <div className="cook-timer-actions">
+                        {timer.ringing ? (
+                            <button
+                                className="cook-timer-btn cook-timer-btn--dismiss"
+                                onClick={() => onSetTimer({ ringing: false, over: 0 })}
+                            >
+                                <BellOff size={15} strokeWidth={2.2} /> Dismiss
+                            </button>
+                        ) : (
+                            <button
+                                className="cook-timer-btn cook-timer-btn--primary"
+                                onClick={() => onSetTimer({ running: !timer.running })}
+                                disabled={timer.remaining === 0}
+                            >
+                                {timer.running ? (
+                                    <>
+                                        <Pause size={15} strokeWidth={2.2} /> Pause
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play size={15} strokeWidth={2.2} /> Start
+                                    </>
+                                )}
+                            </button>
+                        )}
                         <button
-                            className="cook-timer-btn cook-timer-btn--dismiss"
-                            onClick={() => onSetTimer({ ringing: false, over: 0 })}
+                            className="cook-timer-btn"
+                            onClick={() =>
+                                onSetTimer({
+                                    remaining: slide.timerSeconds,
+                                    running: false,
+                                    ringing: false,
+                                    over: 0,
+                                })
+                            }
+                            disabled={
+                                !timer.running &&
+                                !timer.ringing &&
+                                timer.remaining === slide.timerSeconds
+                            }
+                            aria-label="Reset timer"
                         >
-                            <BellOff size={15} strokeWidth={2.2} /> Dismiss
+                            <RotateCcw size={15} strokeWidth={2.2} /> Reset
                         </button>
-                    ) : (
-                        <button
-                            className="cook-timer-btn cook-timer-btn--primary"
-                            onClick={() => onSetTimer({ running: !timer.running })}
-                            disabled={timer.remaining === 0}
-                        >
-                            {timer.running ? (
-                                <>
-                                    <Pause size={15} strokeWidth={2.2} /> Pause
-                                </>
-                            ) : (
-                                <>
-                                    <Play size={15} strokeWidth={2.2} /> Start
-                                </>
-                            )}
-                        </button>
-                    )}
+                    </div>
                 </div>
             )}
 
@@ -248,6 +297,8 @@ export default function CookMode({ recipe, onExit, onFinish }) {
     // Keyboard navigation drives the focused track.
     useEffect(() => {
         const onKey = (e) => {
+            // Typing in the timer's clock input never drives the slideshow.
+            if (e.target.closest?.("input, textarea")) return;
             if (e.key === "ArrowRight" || e.key === "Enter") {
                 e.preventDefault();
                 advance(activeTrack);
@@ -386,11 +437,11 @@ export default function CookMode({ recipe, onExit, onFinish }) {
 
     const hint = multi
         ? isWide
-            ? "Click a page to focus it — Enter or → moves the focused phase along"
-            : "Switch phases with the tabs above — Enter or → moves this phase along"
+            ? "Click a page to focus it — then its right half advances, its left half goes back"
+            : "Switch phases with the tabs above — tap right to continue, left to go back"
         : isLastActive
-          ? "That's the last step"
-          : "Click anywhere, press Enter or → to continue";
+          ? "That's the last step — click the left half to go back"
+          : "Click the right half or press Enter to continue — left half goes back";
 
     return (
         <div className="cook-mode" data-lenis-prevent>
@@ -437,11 +488,14 @@ export default function CookMode({ recipe, onExit, onFinish }) {
                             onClick={(e) => {
                                 if (e.target.closest("button, a, input")) return;
                                 if (!active) {
-                                    // First click focuses; it never doubles as "advance".
+                                    // First click focuses; it never doubles as navigation.
                                     selectTrack(ti);
                                     return;
                                 }
-                                advance(ti);
+                                // Left half of the page steps back, right half advances.
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                if (e.clientX - rect.left < rect.width / 2) goBack(ti);
+                                else advance(ti);
                             }}
                         >
                             <div className="cook-pagenav">
