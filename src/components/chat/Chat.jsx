@@ -2,10 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Paperclip, Lock } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
 
 import { saveRecipe } from '../../lib/db';
-import { fetchUserInventory } from '../../lib/inventoryDb';
 import { invokeAgent } from '../../lib/agentApiClient';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
 import { MAX_PDF_BYTES, attachmentContent } from '../../lib/attachments';
@@ -18,11 +17,12 @@ import { useAuthModal } from '../auth/authModalContext';
 import IngredientSelector from './IngredientSelector';
 import Paywall from '../Paywall';
 import RecipeSavedModal from '../ads/RecipeSavedModal';
+import PreviewBanner from '../previews/PreviewBanner';
+import { DEMO_CHAT_MESSAGES } from '../../lib/demoData';
 
 // Styling Imports
 import './Chat.css';
 import './../explore/modal/RecipeModal.css';
-import './../explore/Explore.css'; // .gate styles for the login-required screen
 import SplashTransition from '../SplashTransition';
 
 // Chat context cache — survives sleep/refresh. The backend is stateless (the
@@ -141,11 +141,15 @@ function Chat() {
     const { authStatus, user } = useAuthenticator(context => [context.authStatus, context.user]);
     const { requireLogin } = useAuthModal();
 
-    // Snapshot the cache once on mount. Entering with a recipe to improve
+    // Snapshot the cache once on mount. Entering with a recipe to improve or
+    // with ingredients pre-picked (from the Inventory page's Build a Recipe)
     // always starts a fresh session and ignores any cached conversation.
     const initialCacheRef = useRef(undefined);
     if (initialCacheRef.current === undefined) {
-        initialCacheRef.current = location.state?.recipeToImprove ? null : readChatCache();
+        initialCacheRef.current =
+            location.state?.recipeToImprove || location.state?.ingredientContext
+                ? null
+                : readChatCache();
     }
 
     const [input, setInput] = useState('');
@@ -194,14 +198,25 @@ function Chat() {
     });
     const [isConfirmingSave, setIsConfirmingSave] = useState(false);
 
-    // Tracks whether the user's inventory has any items; the ingredient
-    // selector modal is only worth showing when there is something to pick.
-    const [inventoryEmpty, setInventoryEmpty] = useState(null);
+    // Opening greeting once ingredient constraints are settled — from the
+    // selector here, or pre-picked on the Inventory page's Build a Recipe.
+    const greetWithIngredients = useCallback((mode, selectedItems = []) => {
+        let ingredientMessage = '';
+        if (mode === 'none') {
+            ingredientMessage = "No ingredient constraints. I'll help you create any recipe!";
+        } else if (mode === 'some') {
+            ingredientMessage = `I'll help you create recipes using some of these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
+        } else if (mode === 'solely') {
+            ingredientMessage = `I'll create recipes using ONLY these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
+        }
 
-    // Chat requires an account: prompt login immediately on entry.
-    useEffect(() => {
-        if (authStatus === 'unauthenticated') requireLogin();
-    }, [authStatus, requireLogin]);
+        setMessages([
+            {
+                role: 'assistant',
+                content: `Hello! I am your Culinary Architect.\n\n${ingredientMessage}\n\nTell me about a recipe you want to create — or attach a photo or PDF of one with the paperclip and we'll refine it together!`,
+            },
+        ]);
+    }, []);
 
     const callAgent = useCallback(async (textToSend, attachment = null) => {
         try {
@@ -289,6 +304,12 @@ function Chat() {
                 } finally {
                     setLoading(false);
                 }
+            } else if (location.state?.ingredientContext) {
+                // Arrived from the Inventory page's Build a Recipe flow with
+                // ingredients already picked — skip the selector entirely.
+                const { mode, selectedItems } = location.state.ingredientContext;
+                ingredientContextRef.current = { mode, selectedItems };
+                greetWithIngredients(mode, selectedItems);
             } else if (initialCacheRef.current) {
                 // A previous conversation is cached (e.g. the tab sat idle or
                 // the computer slept). The backend is stateless — the history
@@ -314,27 +335,16 @@ function Chat() {
                         .map(({ role, content }) => ({ role, content }));
                 }
             } else {
-                // New recipe generation: only offer the ingredient selector when
-                // the user actually has inventory items to choose from.
-                let empty = true;
-                try {
-                    const items = await fetchUserInventory(user?.userId);
-                    empty = !items || items.length === 0;
-                } catch (err) {
-                    console.error('Error checking inventory:', err);
-                }
-                setInventoryEmpty(empty);
-
-                if (empty) {
-                    setMessages([{ role: 'assistant', content: "Hello! I am your Culinary Architect. Tell me about a recipe you want to create — or attach a photo or PDF of one with the paperclip and we'll refine it together!" }]);
-                } else {
-                    setShowIngredientSelector(true);
-                }
+                // New recipe generation: open the selector right away. It
+                // defaults to "start from scratch" and only loads the
+                // inventory if the user picks an inventory-based mode, so
+                // there is no fetch to wait on here.
+                setShowIngredientSelector(true);
             }
         };
 
         loadContext();
-    }, [location.state, authStatus, callAgent, user?.userId]);
+    }, [location.state, authStatus, callAgent, greetWithIngredients]);
 
     // Persist the conversation so a refresh/sleep can restore it seamlessly.
     // Pure greetings are not worth caching.
@@ -461,23 +471,7 @@ function Chat() {
     const handleIngredientConfirm = (mode, selectedItems) => {
         ingredientContextRef.current = { mode, selectedItems };
         setShowIngredientSelector(false);
-
-        // Prepare greeting message acknowledging ingredient selection
-        let ingredientMessage = '';
-        if (mode === 'none') {
-            ingredientMessage = "No ingredient constraints. I'll help you create any recipe!";
-        } else if (mode === 'some') {
-            ingredientMessage = `I'll help you create recipes using some of these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
-        } else if (mode === 'solely') {
-            ingredientMessage = `I'll create recipes using ONLY these ingredients: ${selectedItems.map((i) => i.name).join(', ')}.`;
-        }
-
-        setMessages([
-            {
-                role: 'assistant',
-                content: `Hello! I am your Culinary Architect.\n\n${ingredientMessage}\n\nTell me about a recipe you want to create — or attach a photo or PDF of one with the paperclip and we'll refine it together!`,
-            },
-        ]);
+        greetWithIngredients(mode, selectedItems);
     };
 
     const sendMessage = async () => {
@@ -654,25 +648,44 @@ function Chat() {
         }
     };
 
-    // Account gate: the chat (and saving recipes) requires being logged in.
-    // The login modal opens automatically; this screen backs it so there is
-    // no usable chat behind it if the modal is dismissed.
+    // Account gate: guests get a read-only preview — an example conversation
+    // showing the describe-then-refine loop — with every input routed to the
+    // login modal instead of the agent.
     if (authStatus !== 'authenticated') {
         return (
             <SplashTransition>
                 <div className="chat-container">
                     <TopNav title="Culinary Craft AI" />
                     {authStatus === 'unauthenticated' && (
-                        <div className="gate">
-                            <div className="gate-icon">
-                                <Lock size={30} strokeWidth={1.8} />
+                        <>
+                            <PreviewBanner message="This is an example conversation. Log in to chat with the Culinary Architect and save your own recipes." />
+                            <div className="messages-area" data-lenis-prevent>
+                                {DEMO_CHAT_MESSAGES.map((msg, idx) => (
+                                    <div key={idx} className={`message ${msg.role}`}>
+                                        <div className="message-bubble">
+                                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            <h2>Log in to start crafting</h2>
-                            <p>Create an account or log in to chat with the Culinary Architect and save your recipes.</p>
-                            <button className="btn btn-primary" onClick={requireLogin}>
-                                Log in or sign up
-                            </button>
-                        </div>
+                            <div className="input-bar">
+                                <div className="input-area">
+                                    <textarea
+                                        className="chat-input"
+                                        rows={1}
+                                        value=""
+                                        placeholder="Log in to start crafting..."
+                                        readOnly
+                                        onPointerDown={(e) => {
+                                            e.preventDefault();
+                                            requireLogin();
+                                        }}
+                                        onFocus={requireLogin}
+                                    />
+                                    <button className="send-btn" onClick={requireLogin}>Send</button>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </div>
             </SplashTransition>
@@ -685,7 +698,7 @@ function Chat() {
 
             <IngredientSelector
                 userId={user?.userId}
-                isOpen={showIngredientSelector && inventoryEmpty === false}
+                isOpen={showIngredientSelector}
                 onConfirm={handleIngredientConfirm}
                 onCancel={() => {
                     setShowIngredientSelector(false);

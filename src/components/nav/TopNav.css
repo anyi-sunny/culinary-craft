@@ -45,10 +45,16 @@
 }
 
 .topnav-left {
+  position: relative; /* anchors the hidden measurable links when collapsed */
   display: flex;
   align-items: center;
   gap: 18px;
   min-width: 0;
+}
+
+.topnav-account {
+  display: flex;
+  flex-shrink: 0;
 }
 
 .topnav-brand {
@@ -211,21 +217,22 @@
   width: 70%;
 }
 
-/* Breakpoint: collapse to hamburger below 900px */
-@media (max-width: 899px) {
-  .topnav-links {
-    display: none;
-  }
-  .hamburger {
-    display: flex;
-  }
+/* Collapse to the hamburger when the content doesn't fit: TopNav.jsx
+   measures brand + links + account widget against the bar's width and
+   toggles this class — there is no fixed breakpoint. The links stay in
+   the DOM (invisible, out of flow) so their natural width remains
+   measurable, keeping the expand and collapse thresholds identical. */
+.topnav--collapsed .topnav-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: 100%;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
 }
-
-/* Keep the inline links from colliding with the account widget */
-@media (min-width: 900px) and (max-width: 1150px) {
-  .topnav .account-email {
-    display: none;
-  }
+.topnav--collapsed .hamburger {
+  display: flex;
 }
 
 /* =========================================================

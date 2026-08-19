@@ -8,8 +8,9 @@ import "./RecipeActionsMenu.css";
  * Shared by the recipe modal and the full recipe page.
  *
  * items: [{ label, icon: LucideComponent, danger?: bool, onClick }]
+ * icon: trigger icon component (defaults to the three-dot kebab)
  */
-export default function RecipeActionsMenu({ items, ariaLabel = "Recipe actions" }) {
+export default function RecipeActionsMenu({ items, ariaLabel = "Recipe actions", icon: TriggerIcon = MoreVertical }) {
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
 
@@ -40,7 +41,7 @@ export default function RecipeActionsMenu({ items, ariaLabel = "Recipe actions" 
                 aria-haspopup="menu"
                 aria-label={ariaLabel}
             >
-                <MoreVertical size={18} strokeWidth={2.2} />
+                <TriggerIcon size={18} strokeWidth={2.2} />
             </button>
             <AnimatePresence>
                 {open && (

@@ -138,8 +138,9 @@
   transform: rotate(180deg);
 }
 
-/* Mobile: swap the name pill for the person icon (matches TopNav's
-   hamburger breakpoint). */
+/* Mobile: swap the name pill for the person icon. Deliberately a viewport
+   breakpoint, not TopNav's measured collapse — the collapse measurement
+   uses the widget's width, so the swap must not depend on collapse state. */
 @media (max-width: 899px) {
   .account-trigger--name {
     display: none;

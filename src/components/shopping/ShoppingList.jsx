@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Check, Undo2, Trash2, ShoppingCart, ChevronDown, Edit2, AlertCircle } from 'lucide-react';
+import { Check, Undo2, Trash2, ChevronDown, Edit2, AlertCircle } from 'lucide-react';
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
+import PreviewBanner from '../previews/PreviewBanner';
 import { useAuthModal } from '../auth/authModalContext';
 import { usePageMeta } from '../../lib/usePageMeta';
+import { DEMO_SHOPPING_LIST } from '../../lib/demoData';
 import { addInventoryItem, deleteInventoryItem } from '../../lib/inventoryDb';
 import { createShoppingList, updateShoppingList, getShoppingList } from '../../lib/shoppingListApi';
 import { deduplicateShoppingList } from '../../lib/shoppingListUtils';
 import { searchRecipes } from '../../lib/recipeSearch';
 import { useRecipes } from '../../lib/useRecipes';
-import '../explore/Explore.css'; // .gate
 import './ShoppingList.css';
 
 const SHOPPING_LIST_ID_KEY = 'culinary_craft_current_shopping_list_id';
 
-const ShoppingListItemDetail = ({ item, isExpanded, onToggleExpand, onCheckItem, onEdit, onDelete, onAddToInventory, isChecked, addedToInventory, isLoading }) => {
+// readOnly (guest preview): the edit button defers to onEdit directly (the
+// login prompt) instead of opening the inline editor.
+const ShoppingListItemDetail = ({ item, isExpanded, onToggleExpand, onCheckItem, onEdit, onDelete, onAddToInventory, isChecked, addedToInventory, isLoading, readOnly = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(item.name);
 
@@ -113,7 +116,7 @@ const ShoppingListItemDetail = ({ item, isExpanded, onToggleExpand, onCheckItem,
           <div className="detail-actions">
             <button
               className="btn btn-xs btn-secondary"
-              onClick={() => setIsEditing(true)}
+              onClick={() => (readOnly ? onEdit() : setIsEditing(true))}
             >
               <Edit2 size={12} /> Edit Item Name
             </button>
@@ -631,24 +634,75 @@ const ShoppingList = () => {
   const checkedCount = Object.values(checkedItems).filter(Boolean).length;
   const totalCount = shoppingList.length;
 
+  // Guest preview: example items showing the recipe linkage — expandable
+  // details work, everything that would write routes to the login modal.
   if (authStatus !== 'authenticated') {
+    const demoTotal = DEMO_SHOPPING_LIST.length;
+    const demoChecked = DEMO_SHOPPING_LIST.filter((item) => item.checked).length;
+
     return (
       <SplashTransition>
         <div className="page shopping-page">
           <TopNav />
-          <div className="gate">
-            <div className="gate-icon">
-              <ShoppingCart size={36} strokeWidth={1.6} />
+          {authStatus === 'unauthenticated' && (
+            <div className="shopping-list-container">
+              <PreviewBanner message="This is an example list. Log in to build a shopping list from any recipe and check items off as you shop." />
+
+              <div className="shopping-list-header">
+                <h1>Shopping List</h1>
+                <p className="progress-text">
+                  {demoChecked} of {demoTotal} items purchased
+                </p>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${(demoChecked / demoTotal) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="shopping-list-content">
+                <div className="add-item-section">
+                  <div className="add-item-header">
+                    <button className="btn btn-secondary btn-sm" onClick={requireLogin}>
+                      + Add Item
+                    </button>
+                  </div>
+                </div>
+
+                <div className="shopping-items">
+                  {DEMO_SHOPPING_LIST.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`shopping-item ${item.checked ? 'checked' : ''} ${
+                        expandedItems[item.id] ? 'expanded' : ''
+                      }`}
+                    >
+                      <ShoppingListItemDetail
+                        item={item}
+                        isExpanded={expandedItems[item.id] || false}
+                        isChecked={item.checked}
+                        addedToInventory={false}
+                        isLoading={false}
+                        readOnly
+                        onToggleExpand={handleToggleExpand}
+                        onCheckItem={requireLogin}
+                        onEdit={requireLogin}
+                        onDelete={requireLogin}
+                        onAddToInventory={requireLogin}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="shopping-list-footer">
+                  <button className="btn btn-secondary" onClick={() => navigate('/explore')}>
+                    Back to Recipes
+                  </button>
+                </div>
+              </div>
             </div>
-            <h2>Your shopping list</h2>
-            <p>
-              Log in to build a shopping list from any recipe and check items
-              off as you shop.
-            </p>
-            <button className="btn btn-primary" onClick={requireLogin}>
-              Log in
-            </button>
-          </div>
+          )}
         </div>
       </SplashTransition>
     );

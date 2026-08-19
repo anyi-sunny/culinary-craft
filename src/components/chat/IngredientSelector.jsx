@@ -4,36 +4,59 @@ import { X } from 'lucide-react';
 import { fetchUserInventory, PREDEFINED_CATEGORIES } from '../../lib/inventoryDb';
 import './IngredientSelector.css';
 
-const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
+const allExpanded = () => {
+    const expanded = {};
+    PREDEFINED_CATEGORIES.forEach((cat) => {
+        expanded[cat.id] = true;
+    });
+    return expanded;
+};
+
+// `items`: optionally pass an already-loaded inventory (e.g. from the
+// Inventory page) to skip the fetch entirely. Without it, the inventory is
+// loaded lazily — only once the user moves off the default "start from
+// scratch" mode — so the modal itself opens instantly.
+const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel, items = null }) => {
     const [inventoryItems, setInventoryItems] = useState([]);
     const [selectedItems, setSelectedItems] = useState({});
     const [mode, setMode] = useState('none'); // 'none', 'some', 'solely'
     const [loading, setLoading] = useState(false);
+    const [loaded, setLoaded] = useState(false);
     const [expandedCategories, setExpandedCategories] = useState({});
 
+    // Caller already has the inventory: mirror it (kept in sync if it changes).
     useEffect(() => {
-        if (!isOpen) return;
+        if (!Array.isArray(items)) return;
+        setInventoryItems(items);
+        setExpandedCategories(allExpanded());
+        setLoaded(true);
+    }, [items]);
 
+    // Lazy fetch: only when the user actually wants to pick from inventory.
+    useEffect(() => {
+        if (!isOpen || mode === 'none' || loaded || Array.isArray(items)) return;
+
+        let cancelled = false;
         const loadInventory = async () => {
             try {
                 setLoading(true);
-                const items = await fetchUserInventory(userId);
-                setInventoryItems(items);
-                // Initialize expanded categories for all
-                const expanded = {};
-                PREDEFINED_CATEGORIES.forEach((cat) => {
-                    expanded[cat.id] = true;
-                });
-                setExpandedCategories(expanded);
+                const fetched = await fetchUserInventory(userId);
+                if (cancelled) return;
+                setInventoryItems(fetched);
+                setExpandedCategories(allExpanded());
+                setLoaded(true);
             } catch (err) {
                 console.error('Error loading inventory:', err);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
         loadInventory();
-    }, [isOpen, userId]);
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, mode, loaded, items, userId]);
 
     const toggleCategory = (categoryId) => {
         setExpandedCategories((prev) => ({
@@ -128,7 +151,7 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
                         </div>
 
                         <div className="selector-mode">
-                            <p>How do you want to use your inventory?</p>
+                            <p>Would you like to use your inventory?</p>
                             <div className="mode-options">
                                 <label className="mode-label">
                                     <input
@@ -141,7 +164,7 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
                                             setSelectedItems({});
                                         }}
                                     />
-                                    <span>Any ingredients are fine</span>
+                                    <span>Nope&mdash;Ignore the inventory and start from scratch</span>
                                 </label>
                                 <label className="mode-label">
                                     <input
@@ -151,7 +174,7 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
                                         checked={mode === 'some'}
                                         onChange={(e) => setMode(e.target.value)}
                                     />
-                                    <span>Use some of my ingredients and additional if necessary</span>
+                                    <span>A little&mdash;Pick some ingredients from the inventory we must use</span>
                                 </label>
                                 <label className="mode-label">
                                     <input
@@ -161,7 +184,7 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
                                         checked={mode === 'solely'}
                                         onChange={(e) => setMode(e.target.value)}
                                     />
-                                    <span>Use ONLY my selected ingredients - I do not plan on getting more groceries!</span>
+                                    <span>Only&mdash;use exclusively ingredients in my inventory <br /><small>Optional: select ingredients we must use</small></span>
                                 </label>
                             </div>
                         </div>
@@ -172,7 +195,14 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel }) => {
                                behind the modal instead of this list. */
                             <div className="selector-content" data-lenis-prevent>
                                 {loading ? (
-                                    <div className="selector-loading">Loading inventory...</div>
+                                    <div className="selector-loading" role="status">
+                                        <div className="selector-loading-dots" aria-hidden="true">
+                                            <span />
+                                            <span />
+                                            <span />
+                                        </div>
+                                        Loading inventory
+                                    </div>
                                 ) : inventoryItems.length === 0 ? (
                                     <div className="selector-empty">
                                         Your inventory is empty. Add items in the Inventory page first.

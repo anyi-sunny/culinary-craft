@@ -8,8 +8,6 @@ export const PREDEFINED_CATEGORIES = [
     { id: 'dairy', label: 'Dairy & Eggs' },
     { id: 'meat', label: 'Meat & Protein' },
     { id: 'pantry', label: 'Pantry Staples' },
-    { id: 'appliances', label: 'Kitchen Appliances' },
-    { id: 'tools', label: 'Kitchen Tools' },
 ];
 
 /** Fetch all inventory items for a specific user. */

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthenticator } from "@aws-amplify/ui-react";
@@ -10,8 +10,8 @@ import "./TopNav.css";
 // Group entries (with `children`) render as dropdowns. The rule: a group
 // trigger only opens its menu — navigation always happens through an
 // explicit item, which is why the Explore hub is its own child link.
+// No "Home" entry — the brand title on the left already navigates to "/".
 const NAV_ITEMS = [
-    { label: "Home", path: "/" },
     {
         label: "Create Recipe",
         children: [
@@ -28,8 +28,10 @@ const NAV_ITEMS = [
             { label: "My Creations", path: "/my-recipes", auth: true },
         ],
     },
-    { label: "Inventory", path: "/inventory", auth: true },
-    { label: "Shopping List", path: "/shopping-list", auth: true },
+    // preview: guests may visit — the page renders a read-only example with
+    // a login prompt instead of the nav blocking navigation outright.
+    { label: "Inventory", path: "/inventory", auth: true, preview: true },
+    { label: "Shopping List", path: "/shopping-list", auth: true, preview: true },
     // The blog is the About page's second tab, so /blog and every post under
     // it should keep this link lit.
     { label: "About", path: "/about", activePrefixes: ["/blog"] },
@@ -56,6 +58,59 @@ export default function TopNav({ title = "Culinary Craft", overlay = false }) {
     const { requireLogin } = useAuthModal();
     const isAuthed = authStatus === "authenticated";
     const groupRefs = useRef({});
+
+    // Collapse to the hamburger by measurement, not a fixed breakpoint: the
+    // account widget's width varies (username length, logged in vs out), so
+    // the links must yield exactly when brand + links + widget stop fitting.
+    // While collapsed the links stay in the DOM (hidden, absolute — see
+    // .topnav--collapsed in TopNav.css) so their natural width remains
+    // measurable and the expand threshold is the same as the collapse one.
+    const headerRef = useRef(null);
+    const leftRef = useRef(null);
+    const brandRef = useRef(null);
+    const linksRef = useRef(null);
+    const accountRef = useRef(null);
+    const [collapsed, setCollapsed] = useState(
+        () => typeof window !== "undefined" && window.innerWidth < 900
+    );
+
+    useLayoutEffect(() => {
+        const header = headerRef.current;
+        if (!header) return;
+        // Breathing room so the links never sit flush against the widget.
+        const SAFETY = 24;
+        const measure = () => {
+            const left = leftRef.current;
+            const brand = brandRef.current;
+            const links = linksRef.current;
+            const account = accountRef.current;
+            if (!left || !brand || !links || !account) return;
+            const headerStyle = getComputedStyle(header);
+            const padding =
+                parseFloat(headerStyle.paddingLeft) +
+                parseFloat(headerStyle.paddingRight);
+            const headerGap = parseFloat(headerStyle.columnGap) || 0;
+            const leftGap = parseFloat(getComputedStyle(left).columnGap) || 0;
+            const linksMargin =
+                parseFloat(getComputedStyle(links).marginLeft) || 0;
+            const needed =
+                padding +
+                brand.offsetWidth +
+                leftGap +
+                linksMargin +
+                links.scrollWidth +
+                headerGap +
+                account.offsetWidth +
+                SAFETY;
+            setCollapsed(needed > header.clientWidth);
+        };
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(header);
+        if (linksRef.current) observer.observe(linksRef.current);
+        if (accountRef.current) observer.observe(accountRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     const isGroupActive = (group) =>
         group.children.some((child) => location.pathname === child.path);
@@ -124,7 +179,7 @@ export default function TopNav({ title = "Culinary Craft", overlay = false }) {
     const go = (link) => {
         setOpen(false);
         setOpenGroup(null);
-        if (link.auth && !isAuthed) {
+        if (link.auth && !isAuthed && !link.preview) {
             requireLogin();
             return;
         }
@@ -139,8 +194,11 @@ export default function TopNav({ title = "Culinary Craft", overlay = false }) {
 
     return (
         <>
-            <header className={`topnav${overlay ? " topnav--overlay" : ""}${overlay && solid ? " topnav--solid" : ""}`}>
-                <div className="topnav-left">
+            <header
+                ref={headerRef}
+                className={`topnav${collapsed ? " topnav--collapsed" : ""}${overlay ? " topnav--overlay" : ""}${overlay && solid ? " topnav--solid" : ""}`}
+            >
+                <div className="topnav-left" ref={leftRef}>
                     <button
                         className="hamburger"
                         aria-label="Open menu"
@@ -150,13 +208,13 @@ export default function TopNav({ title = "Culinary Craft", overlay = false }) {
                         <span />
                         <span />
                     </button>
-                    <button className="topnav-brand" onClick={() => navigate("/")}>
+                    <button className="topnav-brand" ref={brandRef} onClick={() => navigate("/")}>
                         <img src="/logo.png" alt="Logo" className="brand-logo" />
                         {title}
                     </button>
 
-                    {/* Inline links on wide screens */}
-                    <nav className="topnav-links">
+                    {/* Inline links when they fit (hidden but measurable when collapsed) */}
+                    <nav className="topnav-links" ref={linksRef} aria-hidden={collapsed}>
                         {NAV_ITEMS.map((item) => {
                             if (item.children) {
                                 const groupActive = isGroupActive(item);
@@ -220,7 +278,9 @@ export default function TopNav({ title = "Culinary Craft", overlay = false }) {
                         })}
                     </nav>
                 </div>
-                <AccountWidget variant="on-accent" />
+                <div className="topnav-account" ref={accountRef}>
+                    <AccountWidget variant="on-accent" />
+                </div>
             </header>
 
             <AnimatePresence>

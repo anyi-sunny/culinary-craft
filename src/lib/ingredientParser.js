@@ -42,30 +42,12 @@ const COMMON_UNITS = new Set([
   'strip', 'strips',
 ]);
 
-// Regex to match fractions
-const FRACTION_REGEX = /^(\d+)\s*\/\s*(\d+)$/;
-
-// Parse a string that may contain fractions like "1 1/2"
-function parseQuantity(quantStr) {
-  if (!quantStr) return '';
-
-  const parts = quantStr.trim().split(/\s+/);
-  const result = [];
-
-  for (const part of parts) {
-    if (FRACTION_REGEX.test(part)) {
-      result.push(part);
-    } else if (/^\d+$/.test(part)) {
-      result.push(part);
-    } else if (/^\d*\.?\d+$/.test(part)) {
-      result.push(part);
-    } else {
-      break; // Stop when we hit non-numeric
-    }
-  }
-
-  return result.join(' ');
-}
+// One numeric token: "1", "1.5", "1/2", "½", "1½"
+const QUANT_TOKEN = String.raw`(?:\d+\s*\/\s*\d+|\d*[¼½¾⅐-⅞]|\d+(?:\.\d+)?)`;
+// A token or a range of tokens ("1–2", "1 - 2"), any dash style
+const QUANT_PART = `${QUANT_TOKEN}(?:\\s*[-–—]\\s*${QUANT_TOKEN})?`;
+// Leading quantity, possibly a mixed number ("1 1/2", "1 ½"), then the rest
+const LEADING_QUANT_REGEX = new RegExp(`^(${QUANT_PART}(?:\\s+${QUANT_PART})*)\\s+(.*)$`);
 
 // Extract unit from the remaining part of the ingredient string
 function extractUnit(remaining) {
@@ -97,11 +79,15 @@ export function parseIngredient(ingredientStr) {
     return { quantity: '', unit: '', name: '' };
   }
 
+  // Drop parentheticals before the comma split — "Juice of ½ lemon (1–2 tbsp,
+  // or more to taste)" must not be truncated at the comma inside the parens
+  const noParens = trimmed.replace(/\([^)]*\)/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
   // Split by comma to remove trailing descriptors (e.g., "butter, softened" -> "butter")
-  const basePart = trimmed.split(',')[0].trim();
+  const basePart = noParens.split(',')[0].trim();
 
   // Try to extract quantity at the start
-  const quantMatch = basePart.match(/^((?:\d+\s*\/\s*\d+|\d+\.?\d*)\s*(?:\d+\s*\/\s*\d+|\d+\.?\d*)*)\s+(.*)/);
+  const quantMatch = basePart.match(LEADING_QUANT_REGEX);
 
   let quantity = '';
   let remaining = basePart;

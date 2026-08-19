@@ -55,8 +55,8 @@ export default function DeveloperStory() {
                 </p>
                 <p>
                     Around late fall, is when I asked AI to help me figure out what to do with 5 the browning bananas
-                    we had on our kitchen counter. From what I found, banana bread recipes don't ever really use more
-                    than 2. (With the help of some adjustments, I learned that banana bread is way better with more bananas because it provides
+                    we had on our kitchen counter. From what I initially found through Google search, banana bread recipes don't ever really use more
+                    than 3 large bananas. (With the help of some adjustments, I learned that banana bread is way better with more bananas because it provides
                     more moisture and flavor!) Our dining hall kept an endless supply of bananas and fresh fruits
                     begging to be devoured. I then realized I had an infinite banana bread
                     glitch. Provided I get a bag of flour, sugar, and butter from the grocery store, I could use my
