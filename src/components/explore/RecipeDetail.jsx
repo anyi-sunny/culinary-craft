@@ -25,6 +25,8 @@ import PhaseEditor from '../recipes/PhaseEditor';
 import { recipeMetaDescription, recipeJsonLd } from '../../lib/seo';
 import JsonLd from '../seo/JsonLd';
 import ConsultInventoryModal from './modal/ConsultInventoryModal';
+import UpdateInventoryModal from '../inventory/UpdateInventoryModal';
+import { fetchInventoryItems } from '../../lib/inventoryApiClient';
 import './RecipeDetail.css';
 
 export default function RecipeDetail() {
@@ -58,6 +60,8 @@ export default function RecipeDetail() {
   const [showFinishPopup, setShowFinishPopup] = useState(false);
   const [offerPhoto, setOfferPhoto] = useState(false);
   const [finishPhotoBusy, setFinishPhotoBusy] = useState(false);
+  const [showUpdateInventory, setShowUpdateInventory] = useState(false);
+  const [inventoryItems, setInventoryItems] = useState([]);
   const [commentsFocus, setCommentsFocus] = useState(null);
   const finishPhotoRef = useRef(null);
   const { requireLogin } = useAuthModal();
@@ -282,6 +286,22 @@ export default function RecipeDetail() {
       alert(err.message || 'Could not upload the photo.');
     } finally {
       setFinishPhotoBusy(false);
+    }
+  };
+
+  const handleUpdateInventory = async () => {
+    if (!userId) {
+      requireLogin();
+      return;
+    }
+    try {
+      const items = await fetchInventoryItems();
+      setInventoryItems(items);
+      setShowUpdateInventory(true);
+      setShowFinishPopup(false);
+    } catch (err) {
+      console.error('Error fetching inventory:', err);
+      alert('Could not load your inventory. Please try again.');
     }
   };
 
@@ -614,6 +634,12 @@ export default function RecipeDetail() {
               )}
               <button
                 className="btn btn-secondary"
+                onClick={handleUpdateInventory}
+              >
+                <Package size={16} strokeWidth={2.2} /> Update Inventory
+              </button>
+              <button
+                className="btn btn-secondary"
                 onClick={() => {
                   setShowFinishPopup(false);
                   setCommentsFocus({ tab: 'feedback', ts: Date.now() });
@@ -630,6 +656,15 @@ export default function RecipeDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {showUpdateInventory && recipe && (
+        <UpdateInventoryModal
+          recipe={recipe}
+          inventoryItems={inventoryItems}
+          onClose={() => setShowUpdateInventory(false)}
+          onSave={() => setShowFinishPopup(true)}
+        />
       )}
     </SplashTransition>
   );
