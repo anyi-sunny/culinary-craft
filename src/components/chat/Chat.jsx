@@ -10,6 +10,7 @@ import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
 import { MAX_PDF_BYTES, attachmentContent } from '../../lib/attachments';
 import { normalizeTags } from '../../lib/categories';
 import { normalizeServings } from '../../lib/servings';
+import { recipePath } from '../../lib/recipeUtils';
 import { CategoryChecklist } from '../tags/CategoryTags';
 import TopNav from '../nav/TopNav';
 import { usePageMeta } from '../../lib/usePageMeta';
@@ -160,7 +161,7 @@ function Chat() {
     const [quotaExceeded, setQuotaExceeded] = useState(false);
     // Set after a successful save: shows the "Recipe Saved!" ad interstitial,
     // and its Continue button carries this id to the detail page.
-    const [savedRecipeId, setSavedRecipeId] = useState(null);
+    const [savedRecipePath, setSavedRecipePath] = useState(null);
 
     // Ingredient selector state
     const [showIngredientSelector, setShowIngredientSelector] = useState(false);
@@ -641,7 +642,7 @@ function Chat() {
             // Show the saved confirmation (with ad) first; its Continue button
             // navigates to the recipe detail page.
             setIsConfirmingSave(false);
-            setSavedRecipeId(savedRecipe.recipeId);
+            setSavedRecipePath(recipePath(savedRecipe));
         } catch (err) {
             console.error("Commit Save Error:", err);
             alert("Final save failed.");
@@ -859,9 +860,9 @@ function Chat() {
                 </div>
             )}
 
-            {savedRecipeId && (
+            {savedRecipePath && (
                 <RecipeSavedModal
-                    onContinue={() => navigate(`/recipe/${savedRecipeId}`)}
+                    onContinue={() => navigate(savedRecipePath)}
                 />
             )}
         </SplashTransition>

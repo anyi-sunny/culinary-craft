@@ -5,7 +5,7 @@ import RecipeCard from "../explore/card/RecipeCard";
 import AdCard from "../ads/AdCard";
 import { useRecipes } from "../../lib/useRecipes";
 import { useAuthModal } from "../auth/authModalContext";
-import { heartedByList, isPublished } from "../../lib/recipeUtils";
+import { heartedByList, isPublished, recipePath } from "../../lib/recipeUtils";
 import { ICON_BG_COLORS, iconUrl } from "../../lib/profileIcons";
 import "../explore/Explore.css"; // .recipe-grid
 import "./profile.css";
@@ -106,7 +106,7 @@ export default function PublicProfileView({ profile }) {
                             key={recipe.recipeId}
                             recipe={recipe}
                             userId={viewerId}
-                            onClick={() => navigate(`/recipe/${recipe.recipeId}`)}
+                            onClick={() => navigate(recipePath(recipe))}
                             onToggleHeart={handleHeart}
                         />
                     ))}

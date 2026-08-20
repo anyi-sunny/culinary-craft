@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import RecipeCard from "./card/RecipeCard";
 import SkeletonRecipeCard from "./card/SkeletonRecipeCard";
+import { recipePath } from "../../lib/recipeUtils";
 import "./RecipeCarousel.css";
 
 const MAX_ITEMS = 8;
@@ -246,7 +247,7 @@ export default function RecipeCarousel({
                                           onClick={() =>
                                               onCardClick
                                                   ? onCardClick(recipe)
-                                                  : navigate(`/recipe/${recipe.recipeId}`)
+                                                  : navigate(recipePath(recipe))
                                           }
                                           onToggleHeart={onToggleHeart}
                                           onTogglePublish={onTogglePublish}

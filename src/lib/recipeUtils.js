@@ -58,3 +58,13 @@ export function isOwner(recipe, userId) {
 export function isPublished(recipe) {
     return recipe?.published !== false;
 }
+
+/**
+ * The recipe's public path. New records carry a server-generated `slug`
+ * (the dish name — what search engines and humans want in the URL); records
+ * from before slugs fall back to the raw recipeId, which the route and the
+ * backend page renderer both still resolve.
+ */
+export function recipePath(recipe) {
+    return `/recipe/${recipe?.slug || recipe?.recipeId}`;
+}

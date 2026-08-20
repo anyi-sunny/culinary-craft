@@ -12,6 +12,7 @@ import { saveRecipe } from '../../lib/db';
 import { sanitizeObject } from '../../lib/sanitizer';
 import { normalizeTags } from '../../lib/categories';
 import { normalizeServings } from '../../lib/servings';
+import { recipePath } from '../../lib/recipeUtils';
 import { MAX_PDF_BYTES, encodeAttachment, attachmentContent } from '../../lib/attachments';
 import Paywall from '../Paywall';
 
@@ -190,7 +191,7 @@ export default function UploadRecipe() {
                                 </div>
                             )}
                             <div className="upload-actions">
-                                <button className="btn btn-primary" onClick={() => navigate(`/recipe/${saved.recipeId}`)}>
+                                <button className="btn btn-primary" onClick={() => navigate(recipePath(saved))}>
                                     View recipe
                                 </button>
                                 <button className="btn btn-secondary" onClick={reset}>

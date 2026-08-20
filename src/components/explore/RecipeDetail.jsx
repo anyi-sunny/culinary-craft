@@ -13,7 +13,7 @@ import { useAuthModal } from '../auth/authModalContext';
 import { saveRecipe } from '../../lib/db';
 import { sanitizeInput, sanitizeObject } from '../../lib/sanitizer';
 import { normalizeTags } from '../../lib/categories';
-import { isPublished, creatorName } from '../../lib/recipeUtils';
+import { isPublished, creatorName, recipePath } from '../../lib/recipeUtils';
 import { normalizeServings, formatServings } from '../../lib/servings';
 import { TagOvals, CategoryChecklist } from '../tags/CategoryTags';
 import { getPlaceholderGradient, uploadImageToS3, validateImage } from '../../lib/imageUtils';
@@ -63,13 +63,16 @@ export default function RecipeDetail() {
   const { requireLogin } = useAuthModal();
 
   // Derive the recipe from the shared list instead of mirroring it in state.
-  const recipe = localEdits ?? recipes.find((r) => r.recipeId === id) ?? null;
+  // The URL param is the recipe's slug on new links, the raw recipeId on
+  // links from before slugs existed — both resolve to the same record.
+  const recipe =
+    localEdits ?? recipes.find((r) => r.recipeId === id || r.slug === id) ?? null;
   usePageMeta(
     recipe
       ? {
           title: recipe.title,
           description: recipeMetaDescription(recipe),
-          path: `/recipe/${recipe.recipeId}`,
+          path: recipePath(recipe),
           image: recipe.recipeImage,
         }
       : { title: loading ? null : 'Recipe Not Found' }
@@ -127,7 +130,7 @@ export default function RecipeDetail() {
   };
 
   const handleCopyLink = async () => {
-    const url = `${window.location.origin}/recipe/${recipe.recipeId}`;
+    const url = `${window.location.origin}${recipePath(recipe)}`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -164,7 +167,7 @@ export default function RecipeDetail() {
     setShowServingsAdjuster(false);
     setLocalEdits(null);
     await refresh();
-    if (saved?.recipeId) navigate(`/recipe/${saved.recipeId}`);
+    if (saved?.recipeId) navigate(recipePath(saved));
   };
 
   const handleDelete = async () => {
