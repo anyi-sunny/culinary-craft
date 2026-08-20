@@ -5,11 +5,24 @@ function normalizeForMatching(text) {
   return String(text || '').toLowerCase().trim();
 }
 
+// Measurement and prep words that appear in ingredient lines but say nothing
+// about which food it is — without this list "2 large eggs" would match a
+// "Large Macaroni" inventory item on the word "large".
+const STOPWORDS = new Set([
+  'and', 'the', 'with', 'for', 'into', 'plus', 'taste', 'optional', 'divided',
+  'cup', 'cups', 'tbsp', 'tsp', 'tablespoon', 'tablespoons', 'teaspoon', 'teaspoons',
+  'ounce', 'ounces', 'pound', 'pounds', 'gram', 'grams', 'kilogram', 'kilograms',
+  'pinch', 'dash', 'clove', 'cloves', 'slice', 'slices', 'piece', 'pieces',
+  'small', 'medium', 'large', 'extra', 'fresh', 'freshly', 'dried', 'frozen',
+  'chopped', 'minced', 'diced', 'sliced', 'grated', 'shredded', 'peeled',
+  'finely', 'thinly', 'roughly', 'softened', 'melted', 'room', 'temperature',
+]);
+
 function extractWords(text) {
   return text
     .toLowerCase()
     .split(/[\s\-,()]+/)
-    .filter(w => w.length >= 3);
+    .filter(w => w.length >= 3 && !STOPWORDS.has(w));
 }
 
 function wordMatch(ingredientLine, inventoryName) {

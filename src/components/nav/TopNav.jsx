@@ -20,10 +20,10 @@ const NAV_ITEMS = [
         ],
     },
     {
-        label: "Explore Recipes",
+        label: "Recipe Book",
         children: [
             { label: "Explore", path: "/explore" },
-            { label: "All Published", path: "/explore/all" },
+            { label: "All", path: "/explore/all" },
             { label: "Saved", path: "/favorites", auth: true },
             { label: "My Creations", path: "/my-recipes", auth: true },
         ],

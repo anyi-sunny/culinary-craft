@@ -55,8 +55,12 @@ const RecipeModal = ({
 
     const handleDelete = async () => {
         if (window.confirm('Delete this recipe? This cannot be undone.')) {
-            await onDelete?.(recipe, userId);
-            onClose?.();
+            const success = await onDelete?.(recipe, userId);
+            if (success !== false) {
+                onClose?.();
+            } else {
+                alert('Failed to delete recipe. Please try again.');
+            }
         }
     };
 

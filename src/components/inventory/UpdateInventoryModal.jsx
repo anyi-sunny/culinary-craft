@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Trash2, Plus, Minus, ChevronDown } from 'lucide-react';
 import { updateInventoryItem } from '../../lib/inventoryApiClient';
+import { matchIngredientsToInventory, extractRecipeIngredients } from '../../lib/inventoryMatcher';
 import './UpdateInventoryModal.css';
 
 export default function UpdateInventoryModal({ recipe, inventoryItems, onClose, onSave }) {
@@ -33,65 +34,25 @@ export default function UpdateInventoryModal({ recipe, inventoryItems, onClose, 
   }, []);
 
   // Extract recipe ingredients and find matching inventory items
+  // (shared logic in src/lib/inventoryMatcher.js)
   useEffect(() => {
     if (!recipe?.ingredients && !recipe?.components) {
       setItems([]);
       return;
     }
 
-    const recipeIngredients = extractRecipeIngredients();
-    const matched = [];
-    const matchedItemIds = new Set();
-
-    // For each recipe ingredient, find matching inventory items
-    for (const recipeIng of recipeIngredients) {
-      for (const invItem of inventoryItems) {
-        if (matchedItemIds.has(invItem.itemId)) continue;
-        if (matchIngredient(recipeIng, invItem.name)) {
-          matched.push({
-            id: matched.length,
-            itemId: invItem.itemId,
-            name: invItem.name,
-            quantity: invItem.quantity || '',
-            unit: invItem.unit || '',
-            originalQuantity: invItem.quantity || '',
-            originalUnit: invItem.unit || '',
-          });
-          matchedItemIds.add(invItem.itemId);
-          break;
-        }
-      }
-    }
-
-    setItems(matched);
+    const recipeIngredients = extractRecipeIngredients(recipe);
+    const matched = matchIngredientsToInventory(recipeIngredients, inventoryItems);
+    setItems(matched.map((m, idx) => ({
+      id: idx,
+      itemId: m.itemId,
+      name: m.name,
+      quantity: m.quantity,
+      unit: m.unit,
+      originalQuantity: m.quantity,
+      originalUnit: m.unit,
+    })));
   }, [recipe, inventoryItems]);
-
-  function extractRecipeIngredients() {
-    const ingredients = [];
-
-    if (recipe.components && Array.isArray(recipe.components)) {
-      for (const component of recipe.components) {
-        if (Array.isArray(component.ingredients)) {
-          ingredients.push(...component.ingredients.filter(i => i.trim()));
-        }
-      }
-    } else if (recipe.ingredients) {
-      const lines = String(recipe.ingredients)
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.match(/^for the\s+.+:$/i));
-
-      for (const line of lines) {
-        const cleaned = line
-          .replace(/^[-*•]\s+/, '')
-          .replace(/^\d+[.)]\s+/, '')
-          .trim();
-        if (cleaned) ingredients.push(cleaned);
-      }
-    }
-
-    return ingredients;
-  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -103,13 +64,6 @@ export default function UpdateInventoryModal({ recipe, inventoryItems, onClose, 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  function matchIngredient(ingredientLine, inventoryName) {
-    const ing = ingredientLine.toLowerCase();
-    const inv = inventoryName.toLowerCase();
-    return ing.includes(inv) || inv.includes(ing) ||
-           ing.split(/[\s\-,()]+/).some(w => w.length >= 3 && inv.includes(w));
-  }
 
   function updateQuantity(id, quantity) {
     setItems(prev => prev.map(item =>
@@ -178,13 +132,15 @@ export default function UpdateInventoryModal({ recipe, inventoryItems, onClose, 
     setError('');
 
     try {
-      // Update items that have changed
+      // Update items that have changed. Only the edited fields travel, and
+      // an empty string is meaningful — it clears the quantity ("used it up").
       for (const item of items) {
-        const quantityChanged = item.quantity !== item.originalQuantity;
-        const unitChanged = item.unit !== item.originalUnit;
+        const updates = {};
+        if (item.quantity !== item.originalQuantity) updates.quantity = item.quantity;
+        if (item.unit !== item.originalUnit) updates.unit = item.unit;
 
-        if (quantityChanged || unitChanged) {
-          await updateInventoryItem(item.itemId, item.quantity || null);
+        if (Object.keys(updates).length > 0) {
+          await updateInventoryItem(item.itemId, updates);
         }
       }
 

@@ -119,13 +119,16 @@ export async function addInventoryItem(name, category, quantity = '', unit = '',
 }
 
 /**
- * Update an inventory item
+ * Update an inventory item. `updates` may carry any of {quantity, unit,
+ * notes}; only the fields present are written, and an empty string is a
+ * real value (it clears the field) — omit a field to leave it unchanged.
  */
-export async function updateInventoryItem(itemId, quantity = null, notes = null) {
+export async function updateInventoryItem(itemId, updates = {}) {
     try {
         const body = {};
-        if (quantity !== null) body.quantity = quantity;
-        if (notes !== null) body.notes = notes;
+        if (updates.quantity !== undefined && updates.quantity !== null) body.quantity = updates.quantity;
+        if (updates.unit !== undefined && updates.unit !== null) body.unit = updates.unit;
+        if (updates.notes !== undefined && updates.notes !== null) body.notes = updates.notes;
 
         await apiCall('PUT', `/inventory/items/${itemId}`, body);
     } catch (err) {

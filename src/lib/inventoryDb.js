@@ -50,11 +50,11 @@ export async function addInventoryItem(userId, item) {
 /** Update an existing inventory item. */
 export async function updateInventoryItem(userId, itemId, updates) {
     try {
-        await apiClient.updateInventoryItem(
-            itemId,
-            updates.quantity !== undefined ? updates.quantity : null,
-            updates.notes !== undefined ? updates.notes : null
-        );
+        await apiClient.updateInventoryItem(itemId, {
+            quantity: updates.quantity,
+            unit: updates.unit,
+            notes: updates.notes,
+        });
     } catch (err) {
         console.error('Error updating inventory item:', err);
         throw err;

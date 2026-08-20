@@ -31,6 +31,16 @@ export function useRecipes() {
 
     useEffect(() => {
         refresh();
+
+        // Refetch when the page becomes visible (user switches tabs/windows)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refresh();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [refresh]);
 
     const toggleHeart = useCallback(async (recipe, userId) => {
@@ -43,7 +53,7 @@ export function useRecipes() {
             )
         );
         try {
-            await setHeart(recipe.recipeId, on);
+            await setHeart(recipe.recipeId, userId, on);
         } catch (err) {
             console.error("Heart toggle failed:", err);
             // Revert on failure.
