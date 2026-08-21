@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Paperclip } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Paperclip, RotateCcw, X } from 'lucide-react';
 
 import { saveRecipe } from '../../lib/db';
 import { invokeAgent } from '../../lib/agentApiClient';
@@ -188,6 +189,14 @@ function Chat() {
     // Issues the verify pass flagged on the latest recipe (advisory only).
     const [verifyIssues, setVerifyIssues] = useState([]);
     const [issuesDismissed, setIssuesDismissed] = useState(false);
+
+    // Long conversations cost tokens: the whole history travels with every
+    // turn. After 5 user prompts a dismissible tip under the Clear chat
+    // button suggests starting fresh. The count is derived from the display
+    // transcript, so it survives the localStorage cache restore.
+    const [clearHintDismissed, setClearHintDismissed] = useState(false);
+    const userPromptCount = messages.filter((m) => m.role === 'user').length;
+    const showClearHint = userPromptCount >= 5 && !clearHintDismissed;
 
     const [stagingRecipe, setStagingRecipe] = useState({
         title: '',
@@ -475,6 +484,34 @@ function Chat() {
         greetWithIngredients(mode, selectedItems);
     };
 
+    // Wipe the conversation and start over, exactly like arriving fresh:
+    // every ref and cache the conversation touched is reset, then the
+    // ingredient selector reopens. The cleared history stops travelling
+    // with future requests, which is the token saving.
+    const clearChat = () => {
+        const hasConversation = messages.some((m) => m.role === 'user');
+        if (hasConversation && !window.confirm(
+            'Clear this conversation? Anything not saved will be gone.'
+        )) return;
+
+        clearChatCache();
+        setMessages([]);
+        historyRef.current = [];
+        latestRecipeRef.current = null;
+        agentTagsRef.current = [];
+        agentServingsRef.current = null;
+        recipeContextRef.current = null;
+        editingOriginalRef.current = null;
+        ingredientContextRef.current = null;
+        setActiveRecipeId(null);
+        setVerifyIssues([]);
+        setIssuesDismissed(false);
+        setClearHintDismissed(false);
+        setInput('');
+        setSelectedFile(null);
+        setShowIngredientSelector(true);
+    };
+
     const sendMessage = async () => {
         if (!input.trim() && !selectedFile) return;
         if (quotaExceeded) return;
@@ -716,6 +753,40 @@ function Chat() {
                 <TopNav title="Culinary Craft AI" />
 
                 <div className="messages-area" ref={messagesAreaRef} data-lenis-prevent>
+                    {messages.length > 0 && (
+                        <div className="chat-toolbar">
+                            <button
+                                className="clear-chat-btn"
+                                onClick={clearChat}
+                                title="Start a fresh conversation"
+                            >
+                                <RotateCcw size={14} strokeWidth={2.2} />
+                                Clear chat
+                            </button>
+                            <AnimatePresence>
+                                {showClearHint && (
+                                    <motion.div
+                                        className="clear-chat-hint"
+                                        role="note"
+                                        initial={{ opacity: 0, y: -6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -6 }}
+                                        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                                    >
+                                        <span className="clear-chat-hint-caret" aria-hidden="true" />
+                                        <p>Starting a new recipe? Clear this chat to save token usage!</p>
+                                        <button
+                                            className="clear-chat-hint-dismiss"
+                                            onClick={() => setClearHintDismissed(true)}
+                                            aria-label="Dismiss tip"
+                                        >
+                                            <X size={13} strokeWidth={2.4} />
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    )}
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`message ${msg.role}`}>
                             <div className="message-bubble">

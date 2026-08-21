@@ -68,7 +68,12 @@ async function apiCall(method, path, body = null) {
  */
 export async function invokeAgent(messages) {
     try {
-        return await apiCall('POST', '/agent/invoke', { messages });
+        const result = await apiCall('POST', '/agent/invoke', { messages });
+        // Debug aid for the degenerate-reply investigation: the exact payload
+        // the backend handed us (the Lambda logs the raw model text and the
+        // parsed object on its side).
+        console.log("🤖 Agent payload:", result);
+        return result;
     } catch (err) {
         console.error("Error invoking agent:", err);
         throw err;

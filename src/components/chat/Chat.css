@@ -65,6 +65,83 @@
 .message-bubble p { margin: 0 0 8px; }
 .message-bubble p:last-child { margin-bottom: 0; }
 
+/* --- Clear chat + token-saving tip ---
+   The toolbar rides inside the scroll area but sticks to its top edge, so
+   the reset stays in reach mid-conversation without a header row. The tip
+   hangs below the button with a caret pointing up at it. */
+.chat-toolbar {
+  position: sticky;
+  top: 0;
+  align-self: flex-end;
+  z-index: 6;
+}
+
+.clear-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: color var(--transition), border-color var(--transition);
+}
+.clear-chat-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+.clear-chat-hint {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 236px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(38, 26, 18, 0.14);
+}
+.clear-chat-hint p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.clear-chat-hint-caret {
+  position: absolute;
+  top: -6px;
+  right: 22px;
+  width: 10px;
+  height: 10px;
+  background: var(--surface);
+  border-top: 1px solid var(--accent);
+  border-left: 1px solid var(--accent);
+  transform: rotate(45deg);
+}
+.clear-chat-hint-dismiss {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: -2px -4px 0 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+}
+.clear-chat-hint-dismiss:hover { color: var(--text); background: var(--surface-2); }
+
 /* --- Input Bar ---
    Full-width grounded strip so the prompt entry never looks cut off;
    the controls inside stay aligned with the 900px message column. */
