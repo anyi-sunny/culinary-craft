@@ -38,6 +38,66 @@ function wordMatch(ingredientLine, inventoryName) {
   return matches;
 }
 
+// Singular/plural fold: "tomatoes" ~ "tomato", "olives" ~ "olive"
+function wordsEquivalent(a, b) {
+  return a === b || a.startsWith(b) || b.startsWith(a);
+}
+
+const CONFIDENCE_RANK = { exact: 3, partial: 2, weak: 1 };
+
+/**
+ * How well an inventory item name covers an ingredient name:
+ * - 'exact': the word sets cover each other ("garlic" vs "Garlic")
+ * - 'partial': the inventory item is a more specific variant — it contains
+ *   every ingredient word plus extras ("garlic" vs "Garlic Powder")
+ * - 'weak': the ingredient needs words the item doesn't have, so what's in
+ *   stock may not satisfy it ("tomato paste" vs "Tomatoes")
+ */
+export function matchConfidence(ingredientName, inventoryName) {
+  const ingWords = extractWords(ingredientName);
+  const invWords = extractWords(inventoryName);
+
+  if (ingWords.length === 0 || invWords.length === 0) {
+    return normalizeForMatching(ingredientName) === normalizeForMatching(inventoryName)
+      ? 'exact'
+      : 'weak';
+  }
+
+  const ingCovered = ingWords.every((w) => invWords.some((v) => wordsEquivalent(w, v)));
+  const invCovered = invWords.every((v) => ingWords.some((w) => wordsEquivalent(w, v)));
+
+  if (ingCovered && invCovered) return 'exact';
+  if (ingCovered) return 'partial';
+  return 'weak';
+}
+
+/**
+ * Find the inventory item that best matches a single ingredient name, or null.
+ * Returns {item, confidence} where confidence is 'exact' | 'partial' | 'weak'
+ * (see matchConfidence). Candidates are ranked by confidence, so an exact
+ * "Garlic" beats a partial "Garlic Powder". Unlike matchIngredientsToInventory,
+ * the same inventory item can satisfy multiple ingredient lines (having
+ * "butter" covers both "softened butter" and "melted butter").
+ */
+export function findInventoryMatch(ingredientName, inventoryItems) {
+  if (!ingredientName || !ingredientName.trim()) return null;
+
+  let bestMatch = null;
+  let bestConfidence = null;
+
+  for (const item of inventoryItems) {
+    if (!wordMatch(ingredientName, item.name)) continue;
+
+    const confidence = matchConfidence(ingredientName, item.name);
+    if (!bestMatch || CONFIDENCE_RANK[confidence] > CONFIDENCE_RANK[bestConfidence]) {
+      bestMatch = item;
+      bestConfidence = confidence;
+    }
+  }
+
+  return bestMatch ? { item: bestMatch, confidence: bestConfidence } : null;
+}
+
 /**
  * Match recipe ingredients to user's inventory items.
  * Returns a map of inventory item IDs to their matched ingredient lines.

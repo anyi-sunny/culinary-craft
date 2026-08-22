@@ -54,15 +54,15 @@ export default function PublicProfile() {
             <div className="page">
                 <TopNav />
                 {status === "ready" && (
-                    <>
+                    <div className="fade-in">
                         <div className="page-head">
                             <h1>{profile.username}'s Kitchen</h1>
                         </div>
                         <PublicProfileView profile={profile} />
-                    </>
+                    </div>
                 )}
                 {status === "missing" && (
-                    <div className="gate">
+                    <div className="gate fade-in">
                         <div className="gate-icon">
                             <ChefHat size={36} strokeWidth={1.6} />
                         </div>

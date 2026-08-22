@@ -3,6 +3,10 @@ import { getCurrentUser } from "aws-amplify/auth";
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT;
 const ANONYMOUS_USER_KEY = "culinary_craft_anonymous_id";
 
+// localStorage key holding the user's current shopping list id (shared by the
+// Shopping List page and ConsultInventoryModal so both write to the same list)
+export const SHOPPING_LIST_ID_KEY = "culinary_craft_current_shopping_list_id";
+
 async function getAuthToken() {
     try {
         const user = await getCurrentUser();

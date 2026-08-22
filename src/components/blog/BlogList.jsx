@@ -66,14 +66,14 @@ export default function BlogList() {
                     ))}
                 </div>
             ) : error ? (
-                <div className="blog-empty">
+                <div className="blog-empty fade-in">
                     <p>{error}</p>
                     <button className="btn btn-secondary" onClick={load}>
                         Try again
                     </button>
                 </div>
             ) : posts.length === 0 ? (
-                <div className="blog-empty">
+                <div className="blog-empty fade-in">
                     <NotebookPen size={30} strokeWidth={1.5} />
                     <h3>No posts yet</h3>
                     <p>
@@ -83,7 +83,7 @@ export default function BlogList() {
                     </p>
                 </div>
             ) : (
-                <div className="blog-grid">
+                <div className="blog-grid fade-in-stagger">
                     {posts.map((post) => (
                         <BlogPostCard
                             key={post.slug}

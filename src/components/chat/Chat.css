@@ -28,6 +28,13 @@
   display: flex;
   flex-direction: column;
   max-width: 80%;
+  /* Each message (and the thinking indicator) fades in as it appears;
+     contentFadeIn is the shared reveal keyframe from index.css. */
+  animation: contentFadeIn 0.45s var(--ease) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message { animation: none; }
 }
 
 .message.user { align-self: flex-end; align-items: flex-end; }

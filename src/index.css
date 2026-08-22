@@ -381,6 +381,63 @@ button:focus {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* =========================================================
+   Content reveal — shared fade-in for anything that appears
+   after a loading state (skeletons, spinners, fetches).
+   `.fade-in` softens a single block; `.fade-in-stagger` on a
+   container cascades its direct children. Animations run on
+   mount, so keyed list items keep their reveal when more are
+   loaded without replaying on unrelated re-renders.
+   ========================================================= */
+@keyframes contentFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* fill-mode backwards: hidden through the stagger delay, but every property
+   is released when the animation ends — a filling animation would otherwise
+   override inline styles (e.g. framer-motion hover transforms) forever. */
+.fade-in {
+  animation: contentFadeIn 0.55s var(--ease) backwards;
+}
+
+.fade-in-stagger > * {
+  animation: contentFadeIn 0.55s var(--ease) backwards;
+}
+.fade-in-stagger > :nth-child(2) { animation-delay: 45ms; }
+.fade-in-stagger > :nth-child(3) { animation-delay: 90ms; }
+.fade-in-stagger > :nth-child(4) { animation-delay: 135ms; }
+.fade-in-stagger > :nth-child(5) { animation-delay: 180ms; }
+.fade-in-stagger > :nth-child(6) { animation-delay: 225ms; }
+.fade-in-stagger > :nth-child(7) { animation-delay: 270ms; }
+.fade-in-stagger > :nth-child(8) { animation-delay: 315ms; }
+.fade-in-stagger > :nth-child(9) { animation-delay: 360ms; }
+.fade-in-stagger > :nth-child(10) { animation-delay: 405ms; }
+.fade-in-stagger > :nth-child(11) { animation-delay: 450ms; }
+.fade-in-stagger > :nth-child(12) { animation-delay: 495ms; }
+/* Deep lists (Load More pages) settle together instead of trickling */
+.fade-in-stagger > :nth-child(n + 13) { animation-delay: 520ms; }
+
+/* Network images (FadeImage component) ease in once the file has loaded */
+.img-fade {
+  opacity: 0;
+  transition: opacity 0.5s var(--ease);
+}
+.img-fade.loaded {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in,
+  .fade-in-stagger > * {
+    animation: none;
+  }
+  .img-fade {
+    opacity: 1;
+    transition: none;
+  }
+}
+
 @media (max-width: 600px) {
   .modal-content {
     padding: 22px;

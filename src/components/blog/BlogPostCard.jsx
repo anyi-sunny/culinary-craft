@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Settings2, ArrowRight } from "lucide-react";
 import { getPlaceholderGradient } from "../../lib/imageUtils";
 import { formatPostDate } from "./postDate";
+import FadeImage from "../FadeImage";
 
 /**
  * One post in the blog grid. Clicking anywhere opens the full post; the
@@ -28,7 +29,7 @@ export default function BlogPostCard({ post, onOpen, onEdit }) {
                 }
             >
                 {post.coverImage ? (
-                    <img src={post.coverImage} alt="" className="blog-card-img" />
+                    <FadeImage src={post.coverImage} alt="" className="blog-card-img" />
                 ) : (
                     <span className="blog-card-monogram">
                         {(post.title || "?").trim().charAt(0).toUpperCase()}

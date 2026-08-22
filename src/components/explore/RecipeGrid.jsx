@@ -412,7 +412,7 @@ export default function RecipeGrid({
                 </div>
             )}
 
-            <div className="recipe-grid">
+            <div className={`recipe-grid${loading ? "" : " fade-in-stagger"}`}>
                 {loading ? (
                     Array.from({ length: 6 }).map((_, index) => (
                         <SkeletonRecipeCard key={`skeleton-${index}`} />

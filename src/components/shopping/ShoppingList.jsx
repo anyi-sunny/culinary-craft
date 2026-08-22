@@ -9,13 +9,11 @@ import { useAuthModal } from '../auth/authModalContext';
 import { usePageMeta } from '../../lib/usePageMeta';
 import { DEMO_SHOPPING_LIST } from '../../lib/demoData';
 import { addInventoryItem, deleteInventoryItem } from '../../lib/inventoryDb';
-import { createShoppingList, updateShoppingList, getShoppingList } from '../../lib/shoppingListApi';
+import { createShoppingList, updateShoppingList, getShoppingList, SHOPPING_LIST_ID_KEY } from '../../lib/shoppingListApi';
 import { deduplicateShoppingList } from '../../lib/shoppingListUtils';
 import { searchRecipes } from '../../lib/recipeSearch';
 import { useRecipes } from '../../lib/useRecipes';
 import './ShoppingList.css';
-
-const SHOPPING_LIST_ID_KEY = 'culinary_craft_current_shopping_list_id';
 
 // readOnly (guest preview): the edit button defers to onEdit directly (the
 // login prompt) instead of opening the inline editor.
@@ -508,7 +506,7 @@ const ShoppingList = () => {
       const successCount = itemsToAdd.length - failures.length;
       const successfulItems = itemsToAdd.filter((item, idx) => !results[idx].error);
       const successfulInvItems = results
-        .map((result, idx) => !result.error ? { itemId: result.itemId || result.id } : null)
+        .map((result) => !result.error ? { itemId: result.itemId || result.id } : null)
         .filter(Boolean);
 
       // Remove successfully added items from shopping list
@@ -670,7 +668,7 @@ const ShoppingList = () => {
                   </div>
                 </div>
 
-                <div className="shopping-items">
+                <div className="shopping-items fade-in-stagger">
                   {DEMO_SHOPPING_LIST.map((item) => (
                     <div
                       key={item.id}
@@ -843,14 +841,14 @@ const ShoppingList = () => {
               </div>
 
           {shoppingList.length === 0 ? (
-            <div className="empty-shopping-list">
+            <div className="empty-shopping-list fade-in">
               <p>Your shopping list is empty</p>
               <button className="btn btn-primary" onClick={() => navigate('/explore')}>
                 Browse Recipes
               </button>
             </div>
           ) : (
-              <div className="shopping-items">
+              <div className="shopping-items fade-in-stagger">
                 {shoppingList.map(item => {
                   const isChecked = checkedItems[item.id] || false;
                   const addedToInventory = item.addedToInventory || false;

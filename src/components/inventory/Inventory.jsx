@@ -528,7 +528,7 @@ const Inventory = () => {
                 {showLoading ? (
                     <InventoryLoading />
                 ) : (
-                    <div className="inventory-grid">
+                    <div className="inventory-grid fade-in-stagger">
                         {allCategories.map((category) => (
                             <div key={category.id} className="category-section">
                                 <h2 className="category-title">{category.label}</h2>

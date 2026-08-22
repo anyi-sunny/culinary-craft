@@ -8,6 +8,7 @@ import { sanitizeObject } from "../../../lib/sanitizer";
 import { normalizeTags } from "../../../lib/categories";
 import { normalizeServings, formatServings } from "../../../lib/servings";
 import { TagOvals, CategoryChecklist } from "../../tags/CategoryTags";
+import FadeImage from "../../FadeImage";
 import { recipeParts, editablePhases, phasesToRecipeFields } from "../../../lib/recipeParts";
 import RecipeParts from "../../recipes/RecipeParts";
 import PhaseEditor from "../../recipes/PhaseEditor";
@@ -237,7 +238,7 @@ const RecipeModal = ({
                     }}
                 >
                     {editedRecipe.recipeImage ? (
-                        <img
+                        <FadeImage
                             src={editedRecipe.recipeImage}
                             alt={recipeTitle(editedRecipe)}
                             className="recipe-image"

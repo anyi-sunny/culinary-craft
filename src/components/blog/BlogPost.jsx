@@ -11,6 +11,7 @@ import { blogMetaDescription, blogPostJsonLd } from "../../lib/seo";
 import { fetchBlogPost, fetchAdminBlogPost } from "../../lib/blogApiClient";
 import BlogEditor from "./BlogEditor";
 import { formatPostDate } from "./postDate";
+import FadeImage from "../FadeImage";
 import "./blog.css";
 
 /**
@@ -96,7 +97,7 @@ export default function BlogPost() {
                     )}
 
                     {status === "missing" && (
-                        <div className="blog-empty blog-post-card">
+                        <div className="blog-empty blog-post-card fade-in">
                             <NotebookPen size={30} strokeWidth={1.5} />
                             <h3>This post isn't here</h3>
                             <p>It may have been removed, or the link may be wrong.</p>
@@ -107,7 +108,7 @@ export default function BlogPost() {
                     )}
 
                     {status === "error" && (
-                        <div className="blog-empty blog-post-card">
+                        <div className="blog-empty blog-post-card fade-in">
                             <p>Could not load this post just now.</p>
                             <button className="btn btn-secondary" onClick={reload}>
                                 Try again
@@ -116,9 +117,9 @@ export default function BlogPost() {
                     )}
 
                     {status === "ready" && (
-                        <article className="blog-post-card">
+                        <article className="blog-post-card fade-in">
                             {post.coverImage && (
-                                <img
+                                <FadeImage
                                     src={post.coverImage}
                                     alt=""
                                     className="blog-post-cover"

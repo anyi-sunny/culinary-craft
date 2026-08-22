@@ -204,11 +204,11 @@ const IngredientSelector = ({ userId, isOpen, onConfirm, onCancel, items = null 
                                         Loading inventory
                                     </div>
                                 ) : inventoryItems.length === 0 ? (
-                                    <div className="selector-empty">
+                                    <div className="selector-empty fade-in">
                                         Your inventory is empty. Add items in the Inventory page first.
                                     </div>
                                 ) : (
-                                    <div className="selector-categories">
+                                    <div className="selector-categories fade-in-stagger">
                                         {PREDEFINED_CATEGORIES.map((cat) => {
                                             const categoryData = groupedItems[cat.id];
                                             if (categoryData.items.length === 0) return null;

@@ -217,7 +217,7 @@ export default function RecipeCarousel({
                 onMouseLeave={onMouseLeave}
             >
                 <div
-                    className="carousel-track"
+                    className={`carousel-track${loading ? "" : " fade-in-stagger"}`}
                     ref={trackRef}
                     style={trackStyle}
                     onTransitionEnd={isMobile ? onMobileTransitionEnd : undefined}

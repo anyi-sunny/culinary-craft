@@ -98,7 +98,7 @@ export default function RecipeComments({ recipe, userId, onRequireLogin, focusRe
                 ))}
             </div>
 
-            <div className="comments-list">
+            <div className={`comments-list${loading ? "" : " fade-in-stagger"}`}>
                 {loading ? (
                     <p className="comments-empty">Loading comments…</p>
                 ) : visible.length === 0 ? (

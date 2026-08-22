@@ -5,6 +5,7 @@ import { Bookmark, Package, Pencil, Sparkles, Trash2, Copy, ChefHat, Camera, Mes
 import SplashTransition from '../SplashTransition';
 import TopNav from '../nav/TopNav';
 import RecipeActionsMenu from './RecipeActionsMenu';
+import FadeImage from '../FadeImage';
 import RecipeComments from './RecipeComments';
 import CookMode from '../cook/CookMode';
 import ServingsAdjuster from '../servings/ServingsAdjuster';
@@ -111,7 +112,7 @@ export default function RecipeDetail() {
         <div className="page">
           <TopNav />
           <div className="recipe-detail-container">
-            <div className="recipe-not-found">
+            <div className="recipe-not-found fade-in">
               <h2>Recipe not found</h2>
               <p>The recipe you're looking for doesn't exist.</p>
               <button className="btn btn-primary" onClick={() => navigate('/explore')}>
@@ -313,7 +314,7 @@ export default function RecipeDetail() {
   // Changing the serving size is open to everyone: the adjustment is
   // temporary and never touches the original recipe.
   const adjustServingsItem = {
-    label: 'Change Serving Size',
+    label: 'Try Different Serving Size',
     icon: Users,
     onClick: () => {
       if (!userId) {
@@ -346,10 +347,10 @@ export default function RecipeDetail() {
       ]
     : [
         // Inventory + shopping list are account features; prompt guests to log in.
-        { label: 'Consult Inventory', icon: Package, onClick: () => (userId ? setShowConsultInventory(true) : requireLogin()) },
+        { label: 'Consult Inventory & Shopping List', icon: Package, onClick: () => (userId ? setShowConsultInventory(true) : requireLogin()) },
         adjustServingsItem,
-        { label: 'Copy & Edit', icon: Copy, onClick: handleCopyAndEdit },
-        { label: 'Copy & Improve with AI', icon: Sparkles, onClick: handleCopyAndEdit },
+        { label: 'Copy & Edit New Version', icon: Copy, onClick: handleCopyAndEdit },
+        { label: 'Copy & Improve New Versionwith AI', icon: Sparkles, onClick: handleCopyAndEdit },
       ];
 
   return (
@@ -378,7 +379,7 @@ export default function RecipeDetail() {
 
       <div className="page">
         <TopNav />
-        <div className="recipe-detail-container">
+        <div className="recipe-detail-container fade-in">
           <button className="recipe-detail-back" onClick={() => navigate(-1)}>
             ← Back
           </button>
@@ -386,7 +387,7 @@ export default function RecipeDetail() {
           {/* Image Section (editable when in edit mode) */}
           <div className="recipe-detail-image-container">
             {(isEditing ? editData.recipeImage : recipe.recipeImage) ? (
-              <img
+              <FadeImage
                 src={isEditing ? editData.recipeImage : recipe.recipeImage}
                 alt={recipe.title}
               />

@@ -5,6 +5,7 @@ import { Bookmark, ArrowRight, EyeOff, Globe } from "lucide-react";
 import { recipeTitle, isHearted, heartedByList, isOwner, isPublished, creatorName } from "../../../lib/recipeUtils";
 import { getPlaceholderGradient } from "../../../lib/imageUtils";
 import { TagOvals } from "../../tags/CategoryTags";
+import FadeImage from "../../FadeImage";
 import "./RecipeCard.css";
 
 const RecipeCard = ({ recipe, onClick, onToggleHeart, onTogglePublish, userId }) => {
@@ -27,7 +28,7 @@ const RecipeCard = ({ recipe, onClick, onToggleHeart, onTogglePublish, userId })
         >
             <div className="card-media">
                 {recipe.recipeImage ? (
-                    <img
+                    <FadeImage
                         src={recipe.recipeImage}
                         alt={name}
                         className="card-image-img"
